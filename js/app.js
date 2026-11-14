@@ -487,7 +487,9 @@ async function startLightning(mode) {
   announce(mode === 'scan'
     ? `Scanning lightning from ${from}, ring around ${centreLabel()}, ${state.durationS} seconds.`
     : `Playing the whole lightning video from ${from}.`);
-  try { await v.play(); } catch (err) { console.error(err); }
+  // Do not wait for playback to begin: on a slow network the video may still be buffering,
+  // and the ring must start on time, reading the frame already on screen.
+  v.play().catch((err) => console.error(err));
   liveScan.start({
     getFrame: () => lightning.frame(),
     center: state.center,
@@ -1573,6 +1575,8 @@ async function prepareDemo() {
   const seeked = new Promise((r) => { vid.addEventListener('seeked', r, { once: true }); setTimeout(r, 4000); });
   lightning.seekTo(DEMO_LIGHTNING_AT);
   if (vid.seeking) await seeked;
+  // Enough of the video buffered to play its scene without a stall.
+  if (vid.readyState < 4) await Promise.race([new Promise((r) => vid.addEventListener('canplaythrough', r, { once: true })), new Promise((r) => setTimeout(r, 6000))]);
   start.disabled = false;
   start.textContent = 'Start the 28-second demo';
   $('demo-status').textContent = 'Ready. Turn your sound on, then press the button.';
