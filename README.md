@@ -197,7 +197,7 @@ For noise-based instruments, the centre of the noise band follows the same compa
 
 | Phenomenon | Instrument |
 |---|---|
-| City lights | Warm triangle tone that opens up (gets brighter) with more light |
+| City lights | Warm triangle tone with a gentle twinkle (5.5 Hz tremolo); it opens up (gets brighter) with more light |
 | More light (change) | High, bright sparkle (one octave up) |
 | Less light (change) | Low, muffled buzz (one octave down) |
 | Little change | Soft, quiet sine |

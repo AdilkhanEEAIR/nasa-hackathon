@@ -14,7 +14,9 @@ const SMOOTH = 0.06;          // seconds; gain glides avoid zipper noise between
 
 /** Default single instrument (night lights): triangle wave, brightness opens the filter. */
 export const DEFAULT_LAYERS = [
-  { name: 'main', type: 'triangle', octave: 0, cutoffLo: 600, cutoffHi: 4800, peak: 1 },
+  // City lights: a warm triangle tone with a gentle twinkle (tremolo), so it is recognisable
+  // and never confused with the plain "more light" sparkle of the change track.
+  { name: 'main', type: 'triangle', octave: 0, cutoffLo: 600, cutoffHi: 4800, peak: 1.05, tremolo: { rate: 5.5, depth: 0.35 } },
 ];
 
 export class SonicEngine {
@@ -161,7 +163,21 @@ export class SonicEngine {
       filter.Q.value = spec.q ?? 0.7;
       const gain = ctx.createGain();
       gain.gain.value = 0;
-      osc.connect(filter).connect(gain).connect(pan);
+      if (spec.tremolo) {
+        // Amplitude modulation between (1 - depth) and 1; each voice gets a slightly different
+        // rate so the ring twinkles instead of pulsing in unison.
+        const am = ctx.createGain();
+        am.gain.value = 1 - spec.tremolo.depth / 2;
+        const lfo = ctx.createOscillator();
+        lfo.frequency.value = spec.tremolo.rate * (0.92 + 0.16 * Math.random());
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = spec.tremolo.depth / 2;
+        lfo.connect(lfoGain).connect(am.gain);
+        lfo.start(t0);
+        osc.connect(filter).connect(am).connect(gain).connect(pan);
+      } else {
+        osc.connect(filter).connect(gain).connect(pan);
+      }
       // Random start offsets decorrelate the 16 copies of a noise texture.
       if (source === 'osc') osc.start(t0);
       else osc.start(t0, Math.random() * osc.buffer.duration);
