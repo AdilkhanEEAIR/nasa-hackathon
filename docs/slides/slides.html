@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EarthSonar — slides</title>
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+  :root { --bg: #06080d; --panel: #111824; --line: #233044; --text: #f4f6fb; --muted: #b9c3d3; --amber: #ffd56a; --cyan: #7cd8ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+  .slide {
+    width: 13.333in; height: 7.5in; padding: 0.55in 0.7in; page-break-after: always; break-after: page;
+    position: relative; overflow: hidden;
+    background: radial-gradient(900px 400px at 85% -10%, #142036 0%, transparent 60%), var(--bg);
+  }
+  .slide:last-child { page-break-after: auto; break-after: auto; }
+  .eyebrow { font-size: 14pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0 0 8pt; }
+  h1 { font-size: 64pt; margin: 0 0 10pt; letter-spacing: -0.02em; }
+  h2 { font-size: 34pt; margin: 0 0 16pt; }
+  p, li, td, th { font-size: 17pt; line-height: 1.35; }
+  .lede { font-size: 24pt; color: var(--text); max-width: 9.5in; }
+  .muted { color: var(--muted); }
+  .amber { color: var(--amber); }
+  .cyan { color: var(--cyan); }
+  .grid2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0.45in; align-items: start; }
+  img.shot { width: 100%; max-height: 3.3in; object-fit: cover; object-position: top; border-radius: 12px; border: 1px solid var(--line); }
+  td { font-size: 15pt; }
+  table.tight td, table.tight th { padding: 4pt 8pt; font-size: 14pt; }
+  ul { margin: 0; padding-left: 1.1em; }
+  li { margin: 0 0 8pt; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: 6pt 10pt; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 14pt; }
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14pt; margin: 18pt 0; }
+  .rule { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14pt; }
+  .rule b { display: block; font-size: 20pt; color: var(--amber); margin-bottom: 4pt; }
+  .placeholder { border: 2px dashed var(--cyan); border-radius: 14px; padding: 16pt; color: var(--cyan); }
+  .foot { position: absolute; left: 0.7in; right: 0.7in; bottom: 0.35in; display: flex; justify-content: space-between; color: var(--muted); font-size: 12pt; }
+  kbd { font-family: Consolas, monospace; font-size: 0.85em; padding: 1pt 6pt; border: 1px solid #556; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Title -->
+<section class="slide">
+  <p class="eyebrow">NASA Space Apps Challenge 2026 · The Earth Information Jukebox · Bishkek</p>
+  <h1>EarthSonar</h1>
+  <p class="lede">A jukebox for NASA Earth visualizations. A ring of sound closes in on any place on Earth, so you can <span class="amber">hear</span> what the map shows. Built first for blind and low-vision people.</p>
+  <div class="grid2" style="margin-top:22pt">
+    <img class="shot" style="max-height:2.6in" src="../screenshots/desktop-scan.jpg" alt="EarthSonar scanning night lights around China">
+    <div>
+      <p><b>Try it:</b> <span class="cyan">earthsonar.vercel.app</span></p>
+      <p><b>Code:</b> <span class="cyan">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
+      <p class="muted">Team: [names] · Software: Adilkhan Dzhanteliev · Hardware: [teammates]</p>
+    </div>
+  </div>
+  <div class="foot"><span>EarthSonar</span><span>1 / 7</span></div>
+</section>
+
+<!-- 2. Problem -->
+<section class="slide">
+  <p class="eyebrow">The problem</p>
+  <h2>Earth science reaches people almost only through the eyes</h2>
+  <div class="grid2">
+    <ul>
+      <li>NASA's Earth Information Center tells the story of a changing planet with stunning visualizations, and only visualizations.</li>
+      <li>Globally, <b>at least 2.2 billion people</b> have a near or distance vision impairment <span class="muted">(WHO, World report on vision, 2019)</span>. For many of them a map is silent.</li>
+      <li>Most sonification projects play a picture line by line. You hear a melody but not <b>where</b> things are.</li>
+    </ul>
+    <div>
+      <p class="lede" style="font-size:22pt">Our question:</p>
+      <p class="lede" style="font-size:26pt">Can you <span class="amber">navigate</span> an Earth visualization by ear and by touch, and understand where the planet is bright, smoky, stormy, warm or cold?</p>
+    </div>
+  </div>
+  <div class="foot"><span>EarthSonar</span><span>2 / 7</span></div>
+</section>
+
+<!-- 3. Solution -->
+<section class="slide">
+  <p class="eyebrow">The solution</p>
+  <h2>A sonar for Earth data: the shrinking ring</h2>
+  <div class="rules">
+    <div class="rule"><b>↑ High notes</b>come from the north, low notes from the south</div>
+    <div class="rule"><b>→ Right ear</b>is east, left ear is west</div>
+    <div class="rule"><b>◉ Louder</b>means more (light, dust, storms…)</div>
+    <div class="rule"><b>♪ Timbre</b>says <i>what</i> it is: each phenomenon has its own voice</div>
+  </div>
+  <div class="grid2">
+    <ul>
+      <li>Pick a place. 16 voices on a ring start up to 4,000 km away and close in on it. At the end the ring meets in one note: the value at the centre.</li>
+      <li>The ring is computed on the sphere (great-circle distance), so it is true on Earth at any zoom.</li>
+      <li><b>Explore mode</b>: walk a probe with the arrow keys. A voice names the place: "110 km south of Bishkek".</li>
+      <li><b>Play all years</b>: 2012→2023 as a melody. <b>Save scan as WAV</b>: build your own Earth playlist.</li>
+    </ul>
+    <img class="shot" src="../screenshots/zoom-europe.jpg" alt="Ring scan over Europe, zoomed">
+  </div>
+  <div class="foot"><span>EarthSonar</span><span>3 / 7</span></div>
+</section>
+
+<!-- 4. How it sounds -->
+<section class="slide">
+  <p class="eyebrow">How it sounds</p>
+  <h2>One rule, a different voice for every phenomenon</h2>
+  <div class="grid2">
+    <table>
+      <tr><th>Track</th><th>Phenomenon</th><th>Voice</th></tr>
+      <tr><td>01 Night Lights 2012–2023</td><td>City lights</td><td>Warm, twinkling tone</td></tr>
+      <tr><td>02 What Changed</td><td>More / less / same light</td><td>High sparkle / low buzz / soft sine</td></tr>
+      <tr><td>03 Aerosols</td><td>Smoke · dust · sea salt · sulfate</td><td>Crackle · dry rustle · surf · buzz</td></tr>
+      <tr><td>04 Lightning (ISS)</td><td>New flash · storm density</td><td>Sharp crack · thunder rumble</td></tr>
+      <tr><td>05 Ocean Temperature</td><td>Cold → warm water</td><td>Dull dark tone → bright rich tone</td></tr>
+    </table>
+    <div>
+      <img class="shot" src="../screenshots/aerosols-scan.jpg" alt="Aerosols track: voices coloured by instrument">
+      <p class="muted" style="font-size:14pt">Major pentatonic scale, so any combination stays musical. Loudness is matched across tracks (RMS 0.07–0.12, no clipping).</p>
+    </div>
+  </div>
+  <div class="foot"><span>EarthSonar</span><span>4 / 7</span></div>
+</section>
+
+<!-- 5. NASA data -->
+<section class="slide">
+  <p class="eyebrow">NASA data, read honestly</p>
+  <h2 style="font-size:28pt">We sonify the rendered EIC visualizations, by fixed rules</h2>
+  <table class="tight">
+    <tr><th>NASA SVS visualization</th><th>ID</th><th>What we read</th></tr>
+    <tr><td>Change in Night Lights 2012–2023 (EIC version), Black Marble</td><td>5313</td><td>Brightness per year · change-map hue (purple / orange / white)</td></tr>
+    <tr><td>GEOS Aerosols, 19 Aug 2025</td><td>5669</td><td>Nearest legend colour → 4 types; no sea salt on land; city dots removed</td></tr>
+    <tr><td>Lightning Events Detected from the ISS 2017–2023</td><td>5011</td><td>Yellow dots per video frame; new dots = strikes; official dates (a "2003" typo fixed)</td></tr>
+    <tr><td>Global Sea Surface Currents and Temperature (ECCO2)</td><td>3912</td><td>Hue matched to the 0–32 °C colorbar (round-trip error ≤ 1.5 °C)</td></tr>
+  </table>
+  <ul style="margin-top:10pt; font-size:15pt">
+    <li>Fixed rules, never normalised per frame. Frame indices, crops and georeferencing are measured from the pixels (<span class="cyan">docs/DATA_NOTES.md</span>).</li>
+    <li>Stated limits: the aerosol legend has no amounts · lightning only within ±52° (silence = no data) · the ocean frame is one day, not a trend.</li>
+  </ul>
+  <div class="foot"><span>EarthSonar</span><span>5 / 7</span></div>
+</section>
+
+<!-- 6. Accessibility & hardware -->
+<section class="slide">
+  <p class="eyebrow">Accessibility and hardware</p>
+  <h2>Keyboard only, screen-reader ready, and you can feel it</h2>
+  <div class="grid2">
+    <ul>
+      <li><b>No mouse needed:</b> <kbd>Space</kbd> play · arrows move · <kbd>PgUp</kbd>/<kbd>PgDn</kbd> year · <kbd>W</kbd> where am I · <kbd>E</kbd> explore · <kbd>T</kbd> tutorial.</li>
+      <li>Labelled controls, a live status region, a spoken guide (can be turned off for screen readers), a 10-second sound tutorial.</li>
+      <li>High contrast, large targets, keyboard hints always on screen, <i>prefers-reduced-motion</i> respected.</li>
+      <li>Fast for everyone: first screen 0.14 MB, ready in under 1.5 s on slow 4G.</li>
+    </ul>
+    <div>
+      <p><b>Tactile controller (Arduino, USB, Web Serial)</b></p>
+      <ul>
+        <li>Joystick moves the centre · knob picks the year · button plays.</li>
+        <li><b>4 vibration motors N / E / S / W</b>: a tactile compass driven by the same ring. Lightning strikes are jolts on their side.</li>
+        <li>Open protocol and firmware. Android phones can vibrate instead.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>EarthSonar</span><span>6 / 7</span></div>
+</section>
+
+<!-- 7. Validation & links -->
+<section class="slide">
+  <p class="eyebrow">Validation and links</p>
+  <h2>What we checked, and what we are still testing</h2>
+  <div class="grid2">
+    <div>
+      <ul>
+        <li>Automated tests for ring geometry, map georeferencing, sound mapping and the controller protocol.</li>
+        <li>Byte-exact sound data: browser-decoded grids match the prepared values.</li>
+        <li>Values cross-checked against the frames, e.g. ocean: equatorial Pacific 27 °C, Southern Ocean 1 °C.</li>
+      </ul>
+      <div class="placeholder" style="margin-top:14pt">
+        <b>Blindfold test with volunteers</b><br>
+        [RESULTS TO BE ADDED AFTER THE TEST — no numbers yet]<br>
+        Tasks: which year is brighter (region) · where is more light · where is dust vs smoke.
+      </div>
+    </div>
+    <div>
+      <p class="lede" style="font-size:22pt"><b>Try it:</b> <span class="cyan">earthsonar.vercel.app</span></p>
+      <p><b>Demo mode:</b> <span class="cyan">earthsonar.vercel.app/?demo</span></p>
+      <p><b>Code and data notes:</b> <span class="cyan">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
+      <p class="muted" style="font-size:14pt">AI use: code written with Claude (Anthropic) under the team's direction and review. No AI-generated images, video or audio; all sound is synthesised live by documented rules. Data: NASA Scientific Visualization Studio. Not endorsed by NASA.</p>
+    </div>
+  </div>
+  <div class="foot"><span>EarthSonar</span><span>7 / 7</span></div>
+</section>
+
+</body>
+</html>
