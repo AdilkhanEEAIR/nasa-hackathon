@@ -668,6 +668,11 @@ async function selectTrack(id) {
   const yearsOnly = id === 'nightlights';
   for (const b of ['btn-prev-year', 'btn-next-year']) $(b).disabled = !(yearsOnly || isLt);
   $('year').disabled = !yearsOnly;
+  // WAV export renders offline from still frames; the lightning video has no such path.
+  const wav = $('btn-wav');
+  if (isLt) { wav.setAttribute('aria-disabled', 'true'); wav.setAttribute('aria-describedby', 'wav-note'); }
+  else { wav.removeAttribute('aria-disabled'); wav.removeAttribute('aria-describedby'); }
+  $('wav-note').hidden = !isLt;
   $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
   await currentFields();
   showFrame();
@@ -1025,7 +1030,7 @@ async function saveWav() {
   if (state.busy || !requireReadyTrack()) return;
   if (state.track === 'lightning') {
     // Offline rendering needs every video frame decoded in advance; not built yet.
-    announce('Saving as WAV is not available for the lightning video yet. Tracks 1 to 3 can be saved.');
+    announce($('wav-note').textContent);
     return;
   }
   state.busy = true;
@@ -1073,6 +1078,20 @@ function toggleVoice(force) {
   voice.setEnabled(on);
   $('voice').checked = on;
   announce(`Voice guide ${on ? 'on' : 'off'}.`, { speak: on });
+}
+
+let labelLayer = null;
+/** Borders and city names (Natural Earth), drawn over the map only; they make no sound. */
+async function toggleLabels(force) {
+  const on = typeof force === 'boolean' ? force : !view.labels;
+  if (on && !labelLayer) {
+    const ne = state.manifest.naturalEarth;
+    const [borders, cities] = await Promise.all([fetch(ne.borders).then((r) => r.json()), fetch(ne.cities).then((r) => r.json())]);
+    labelLayer = { borders, cities };
+  }
+  view.setLabels(on ? labelLayer : null);
+  $('labels').checked = on;
+  announce(on ? 'Borders and city names shown on the map. They are visual only and make no sound.' : 'Map labels hidden.');
 }
 
 function toggleCoast(force) {
@@ -1179,6 +1198,7 @@ function onKey(e) {
     case 'y': case 'Y': yearSweep(); break;
     case 'c': case 'C': toggleCoast(); break;
     case 'v': case 'V': toggleVoice(); break;
+    case 'l': case 'L': toggleLabels(); break;
     case 'w': case 'W': whereAmI(); break;
     case 'e': case 'E': toggleExplore(); break;
     case 's': case 'S': saveWav(); break;
@@ -1232,6 +1252,7 @@ function wire() {
     $('volume-out').textContent = `${e.target.value}%`;
   });
   $('coast').addEventListener('change', (e) => toggleCoast(e.target.checked));
+  $('labels').addEventListener('change', (e) => toggleLabels(e.target.checked));
   $('voice').checked = voice.enabled;
   $('voice').disabled = !voice.supported;
   $('voice').addEventListener('change', (e) => toggleVoice(e.target.checked));

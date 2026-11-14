@@ -175,6 +175,37 @@ export class MapView {
     this.draw();
   }
 
+  /** Optional visual layer: country borders and city names (Natural Earth). Never sonified. */
+  setLabels(layer) {
+    this.labels = layer;
+    this.draw();
+  }
+
+  _drawLabels() {
+    const { ctx } = this;
+    const k = this.dpr;
+    const { borders, cities } = this.labels;
+    ctx.lineWidth = 1 * k;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.38)';
+    for (const line of borders) this._polyline(line.map(([lon, lat]) => ({ lat, lon })), false);
+    // More names as you zoom in, largest cities first, so the map never turns into a wall of text.
+    const limit = Math.round(25 * this.cam.s * this.cam.s);
+    ctx.font = `${Math.round(12 * k)}px system-ui, sans-serif`;
+    ctx.textBaseline = 'middle';
+    for (const c of cities.slice(0, limit)) {
+      const p = this._project(c);
+      if (p.x < 0 || p.y < 0 || p.x > this.W || p.y > this.H) continue;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 2 * k, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillText(c.name, p.x + 5 * k + 1, p.y + 1);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillText(c.name, p.x + 5 * k, p.y);
+    }
+  }
+
   /** One expanding ring at the centre when the final note sounds. Plays once, never loops. */
   pulseCentre(level) {
     cancelAnimationFrame(this._rippleRaf);
@@ -217,6 +248,8 @@ export class MapView {
     const { ctx } = this;
     const k = this.dpr;
     ctx.clearRect(0, 0, this.W, this.H);
+
+    if (this.labels) this._drawLabels();
 
     if (this.ring) {
       ctx.lineCap = 'round';

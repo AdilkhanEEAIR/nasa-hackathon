@@ -74,6 +74,8 @@
         <button id="btn-stop" type="button" class="ghost" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
       </div>
 
+      <p id="wav-note" class="caption wav-note" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2, 3 and 5 can be saved.</p>
+
       <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
 
       <div class="stage" role="application" aria-roledescription="sound map" aria-describedby="keybar-title">
@@ -131,6 +133,10 @@
         <label for="coast">Click at coastlines <kbd>C</kbd></label>
       </div>
       <div class="field check">
+        <input id="labels" type="checkbox" aria-keyshortcuts="L">
+        <label for="labels">Borders and city names <kbd>L</kbd></label>
+      </div>
+      <div class="field check">
         <input id="voice" type="checkbox" checked aria-keyshortcuts="V" aria-describedby="voice-hint">
         <label for="voice">Voice guide <kbd>V</kbd></label>
       </div>
@@ -174,6 +180,7 @@
     <span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd> zoom</span>
     <span><kbd>T</kbd> tutorial</span>
     <span><kbd>V</kbd> voice</span>
+    <span><kbd>L</kbd> labels</span>
     <span><kbd>Esc</kbd> stop</span>
   </div>
 

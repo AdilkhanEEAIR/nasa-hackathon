@@ -164,6 +164,9 @@ button.primary[aria-pressed="true"], button[aria-pressed="true"] { background: v
 button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
 button.ghost kbd { border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.08); }
 button[aria-busy="true"] { opacity: 0.7; cursor: progress; }
+button[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+button[aria-disabled="true"]:active { transform: none; }
+.wav-note { text-align: left; margin: -4px 0 10px; color: var(--muted); }
 button.icon { min-width: 48px; padding: 10px; }
 .track { transition: transform 120ms var(--ease-out); }
 .track:active { transform: scale(0.99); }
