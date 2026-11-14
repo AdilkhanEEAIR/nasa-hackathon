@@ -134,6 +134,10 @@ button:disabled, select:disabled { opacity: 0.45; cursor: not-allowed; }
 .map-img { opacity: 0; transition: opacity 180ms var(--ease-out); }
 .map-img.front { opacity: 1; }
 .map-img.instant { transition: none; }
+/* The lightning video is 2:1 while the stage is 16:9: stretch it the same way as the other
+   maps so the equirectangular grid (and the overlay) line up. */
+.map-video { opacity: 1; object-fit: fill; background: #000; }
+body[data-track="lightning"] .map-img:not(.map-video) { visibility: hidden; }
 .overlay { cursor: crosshair; }
 
 .timeline { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; margin: 12px 0 4px; }

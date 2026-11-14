@@ -21,6 +21,9 @@
   <link rel="modulepreload" href="js/loader.js">
   <link rel="modulepreload" href="js/speech.js">
   <link rel="modulepreload" href="js/wav.js">
+  <link rel="modulepreload" href="js/camera.js">
+  <link rel="modulepreload" href="js/places.js">
+  <link rel="modulepreload" href="js/lightning.js">
 </head>
 <body>
   <a class="skip" href="#player">Skip to the player</a>
@@ -53,7 +56,7 @@
         <p class="eyebrow">Now playing</p>
         <h2 id="track-title">Night Lights 2012–2023</h2>
         <p class="readouts">
-          <span>Year <strong id="year-readout">2012</strong></span>
+          <span><span id="when-label">Year</span> <strong id="year-readout">2012</strong></span>
           <span>Centre <strong id="centre-readout">India</strong></span>
           <span>Ring <strong id="radius-readout">1500 km</strong></span>
         </p>
@@ -78,6 +81,7 @@
         <div id="world" class="world">
           <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
           <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
+          <video id="map-video" class="map-img map-video" muted playsinline preload="none" aria-hidden="true" hidden></video>
         </div>
         <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
                 aria-label="Night lights map. Loading."></canvas>

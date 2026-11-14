@@ -2,7 +2,7 @@
 // Everything is reachable from the keyboard; every button shows its shortcut.
 
 import { SonicEngine, DEFAULT_LAYERS } from './audio.js';
-import { RingScan, motorLevels, renderScanWav, readPoint } from './scan.js';
+import { RingScan, motorLevels, renderScanWav, readPoint, readRing } from './scan.js';
 import { MapView, reducedMotion } from './view.js';
 import { VoiceDial } from './dial.js';
 import { buildMask, meanOver, sampleField } from './fields.js';
@@ -11,7 +11,10 @@ import { degreeToFreq, degreeForIndex } from './music.js';
 import {
   CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange,
   AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
+  LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
 } from './tracks.js';
+import { LightningSource } from './lightning.js';
+import { LiveRingScan } from './scan.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
 import { describePlace } from './places.js';
@@ -41,7 +44,8 @@ export const TRACKS = [
     intro: 'What Changed: the difference between 2012 and 2023. A high bright sparkle means more light in 2023. A low muffled buzz means less light. A soft quiet tone means little change. Y gives a summary of the ring.' },
   { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: true,
     intro: 'Aerosols: tiny particles in the air from the GEOS model, 19 August 2025. Each type has its own sound. Smoke and black carbon crackle like fire. Dust is a dry rustle. Sea salt is soft surf. Sulfate is a buzzing tone. Louder means more. Y gives a summary of the ring.' },
-  { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: false },
+  { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: true,
+    intro: 'Lightning: flashes seen by the Lightning Imaging Sensor on the International Space Station, 2017 to 2023, shown as a 10-day window. Each new flash is a sharp crack in its direction; many storms make a low thunder rumble. The sensor only sees up to about 52 degrees north and south, so silence there means no data. Space plays and pauses; Page Up and Page Down jump a month.' },
 ];
 
 export const PRESETS = [
@@ -109,6 +113,22 @@ const scan = new RingScan(engine, {
   },
 });
 
+// Lightning: arc density of dots that is heard at full rumble loudness (fixed for the video).
+const LIGHTNING_FULL = 0.04;
+// Measured live against the night-lights scan (analyser on the master bus): RMS 0.022 vs
+// 0.073, so the lightning track is lifted to match.
+const LIGHTNING_TRIM = 2.5;
+let lightning = null; // LightningSource, created when track 4 is first chosen
+
+const liveScan = new LiveRingScan(engine, {
+  onStep: ({ ring }) => {
+    for (const v of ring) v.color = v.struck ? '#ffffff' : '#ffe04d';
+    view.setRing(ring);
+    dial.update(ring.map((v) => v.gain), motorLevels(ring), ring.map((v) => v.color));
+    if (lightning) $('year-readout').textContent = lightning.date;
+  },
+});
+
 // ---------------------------------------------------------------- announcements
 
 let announceTimer = 0;
@@ -137,13 +157,18 @@ function centreLabel() {
 }
 
 function updateDescription() {
-  const map = classTrack() ? classTrack().map : `Night lights map for ${state.year}.`;
+  const isLt = state.track === 'lightning';
+  const map = classTrack() ? classTrack().map
+    : isLt ? `Lightning map${lightning && lightning.date ? ` for the 10 days to ${lightning.date}` : ''}: yellow dots are flashes seen from the space station.`
+      : `Night lights map for ${state.year}.`;
   $('overlay').setAttribute('aria-label', `${map} Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`);
   $('centre-readout').textContent = state.center.name || formatLatLon(state.center.lat, state.center.lon);
   $('year-readout').textContent = state.track === 'change' ? '2012 → 2023'
-    : state.track === 'aerosols' ? '19 Aug 2025' : String(state.year);
+    : state.track === 'aerosols' ? '19 Aug 2025'
+      : isLt ? (lightning && lightning.date) || '2017–2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
-  markTimeline(classTrack() ? null : state.year);
+  $('when-label').textContent = state.track === 'nightlights' ? 'Year' : 'Date';
+  markTimeline(classTrack() || isLt ? null : state.year);
 }
 
 // ---------------------------------------------------------------- data loading
@@ -181,7 +206,7 @@ const HI_RES_FROM = 1.5;
  * needed, and swapped in when it has arrived (so zooming never shows a blank map).
  */
 function showFrame({ fade = false } = {}) {
-  if (!state.manifest) return;
+  if (!state.manifest || state.track === 'lightning') return; // the video is its own frame
   const entry = currentEntry();
   const low = viewUrl(entry);
   const hi = entry.viewHi ? entry.viewHi[viewExt] : null;
@@ -262,12 +287,61 @@ async function currentFields() {
     if (!state.aerosols) await withProgress('Aerosols', (p) => loadAerosols(p));
     return state.aerosols;
   }
+  if (state.track === 'lightning') {
+    if (!lightning) lightning = new LightningSource($('map-video'), state.manifest.lightning);
+    if (!lightning.ready) await withProgress('Lightning', (p) => lightning.load(p));
+    const f = lightning.frame() || { field: lightning.field };
+    return { rumble: f.field };
+  }
   await loadYear(state.year);
   return state.fields.get(state.year);
 }
 
 function currentLayers() {
+  if (state.track === 'lightning') return LIGHTNING_LAYERS;
   return classTrack() ? classTrack().layers : DEFAULT_LAYERS;
+}
+
+// ---------------------------------------------------------------- lightning playback
+
+async function toggleLightning() {
+  const v = $('map-video');
+  if (liveScan.running) {
+    liveScan.stop();
+    v.pause();
+    setScanButton(false);
+    view.setRing(null);
+    dial.clear();
+    announce(`Paused at ${lightning.date}.`);
+    return;
+  }
+  await currentFields();
+  setScanButton(true);
+  announce(`Playing lightning from ${lightning.date}, ring around ${centreLabel()}.`, { speak: false });
+  try { await v.play(); } catch (err) { console.error(err); }
+  liveScan.start({
+    getFrame: () => lightning.frame(),
+    center: state.center,
+    radiusKm: state.radiusKm,
+    durationS: state.durationS,
+    fullScale: LIGHTNING_FULL,
+    coverageLat: LIGHTNING_COVERAGE_LAT,
+    strikeRate: (lvl) => strikeRate(lvl),
+  });
+  v.onended = () => { if (liveScan.running) toggleLightning(); };
+}
+
+/** Page Up / Page Down move about one month (the video runs ~1 s per month). */
+function seekLightning(deltaSeconds, absolute = null) {
+  if (!lightning || !lightning.ready) return;
+  if (absolute === null) lightning.seekBy(deltaSeconds);
+  else lightning.seekTo(absolute);
+  $('map-video').addEventListener('seeked', () => {
+    lightning.refresh();
+    updateDescription();
+    announce(lightning.date);
+    updateProbe();
+  }, { once: true });
 }
 
 /**
@@ -373,6 +447,7 @@ async function toggleScan() {
     announce('Still loading. The scan starts as soon as the map is ready.', { speak: true });
     return;
   }
+  if (state.track === 'lightning') { toggleLightning(); return; }
   const fields = await currentFields();
   setScanButton(true);
   const what = classTrack() ? classTrack().when : String(state.year);
@@ -388,8 +463,15 @@ async function toggleScan() {
 }
 
 async function setYear(year, { speak = true } = {}) {
+  if (state.track === 'lightning') {
+    // Year keys move through the video: one step is about a month.
+    if (year === YEARS[0]) seekLightning(0, 0);
+    else if (year === YEARS[YEARS.length - 1]) seekLightning(0, Infinity);
+    else seekLightning(year > state.year ? 1 : -1);
+    return;
+  }
   if (state.track !== 'nightlights') {
-    announce('This track compares 2012 with 2023; years are on track 1.');
+    announce('This track is a single moment; years are on track 1.');
     return;
   }
   const y = Math.max(YEARS[0], Math.min(YEARS[YEARS.length - 1], year));
@@ -449,6 +531,11 @@ const LEGENDS = {
     [CHANGE_COLORS.less, 'Orange, less light: low muffled buzz'],
     [CHANGE_COLORS.same, 'White, little change: soft quiet tone'],
   ],
+  lightning: [
+    ['#ffe04d', 'New flash: sharp crack in its direction'],
+    ['#b7c0cf', 'Many storms: low thunder rumble'],
+    ['#4a5568', 'Beyond ±52°: no data, silence'],
+  ],
   aerosols: [
     [AEROSOL_COLORS.smoke, 'Smoke / black carbon: crackle'],
     [AEROSOL_COLORS.dust, 'Dust: dry rustle'],
@@ -480,15 +567,19 @@ async function selectTrack(id) {
   }
   if (state.busy) return;
   if (scan.running) scan.stop(false);
+  if (liveScan.running) { liveScan.stop(); $('map-video').pause(); setScanButton(false); }
   state.track = id;
-  engine.trim = classTrack() ? classTrack().trim : 1;
+  const isLt = id === 'lightning';
+  engine.trim = classTrack() ? classTrack().trim : isLt ? LIGHTNING_TRIM : 1;
   engine.setLayers(currentLayers());
   renderTracks();
   renderLegend();
   $('track-title').textContent = t.title;
   document.body.dataset.track = id;
+  $('map-video').hidden = !isLt;
   const yearsOnly = id === 'nightlights';
-  for (const b of ['btn-prev-year', 'btn-next-year', 'year']) $(b).disabled = !yearsOnly;
+  for (const b of ['btn-prev-year', 'btn-next-year']) $(b).disabled = !(yearsOnly || isLt);
+  $('year').disabled = !yearsOnly;
   $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
   await currentFields();
   showFrame();
@@ -548,8 +639,44 @@ function pingYear(year) {
  * Plays one note per year: the mean rendered brightness inside the disk around the centre,
  * on a fixed logarithmic pentatonic scale shared by all regions and years.
  */
+/** Track 4's "Y": where the lightning is around the centre in the current 10-day window. */
+async function lightningSummary() {
+  await ensureSound();
+  const f = await currentFields();
+  const acc = new Float32Array(16);
+  const covered = new Array(16).fill(false);
+  for (const k of [0.25, 0.5, 0.75, 1]) {
+    readRing(f, null, state.center, state.radiusKm * k, LIGHTNING_FULL).forEach((v, i) => {
+      acc[i] += v.level;
+      if (v.points.some((p) => Math.abs(p.lat) <= LIGHTNING_COVERAGE_LAT)) covered[i] = true;
+    });
+  }
+  const total = acc.reduce((a, b) => a + b, 0);
+  const date = lightning.date;
+  if (!covered.some(Boolean)) {
+    announce(`The ring around ${centreLabel()} is outside the sensor's coverage: no data.`);
+    return;
+  }
+  if (total < 0.002) {
+    engine.centreNote(0);
+    announce(`No lightning within the ring around ${centreLabel()} in the 10 days to ${date}.`);
+    return;
+  }
+  const names = ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east',
+    'south', 'south-south-west', 'south-west', 'west-south-west', 'west', 'west-north-west', 'north-west', 'north-north-west'];
+  const order = [...acc.keys()].sort((a, b) => acc[b] - acc[a]);
+  order.slice(0, 6).forEach((i, n) => {
+    if (acc[i] <= 0) return;
+    const v = engine.voices[i];
+    setTimeout(() => engine.strike(v.pan.pan.value, v.base, Math.min(1, 0.3 + acc[i] / (total + 1e-9))), n * 160);
+  });
+  const level = total / 4 > LIGHTNING_FULL ? 'a lot of' : total / 4 > LIGHTNING_FULL / 4 ? 'some' : 'a little';
+  announce(`In the 10 days to ${date}: ${level} lightning within the ring around ${centreLabel()}, most of it to the ${names[order[0]]}.`);
+}
+
 async function yearSweep() {
   if (classTrack()) { classSummary(); return; }
+  if (state.track === 'lightning') { lightningSummary(); return; }
   if (state.busy || !requireReadyTrack()) return;
   await ensureSound();
   if (scan.running) scan.stop(false);
@@ -625,6 +752,11 @@ function pointReading(fields) {
     const levels = readPoint(fields, c.lat, c.lon);
     return { levels, words: classTrack().describe(dominant(levels)) };
   }
+  if (state.track === 'lightning') {
+    if (Math.abs(c.lat) > LIGHTNING_COVERAGE_LAT) return { levels: { rumble: 0 }, words: 'outside the sensor coverage, no data' };
+    const level = sampleField(fields.rumble, c.lat, c.lon, 2);
+    return { levels: { rumble: level }, words: level > 0.02 ? 'lightning right here' : 'no lightning at this point' };
+  }
   const level = sampleField(fields, c.lat, c.lon, 1);
   return { levels: { main: level }, words: describeLevel(level) };
 }
@@ -634,7 +766,8 @@ async function whereAmI() {
   const fields = await currentFields();
   const c = state.center;
   const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
-  const when = classTrack() ? classTrack().when : String(state.year);
+  const when = classTrack() ? classTrack().when
+    : state.track === 'lightning' ? `10 days to ${lightning.date}` : String(state.year);
   const place = describePlace(c.lat, c.lon, onLand);
   announce(`${place}. ${onLand ? 'Land' : 'Water'}, ${pointReading(fields).words}. ${when}. `
     + `${formatLatLon(c.lat, c.lon)}.`);
@@ -684,6 +817,11 @@ async function toggleExplore(force) {
 
 async function saveWav() {
   if (state.busy || !requireReadyTrack()) return;
+  if (state.track === 'lightning') {
+    // Offline rendering needs every video frame decoded in advance; not built yet.
+    announce('Saving as WAV is not available for the lightning video yet. Tracks 1 to 3 can be saved.');
+    return;
+  }
   state.busy = true;
   const btn = $('btn-wav');
   btn.setAttribute('aria-busy', 'true');
@@ -738,6 +876,7 @@ function toggleCoast(force) {
 
 function stopAll() {
   if (scan.running) scan.stop(false);
+  if (liveScan.running) { liveScan.stop(); $('map-video').pause(); }
   state.busy = false; // cancels a running tutorial
   voice.cancel();
   if (state.explore) toggleExplore(false);

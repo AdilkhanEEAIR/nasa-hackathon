@@ -18,7 +18,7 @@ The site is a jukebox: pick a track, press Space.
 | 01 Night Lights 2012–2023 | ✅ available |
 | 02 What Changed, 2012 → 2023 | ✅ available |
 | 03 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
-| 04 Lightning from the ISS, 2017–2023 | coming next |
+| 04 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
 | Voice guide and explore mode | ✅ available (V toggles the voice, E explores point by point) |
 | Tactile controller (Arduino, 4 vibration motors) | firmware and protocol ready; site link coming next |
 
@@ -166,6 +166,25 @@ EarthSonar classifies each pixel and plays each class on its own instrument.
 - Classification runs once in `tools/prepare_media.py`, which writes a lossless class grid.
   On this frame: smoke 1.7% of pixels, dust 3.7%, sea salt 19.4%, sulfate 14.6%.
 
+**Lightning (ISS LIS, March 2017 – July 2023)**
+
+This track is a video. Space plays it while the ring keeps cycling from the outside in.
+EarthSonar reads every frame at 1024 × 512 as it plays.
+
+| What is read | Rule | Sound |
+|---|---|---|
+| Dot | yellow pixel: `R > 90`, `G > 70`, `B < G − 40` (lines and relief are neutral grey and never pass) | — |
+| Storm density on an arc | mean dot level, full loudness at 0.04 | Low thunder rumble (low-passed noise at the compass pitch) |
+| New flashes on an arc | dots that appeared since the last frame → up to 8 strikes per second per voice (`8·√(level/0.02)`), at most 30 per second in total | Sharp crack plus a short thump at the compass pitch, panned to its direction |
+| Beyond ±52° latitude | outside the sensor's coverage | **Silence: no data, not "no lightning"** |
+
+- The date on screen comes from the official per-frame label file. Its "2003" typo for 2023
+  is corrected.
+- Page Up and Page Down jump about one month.
+- Y says where the lightning is around the centre in the current 10-day window.
+- Each dot is a detection kept on screen for a 10-day rolling window (SVS's rendering). It is
+  not a single real-time strike.
+
 ### Sound palette
 
 One law for every track:
@@ -186,6 +205,8 @@ For noise-based instruments, the centre of the noise band follows the same compa
 | Dust | Dry rustle |
 | Sea salt | Soft surf |
 | Sulfate | Buzzing tone |
+| Lightning flash | Sharp crack and thump |
+| Storm density | Low thunder rumble |
 | Unlit land / water / coast | Muffled hum / silence / click |
 
 Loudness is matched in two steps, both measured from offline renders:
