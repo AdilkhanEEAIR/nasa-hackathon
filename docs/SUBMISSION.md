@@ -247,7 +247,7 @@ original.
 
 | Rule | Status |
 |---|---|
-| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ the Demo tab (/#demo) runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/Sixth Sense-slides.pdf` |
+| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ the Demo tab (/#demo) runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/SixthSense-slides.pdf` |
 | Demo hosted externally, open link, no login | ⏳ **you** upload the recording (YouTube unlisted/public, or Drive "anyone with the link") |
 | Final project link open without login | ✅ https://earthsonar.vercel.app (checked without cookies) |
 | Everything in English | ✅ site, README, DATA_NOTES, PROTOCOL, these texts, slides |

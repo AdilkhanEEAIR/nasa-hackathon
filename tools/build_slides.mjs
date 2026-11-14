@@ -1,4 +1,4 @@
-// Renders docs/slides/slides.html to docs/EarthSonar-slides.pdf with headless Chrome,
+// Renders docs/slides/slides.html to docs/SixthSense-slides.pdf with headless Chrome,
 // after checking that no slide overflows its page.
 //
 //   node tools/build_slides.mjs http://localhost:8766/
@@ -22,8 +22,8 @@ try {
   const bad = report.filter((r) => r.overflow);
   console.log(`${report.length} slides; ${bad.length ? `OVERFLOW on ${bad.map((r) => r.slide).join(', ')}` : 'no overflow'}`);
   const pdf = await c.send('Page.printToPDF', { preferCSSPageSize: true, printBackground: true });
-  writeFileSync('docs/EarthSonar-slides.pdf', Buffer.from(pdf.result.data, 'base64'));
-  console.log('docs/EarthSonar-slides.pdf written');
+  writeFileSync('docs/SixthSense-slides.pdf', Buffer.from(pdf.result.data, 'base64'));
+  console.log('docs/SixthSense-slides.pdf written');
 } finally {
   await close();
 }

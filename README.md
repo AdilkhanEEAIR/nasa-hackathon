@@ -29,11 +29,12 @@ README: [the rule](#value--sound-rule), [the palette](#sound-palette),
 [the controller](#tactile-controller). Old links to `#how`, `#data` and `#hardware` open Home.
 
 **Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
-before sound): what it is → the rule → India 2012 vs 2023 → aerosols → the Gulf Stream on the
-ocean track → a North Atlantic storm on the wind track → the Visual forest needle → address,
-exactly 28 s ([`js/demo-plan.js`](js/demo-plan.js)). The old
+before sound) and plays a 28 s cinema cut, full-screen with large English subtitles: the title
+card → night lights over Europe, 2023 → aerosols over West and Central Africa (dust and smoke)
+→ lightning seen from space with the ring closing slowly → an end card with the address
+([`js/demo-plan.js`](js/demo-plan.js)). The old
 address `/?demo` still opens it. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
-slides: [`docs/Sixth Sense-slides.pdf`](docs/Sixth Sense-slides.pdf).
+slides: [`docs/SixthSense-slides.pdf`](docs/SixthSense-slides.pdf).
 
 | Home | Jukebox on a phone | Demo |
 |---|---|---|
@@ -483,7 +484,7 @@ python -m http.server 8000      # then open http://localhost:8000
 node --test "tests/*.test.js"   # ring geometry, georeferencing, sound mapping
 python tools/prepare_media.py   # rebuild media/ from datasets/ (needs ffmpeg, numpy, Pillow)
 node tools/screenshots.mjs http://localhost:8000/    # docs/screenshots (headless Chrome)
-node tools/build_slides.mjs http://localhost:8000/   # docs/Sixth Sense-slides.pdf
+node tools/build_slides.mjs http://localhost:8000/   # docs/SixthSense-slides.pdf
 node tools/measure_load.mjs https://earthsonar.vercel.app/
 ```
 

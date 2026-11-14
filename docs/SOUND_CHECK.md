@@ -170,7 +170,7 @@ layers flow into each other. No anomalies or seasonal pulse: one model day, no b
 
 | Place | Temp heard °C | RMS | Centroid Hz |
 |---|---|---|---|
-| Southern Ocean front | 6.0 | see below | 154 |
+| Southern Ocean front | 6.0 | 0.097 | 165 |
 | Agulhas Current | 14.5 | 0.089 | 346 |
 | Equatorial Pacific | 26.8 | 0.093 | 725 |
 | Arabian Sea | 29.3 | 0.070 | 664 |
