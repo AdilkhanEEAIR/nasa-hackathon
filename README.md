@@ -9,14 +9,27 @@ blind and low-vision people and works with the keyboard alone.
 
 NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · Bishkek
 
-![EarthSonar during a ring scan around China, 2023](docs/screenshots/desktop-scan.jpg)
+![The EarthSonar jukebox during a ring scan around India, 2012](docs/screenshots/jukebox-scan-desktop.jpg)
 
-The site is a jukebox: pick a track, press Space.
+The site has six tabs, each with its own address:
 
-**Demo:** https://earthsonar.vercel.app/?demo runs a fixed 28-second scenario with English
-subtitles on screen, after one click (browsers need a gesture before sound): what it is → India
-2012 vs 2023 → aerosols → lightning → address. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
+| Tab | Address | What is there |
+|---|---|---|
+| Home | https://earthsonar.vercel.app/#home | One sentence, a way into the jukebox and the demo, the rule in short |
+| Jukebox | https://earthsonar.vercel.app/#jukebox | The player: pick a track, press Space |
+| Demo | https://earthsonar.vercel.app/#demo | A fixed 28-second scenario with English subtitles |
+| How it works | https://earthsonar.vercel.app/#how | The value → sound rule, the ring, the palette, the limits |
+| Data & Credits | https://earthsonar.vercel.app/#data | NASA sources, credits, AI use |
+| Hardware | https://earthsonar.vercel.app/#hardware | The tactile controller |
+
+**Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
+before sound): what it is → India 2012 vs 2023 → aerosols → lightning → address. The old
+address `/?demo` still opens it. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
 slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
+
+| Home | Jukebox on a phone | Demo |
+|---|---|---|
+| ![Home tab](docs/screenshots/home-desktop.jpg) | ![Jukebox on a phone during a scan](docs/screenshots/jukebox-scan-phone.jpg) | ![Demo with subtitles under the map](docs/screenshots/demo-desktop.jpg) |
 
 | Track | Status |
 |---|---|
@@ -297,10 +310,13 @@ Loudness is matched in two steps, both measured from offline renders:
 
 ## Loading speed
 
-**First-screen budget: 0.25 MB.** That covers HTML, CSS, JS, the manifest, one map view, one
-sound grid and the land mask. Everything else loads after the player is ready: the other years
-in the background, other tracks when you pick them. The audio engine is available at once, and
-a Space press during loading starts the scan as soon as the data arrives.
+**First-screen budget: 0.25 MB.** The Home tab loads only the page, its styles, a small tab
+script and one map picture. The player code and the map data are fetched only when the Jukebox
+or Demo tab opens (they start fetching as soon as you point at or focus a way in). For the
+player the budget covers its code, the manifest, one map view, one sound grid and the land
+mask. Everything else loads after the player is ready: the other years in the background, other
+tracks when you pick them. The audio engine is available at once, and a Space press during
+loading starts the scan as soon as the data arrives.
 
 | Measured on https://earthsonar.vercel.app, cold cache, headless Chrome ([`tools/measure_load.mjs`](tools/measure_load.mjs)) | Fast 4G | Slow 4G | Sent before ready |
 |---|---|---|---|
@@ -318,14 +334,37 @@ a Space press during loading starts the scan as soon as the data arrives.
   `manifest.json` is re-checked.
 - Long loads show a progress bar, and the live region and the voice guide announce them.
 
+## Design system
+
+All colours, type sizes, spacing, radii, shadows and timings live in one file,
+[`css/tokens.css`](css/tokens.css), in three layers: raw values → purpose (`--ui-text`,
+`--data-dust`) → component (`--overlay-ring`, `--dial-guide`). The map overlay and the voice
+dial are drawn on canvas and read the same tokens through [`js/theme.js`](js/theme.js).
+
+- **Interface colours:** a cool dark neutral background (not black), two surface levels, text
+  that is not pure white, muted secondary text, and one amber accent used only for the primary
+  button, the selected tab and the focus ring.
+- **Data colours** are a separate set: muted versions of the Okabe–Ito colour-blind-safe
+  palette, close in lightness so no category shouts. The NASA frames themselves keep their
+  original colours.
+- One typeface (the system UI font, nothing to download) on a fixed type scale.
+- [`tests/tokens.test.js`](tests/tokens.test.js) fails if a colour appears anywhere outside the
+  token file (site and slides), if a token is used but not defined, if a text pair falls below
+  WCAG AA, or if two data colours of one legend get too close (CIE ΔE < 12) for normal vision,
+  deuteranopia, protanopia or tritanopia. Every legend also names its sound, so colour is never
+  the only cue.
+
 ## Accessibility
 
 - Works with the keyboard alone, and with or without a screen reader. Tested with keyboard
   navigation; screen-reader testing is ongoing.
 - A live status region announces every change. The map has a text description that updates
   with the year and centre.
-- Large controls (48 px), visible focus, high contrast, keyboard hints always on screen, and a
-  10-second sound tutorial (T).
+- The tabs follow the WAI-ARIA tabs pattern: arrow keys, Home and End move between tabs, and
+  each tab has its own address. Player shortcuts work only in the Jukebox tab, so Space on
+  another tab never starts sound; Escape always stops it.
+- Large controls (44 px minimum), a visible amber focus ring, AA contrast, keyboard hints always
+  on screen in the Jukebox, and a 10-second sound tutorial (T).
 - **Motion shows only what is sounding:**
   - the shrinking ring, with loud arcs drawn thicker;
   - 16 voice bars around a compass, and four N/E/S/W bars for the vibration motors;
@@ -368,6 +407,9 @@ What each part does:
 python -m http.server 8000      # then open http://localhost:8000
 node --test "tests/*.test.js"   # ring geometry, georeferencing, sound mapping
 python tools/prepare_media.py   # rebuild media/ from datasets/ (needs ffmpeg, numpy, Pillow)
+node tools/screenshots.mjs http://localhost:8000/    # docs/screenshots (headless Chrome)
+node tools/build_slides.mjs http://localhost:8000/   # docs/EarthSonar-slides.pdf
+node tools/measure_load.mjs https://earthsonar.vercel.app/
 ```
 
 Pixel reading needs the page to be served over http(s). Opening `index.html` as a file will

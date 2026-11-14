@@ -6,7 +6,8 @@ Jukebox**. Local event: Bishkek.
 - **Final project (open, no login):** https://earthsonar.vercel.app
 - **Source code:** https://github.com/AdilkhanEEAIR/nasa-hackathon
 - **Demo video:** `[paste the YouTube / Drive link after uploading — 28 s, English subtitles burned in]`
-- **Demo mode used to record it:** https://earthsonar.vercel.app/?demo
+- **Demo tab used to record it:** https://earthsonar.vercel.app/#demo (the old `/?demo` address still opens it)
+- **Player:** https://earthsonar.vercel.app/#jukebox · **How it works:** https://earthsonar.vercel.app/#how · **Data & credits:** https://earthsonar.vercel.app/#data
 
 ---
 
@@ -37,7 +38,7 @@ changing.
 
 ## Link to Final Project
 
-https://earthsonar.vercel.app (source: https://github.com/AdilkhanEEAIR/nasa-hackathon)
+https://earthsonar.vercel.app (the player itself: https://earthsonar.vercel.app/#jukebox; source: https://github.com/AdilkhanEEAIR/nasa-hackathon)
 
 ## Detailed Project Description
 
@@ -204,7 +205,7 @@ original.
 
 | Rule | Status |
 |---|---|
-| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ demo mode runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/EarthSonar-slides.pdf` |
+| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ the Demo tab (/#demo) runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/EarthSonar-slides.pdf` |
 | Demo hosted externally, open link, no login | ⏳ **you** upload the recording (YouTube unlisted/public, or Drive "anyone with the link") |
 | Final project link open without login | ✅ https://earthsonar.vercel.app (checked without cookies) |
 | Everything in English | ✅ site, README, DATA_NOTES, PROTOCOL, these texts, slides |
