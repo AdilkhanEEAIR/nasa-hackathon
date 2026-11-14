@@ -1,15 +1,22 @@
-// EarthSonar application: state, keyboard control, announcements.
-// Everything is reachable from the keyboard; every button has the same shortcut listed in
-// the help section.
+// EarthSonar application: tracks, state, keyboard control, announcements.
+// Everything is reachable from the keyboard; every button shows its shortcut.
 
 import { SonicEngine } from './audio.js';
-import { RingScan } from './scan.js';
-import { MapView } from './view.js';
+import { RingScan, motorLevels, renderScanWav } from './scan.js';
+import { MapView, reducedMotion } from './view.js';
+import { VoiceDial } from './dial.js';
 import { buildField, buildMask, lightLevel, meanOver, sampleField } from './fields.js';
 import { clampLat, normalizeLon, formatLatLon, diskPoints } from './geo.js';
 import { degreeToFreq, degreeForIndex } from './music.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
+
+export const TRACKS = [
+  { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true },
+  { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: false },
+  { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: false },
+  { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: false },
+];
 
 export const PRESETS = [
   { key: '1', name: 'India', lat: 22.5, lon: 79.0, radiusKm: 1500 },
@@ -21,25 +28,33 @@ export const PRESETS = [
 const $ = (id) => document.getElementById(id);
 
 const state = {
+  track: 'nightlights',
   year: 2012,
   center: { ...PRESETS[0] },
   radiusKm: PRESETS[0].radiusKm,
   durationS: 8,
   manifest: null,
-  images: new Map(),   // year -> HTMLImageElement
   fields: new Map(),   // year -> value field
   land: null,
   busy: false,
 };
 
 const engine = new SonicEngine();
-const view = new MapView($('map'));
+const view = new MapView({ imgA: $('map-a'), imgB: $('map-b'), overlay: $('overlay') });
+const dial = new VoiceDial($('dial'));
 const scan = new RingScan(engine, {
-  onStep: ({ ring }) => view.setRing(ring),
+  onStep: ({ ring }) => {
+    view.setRing(ring);
+    dial.update(ring.map((v) => v.gain), motorLevels(ring));
+  },
   onEnd: ({ completed, centreLevel }) => {
     setScanButton(false);
     view.setRing(null);
-    if (completed) announce(`Scan finished. At the centre: ${describeLevel(centreLevel)}.`);
+    dial.clear();
+    if (completed) {
+      view.pulseCentre(centreLevel);
+      announce(`Scan finished. At the centre: ${describeLevel(centreLevel)}.`);
+    }
   },
 });
 
@@ -62,18 +77,24 @@ function describeLevel(level) {
 }
 
 function centreLabel() {
-  return state.center.name ? `${state.center.name} (${formatLatLon(state.center.lat, state.center.lon)})`
-    : formatLatLon(state.center.lat, state.center.lon);
+  const c = state.center;
+  return c.name ? `${c.name} (${formatLatLon(c.lat, c.lon)})` : formatLatLon(c.lat, c.lon);
 }
 
 function updateDescription() {
-  const txt = `Night lights map for ${state.year}. Ring centre: ${centreLabel()}. Radius ${state.radiusKm} kilometres.`;
-  $('map').setAttribute('aria-label', txt);
-  $('centre-readout').textContent = centreLabel();
+  const txt = `Night lights map for ${state.year}. Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`;
+  $('overlay').setAttribute('aria-label', txt);
+  $('centre-readout').textContent = state.center.name || formatLatLon(state.center.lat, state.center.lon);
   $('year-readout').textContent = String(state.year);
+  $('radius-readout').textContent = `${state.radiusKm} km`;
+  markTimeline(state.year);
 }
 
 // ---------------------------------------------------------------- data loading
+
+function yearUrl(year) {
+  return state.manifest.nightlights.years[String(year)].file;
+}
 
 async function loadImagePixels(url) {
   const img = new Image();
@@ -85,14 +106,12 @@ async function loadImagePixels(url) {
   c.height = img.naturalHeight;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
-  return { img, data: ctx.getImageData(0, 0, c.width, c.height) };
+  return ctx.getImageData(0, 0, c.width, c.height);
 }
 
 async function loadYear(year) {
   if (state.fields.has(year)) return;
-  const meta = state.manifest.nightlights.years[String(year)];
-  const { img, data } = await loadImagePixels(meta.file);
-  state.images.set(year, img);
+  const data = await loadImagePixels(yearUrl(year));
   state.fields.set(year, buildField(data.data, data.width, data.height, lightLevel));
 }
 
@@ -100,13 +119,13 @@ async function init() {
   announce('Loading night-lights maps…');
   state.manifest = await (await fetch('media/manifest.json')).json();
   const mask = await loadImagePixels(state.manifest.landMask.file);
-  state.land = buildMask(mask.data.data, mask.data.width, mask.data.height);
+  state.land = buildMask(mask.data, mask.width, mask.height);
   await loadYear(state.year);
-  view.setImage(state.images.get(state.year));
+  view.setImage(yearUrl(state.year));
   view.setCenter(state.center);
   updateDescription();
-  $('app').dataset.ready = 'true';
-  announce('Ready. Press any key or the Start button to turn sound on, then Space to scan.');
+  document.body.dataset.ready = 'true';
+  announce('Ready. Press Space to play a scan, or T for a 10-second tutorial.');
   // Remaining years load in the background so year changes are instant.
   for (const y of YEARS) await loadYear(y);
 }
@@ -116,14 +135,23 @@ async function init() {
 async function ensureSound() {
   if (engine.ready) return true;
   const ok = await engine.unlock();
-  $('sound-banner').hidden = ok;
+  const s = $('sound-state');
+  s.dataset.on = String(ok);
+  s.textContent = ok ? 'Sound is on.' : 'Sound could not start in this browser.';
   return ok;
 }
 
 function setScanButton(running) {
   const b = $('btn-scan');
   b.setAttribute('aria-pressed', String(running));
-  b.textContent = running ? 'Stop scan' : 'Start scan';
+  b.querySelector('.btn-label').textContent = running ? 'Stop scan' : 'Play scan';
+}
+
+function requireReadyTrack() {
+  const t = TRACKS.find((x) => x.id === state.track);
+  if (t.ready) return true;
+  announce(`${t.title} is coming next. Switch to track 1 with Shift and 1.`);
+  return false;
 }
 
 async function toggleScan() {
@@ -132,10 +160,11 @@ async function toggleScan() {
     announce('Scan stopped.');
     return;
   }
+  if (!requireReadyTrack()) return;
   await ensureSound();
   await loadYear(state.year);
   setScanButton(true);
-  announce(`Scanning ${state.year} around ${centreLabel()}, radius ${state.radiusKm} kilometres.`);
+  announce(`Scanning ${state.year} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
   scan.start({
     field: state.fields.get(state.year),
     landField: state.land,
@@ -150,7 +179,7 @@ async function setYear(year, { speak = true } = {}) {
   state.year = y;
   $('year').value = String(y);
   await loadYear(y);
-  view.setImage(state.images.get(y));
+  view.setImage(yearUrl(y));   // instant: keyboard-driven changes are never animated
   updateDescription();
   if (speak) announce(String(y));
   if (scan.running) {
@@ -176,7 +205,7 @@ function applyPreset(p) {
 }
 
 function moveCenter(dLat, dLon) {
-  setCenter({ lat: state.center.lat + dLat, lon: state.center.lon + dLon }, { speak: true });
+  setCenter({ lat: state.center.lat + dLat, lon: state.center.lon + dLon });
 }
 
 function setRadius(km) {
@@ -184,7 +213,28 @@ function setRadius(km) {
   $('radius').value = String(state.radiusKm);
   $('radius-out').textContent = `${state.radiusKm} km`;
   updateDescription();
-  announce(`Radius ${state.radiusKm} kilometres.`);
+  announce(`Ring ${state.radiusKm} kilometres.`);
+}
+
+function selectTrack(id) {
+  const t = TRACKS.find((x) => x.id === id);
+  if (!t) return;
+  if (!t.ready) {
+    announce(`${t.title} is coming next.`);
+    return;
+  }
+  state.track = id;
+  renderTracks();
+  $('track-title').textContent = t.title;
+  announce(`Track: ${t.title}.`);
+}
+
+/** Pings one year chip in the visual timeline when its note sounds. */
+function pingYear(year) {
+  const chip = document.querySelector(`.chip[data-year="${year}"]`);
+  if (!chip) return;
+  chip.classList.add('ping');
+  setTimeout(() => chip.classList.remove('ping'), 220);
 }
 
 /**
@@ -192,27 +242,29 @@ function setRadius(km) {
  * on a fixed logarithmic pentatonic scale shared by all regions and years.
  */
 async function yearSweep() {
-  if (state.busy) return;
+  if (state.busy || !requireReadyTrack()) return;
   await ensureSound();
   if (scan.running) scan.stop(false);
   state.busy = true;
   for (const y of YEARS) await loadYear(y);
   const pts = diskPoints(state.center, state.radiusKm, 8, 60);
   const values = YEARS.map((y) => meanOver(state.fields.get(y), pts, 1));
-  announce(`Year sweep around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`);
-  const step = 0.55;
+  announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`);
+  const lead = 0.8;
+  const step = 0.55; // under 2 notes per second, so the visual pings stay far below 3 flashes/s
   values.forEach((v, i) => {
-    engine.note(degreeToFreq(degreeForIndex(v)), { when: 0.8 + i * step, duration: 0.5, level: 0.32, bright: Math.min(1, v / 0.02), type: 'triangle' });
-  });
-  for (let i = 0; i < YEARS.length; i++) {
+    engine.note(degreeToFreq(degreeForIndex(v)), { when: lead + i * step, duration: 0.5, level: 0.32, bright: Math.min(1, v / 0.02), type: 'triangle' });
     setTimeout(() => {
-      view.setImage(state.images.get(YEARS[i]));
+      // While music plays, the picture follows it with a short cross-fade.
+      view.setImage(yearUrl(YEARS[i]), { fade: true });
       $('year-readout').textContent = String(YEARS[i]);
-    }, (0.8 + i * step) * 1000);
-  }
+      markTimeline(YEARS[i]);
+      pingYear(YEARS[i]);
+    }, (lead + i * step) * 1000);
+  });
   setTimeout(() => {
-    view.setImage(state.images.get(state.year));
-    $('year-readout').textContent = String(state.year);
+    view.setImage(yearUrl(state.year), { fade: true });
+    updateDescription();
     const max = Math.max(...values);
     const min = Math.min(...values);
     const first = values[0];
@@ -222,13 +274,77 @@ async function yearSweep() {
     announce(`Brightest year ${YEARS[values.indexOf(max)]}, dimmest ${YEARS[values.indexOf(min)]}. `
       + `Rendered brightness from 2012 to 2023: ${dir} percent.`);
     state.busy = false;
-  }, (0.8 + YEARS.length * step + 0.3) * 1000);
+  }, (lead + YEARS.length * step + 0.3) * 1000);
+}
+
+/** Ten-second sound tutorial: the compass, then what "brighter" sounds like. */
+async function tutorial() {
+  if (state.busy) return;
+  await ensureSound();
+  if (scan.running) scan.stop(false);
+  state.busy = true;
+  const steps = [
+    { at: 0.3, text: 'Top is north: high notes.', deg: 8, pan: 0, hl: 0 },
+    { at: 1.9, text: 'Right ear is east.', deg: 4, pan: 0.9, hl: 90 },
+    { at: 3.5, text: 'Bottom is south: low notes.', deg: 0, pan: 0, hl: 180 },
+    { at: 5.1, text: 'Left ear is west.', deg: 4, pan: -0.9, hl: 270 },
+    { at: 6.9, text: 'Dim and quiet means little light…', deg: 6, pan: 0, hl: null, level: 0.06, bright: 0.05 },
+    { at: 8.3, text: '…loud and bright means a lot of light.', deg: 6, pan: 0, hl: null, level: 0.4, bright: 1 },
+  ];
+  for (const s of steps) {
+    engine.note(degreeToFreq(s.deg), { when: s.at, duration: 1.2, level: s.level ?? 0.32, pan: s.pan, bright: s.bright ?? 0.6, type: 'triangle' });
+    setTimeout(() => { announce(s.text); dial.setHighlight(s.hl); }, s.at * 1000);
+  }
+  setTimeout(() => {
+    dial.setHighlight(null);
+    announce('That is all. Press Space to scan.');
+    state.busy = false;
+  }, 10000);
 }
 
 function whereAmI() {
+  if (!requireReadyTrack()) return;
   const v = sampleField(state.fields.get(state.year), state.center.lat, state.center.lon, 1);
   const onLand = sampleField(state.land, state.center.lat, state.center.lon, 0) >= 0.5;
-  announce(`${state.year}. Centre ${centreLabel()}, ${onLand ? 'land' : 'water'}, ${describeLevel(v)}. Radius ${state.radiusKm} kilometres.`);
+  announce(`${state.year}. Centre ${centreLabel()}, ${onLand ? 'land' : 'water'}, ${describeLevel(v)}. Ring ${state.radiusKm} kilometres.`);
+}
+
+async function saveWav() {
+  if (state.busy || !requireReadyTrack()) return;
+  state.busy = true;
+  const btn = $('btn-wav');
+  btn.setAttribute('aria-busy', 'true');
+  announce('Rendering the scan to a WAV file…');
+  try {
+    await loadYear(state.year);
+    const wav = await renderScanWav({
+      field: state.fields.get(state.year),
+      landField: state.land,
+      center: state.center,
+      radiusKm: state.radiusKm,
+      durationS: state.durationS,
+      coastClicks: scan.coastClicks,
+      volume: engine.volume,
+    });
+    const place = (state.center.name || formatLatLon(state.center.lat, state.center.lon))
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const name = `earthsonar-nightlights-${state.year}-${place}.wav`;
+    const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    announce(`Saved ${name}.`);
+  } catch (err) {
+    console.error(err);
+    announce('Could not render the WAV file in this browser.');
+  } finally {
+    btn.removeAttribute('aria-busy');
+    state.busy = false;
+  }
 }
 
 function toggleCoast(force) {
@@ -242,7 +358,50 @@ function stopAll() {
   engine.stopAll();
   setScanButton(false);
   view.setRing(null);
+  dial.clear();
   announce('Sound stopped.');
+}
+
+// ---------------------------------------------------------------- rendering helpers
+
+function renderTracks() {
+  const list = $('track-list');
+  list.textContent = '';
+  TRACKS.forEach((t, i) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'track';
+    b.dataset.track = t.id;
+    if (t.ready) b.setAttribute('aria-pressed', String(state.track === t.id));
+    else b.setAttribute('aria-disabled', 'true');
+    b.setAttribute('aria-keyshortcuts', `Shift+${i + 1}`);
+    b.innerHTML = `<span class="num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>
+      <span class="meta"><span class="t-title">${t.title}</span>
+      <span class="t-blurb">${t.blurb}</span>
+      ${t.ready ? '' : '<span class="badge">coming next</span>'}</span>`;
+    b.addEventListener('click', () => selectTrack(t.id));
+    li.appendChild(b);
+    list.appendChild(li);
+  });
+}
+
+function renderTimeline() {
+  const tl = $('timeline');
+  for (const y of YEARS) {
+    const c = document.createElement('button');
+    c.type = 'button';
+    c.tabIndex = -1; // pointer convenience; keyboard users have Page Up/Down and the year select
+    c.className = 'chip';
+    c.dataset.year = String(y);
+    c.textContent = String(y).slice(2);
+    c.addEventListener('click', () => setYear(y));
+    tl.appendChild(c);
+  }
+}
+
+function markTimeline(year) {
+  for (const c of document.querySelectorAll('.chip')) c.classList.toggle('on', c.dataset.year === String(year));
 }
 
 // ---------------------------------------------------------------- keyboard
@@ -257,6 +416,14 @@ function onKey(e) {
   // Let native controls keep their own keys; Escape always works.
   if (e.key !== 'Escape' && isTypingTarget(t)) return;
   if ((e.key === ' ' || e.key === 'Enter') && t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'SUMMARY')) return;
+
+  // Shift+1..4 selects a track (by physical key, so keyboard layout does not matter).
+  const digit = /^Digit([1-4])$/.exec(e.code);
+  if (e.shiftKey && digit) {
+    selectTrack(TRACKS[Number(digit[1]) - 1].id);
+    e.preventDefault();
+    return;
+  }
 
   const step = e.shiftKey ? 5 : 1;
   const preset = PRESETS.find((p) => p.key === e.key);
@@ -276,8 +443,9 @@ function onKey(e) {
     case 'y': case 'Y': yearSweep(); break;
     case 'c': case 'C': toggleCoast(); break;
     case 'w': case 'W': whereAmI(); break;
+    case 's': case 'S': saveWav(); break;
+    case 't': case 'T': tutorial(); break;
     case 'Escape': stopAll(); break;
-    case '?': case 'h': case 'H': $('help').open = true; $('help-summary').focus(); break;
     default:
       if (preset) applyPreset(preset);
       else handled = false;
@@ -294,14 +462,12 @@ function wire() {
   window.addEventListener('pointerdown', unlockOnce, { once: true, capture: true });
   window.addEventListener('keydown', onKey);
 
-  $('btn-sound').addEventListener('click', async () => {
-    const ok = await ensureSound();
-    announce(ok ? 'Sound is on.' : 'Sound could not start in this browser.');
-  });
   $('btn-scan').addEventListener('click', toggleScan);
   $('btn-stop').addEventListener('click', stopAll);
   $('btn-sweep').addEventListener('click', yearSweep);
   $('btn-where').addEventListener('click', whereAmI);
+  $('btn-wav').addEventListener('click', saveWav);
+  $('btn-tutorial').addEventListener('click', tutorial);
   $('btn-prev-year').addEventListener('click', () => setYear(state.year - 1));
   $('btn-next-year').addEventListener('click', () => setYear(state.year + 1));
   $('year').addEventListener('change', (e) => setYear(Number(e.target.value)));
@@ -311,32 +477,30 @@ function wire() {
     $('duration-out').textContent = `${state.durationS} s`;
   });
   $('volume').addEventListener('input', (e) => {
-    const v = Number(e.target.value) / 100;
-    engine.setVolume(v);
+    engine.setVolume(Number(e.target.value) / 100);
     $('volume-out').textContent = `${e.target.value}%`;
   });
   $('coast').addEventListener('change', (e) => toggleCoast(e.target.checked));
 
-  const presetBox = $('presets');
   for (const p of PRESETS) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = `${p.name}`;
+    b.innerHTML = `${p.name} <kbd>${p.key}</kbd>`;
     b.setAttribute('aria-keyshortcuts', p.key);
-    b.title = `Centre on ${p.name} (key ${p.key})`;
     b.addEventListener('click', () => applyPreset(p));
-    presetBox.appendChild(b);
+    $('presets').appendChild(b);
   }
-
-  const yearSel = $('year');
   for (const y of YEARS) {
     const o = document.createElement('option');
     o.value = String(y);
     o.textContent = String(y);
-    yearSel.appendChild(o);
+    $('year').appendChild(o);
   }
+  renderTracks();
+  renderTimeline();
 
-  $('map').addEventListener('click', (ev) => setCenter(view.eventToLatLon(ev)));
+  $('overlay').addEventListener('click', (ev) => setCenter(view.eventToLatLon(ev)));
+  document.body.dataset.motion = reducedMotion() ? 'reduced' : 'full';
 }
 
 // Exposed for manual debugging in the browser console only.

@@ -3,120 +3,135 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EarthSonar: hear Earth's night lights</title>
+  <title>EarthSonar: a jukebox for NASA Earth visualizations</title>
   <meta name="description" content="EarthSonar turns NASA Earth Information Center visualizations into live sound with a shrinking-ring sonar, for blind and low-vision listeners and everyone else.">
+  <meta name="theme-color" content="#06080d">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <a class="skip" href="#controls">Skip to controls</a>
+  <a class="skip" href="#player">Skip to the player</a>
 
-  <header>
-    <h1>EarthSonar</h1>
-    <p class="tagline">Hear the planet change. A ring of sound sweeps in toward any place on Earth and turns a NASA visualization into music you can navigate.</p>
+  <header class="hero">
+    <div class="hero-text">
+      <h1>EarthSonar</h1>
+      <p class="lede">A jukebox for NASA Earth visualizations. A ring of sound closes in on any place on Earth, so you can hear what the map shows.</p>
+      <p class="cta">Press <kbd>Space</kbd> to play. <span id="sound-state" class="sound-state" data-on="false">Sound starts with your first key press.</span></p>
+    </div>
+    <div class="howto" aria-labelledby="howto-title">
+      <h2 id="howto-title" class="eyebrow">How to listen</h2>
+      <ul class="rules">
+        <li><span class="glyph" aria-hidden="true">↑</span><span><strong>Top is north</strong>: high notes</span></li>
+        <li><span class="glyph" aria-hidden="true">→</span><span><strong>Right ear is east</strong>, left ear is west</span></li>
+        <li><span class="glyph" aria-hidden="true">◉</span><span><strong>Louder is brighter</strong>: more light on the map</span></li>
+      </ul>
+      <button id="btn-tutorial" type="button" class="ghost" aria-keyshortcuts="T">Play 10-second tutorial <kbd>T</kbd></button>
+    </div>
   </header>
 
-  <main id="app" data-ready="false">
-    <div id="sound-banner" class="banner" role="note">
-      Sound starts after your first key press or click.
-      <button id="btn-sound" type="button">Turn sound on</button>
-    </div>
+  <main class="layout">
+    <nav class="tracks" aria-labelledby="tracks-title">
+      <h2 id="tracks-title" class="eyebrow">Tracks</h2>
+      <ol id="track-list" class="track-list"></ol>
+    </nav>
 
-    <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+    <section id="player" class="player" aria-labelledby="track-title" tabindex="-1">
+      <div class="now">
+        <p class="eyebrow">Now playing</p>
+        <h2 id="track-title">Night Lights 2012–2023</h2>
+        <p class="readouts">
+          <span>Year <strong id="year-readout">2012</strong></span>
+          <span>Centre <strong id="centre-readout">India</strong></span>
+          <span>Ring <strong id="radius-readout">1500 km</strong></span>
+        </p>
+      </div>
 
-    <section aria-labelledby="mode-title" class="mode">
-      <h2 id="mode-title">Night lights, 2012 to 2023</h2>
-      <p class="readouts">
-        <span>Year: <strong id="year-readout">2012</strong></span>
-        <span>Centre: <strong id="centre-readout">India</strong></span>
-      </p>
+      <div class="transport" role="group" aria-label="Player">
+        <button id="btn-scan" type="button" class="primary" aria-pressed="false" aria-keyshortcuts="Space">
+          <span class="btn-label">Play scan</span> <kbd>Space</kbd>
+        </button>
+        <button id="btn-sweep" type="button" aria-keyshortcuts="Y">All years <kbd>Y</kbd></button>
+        <button id="btn-where" type="button" aria-keyshortcuts="W">Where am I? <kbd>W</kbd></button>
+        <button id="btn-wav" type="button" aria-keyshortcuts="S">Save scan as WAV <kbd>S</kbd></button>
+        <button id="btn-stop" type="button" class="ghost" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
+      </div>
 
-      <div class="map-wrap" role="application" aria-roledescription="sound map"
-           aria-describedby="map-help-short">
-        <canvas id="map" width="1280" height="720" tabindex="0" role="img"
+      <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+      <div class="stage" role="application" aria-roledescription="sound map" aria-describedby="keybar-title">
+        <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
+        <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
+        <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
                 aria-label="Night lights map. Loading."></canvas>
       </div>
-      <p id="map-help-short" class="hint">
-        With the map focused: Space scans, arrow keys move the centre, Page Up and Page Down change the year,
-        1 to 4 jump to India, China, Bishkek, Europe, Y plays every year, W tells you where you are, Escape stops.
-      </p>
+
+      <div class="timeline" aria-hidden="true" id="timeline"></div>
     </section>
 
-    <section id="controls" aria-labelledby="controls-title" class="controls">
-      <h2 id="controls-title">Controls</h2>
+    <aside class="instruments" aria-labelledby="inst-title">
+      <h2 id="inst-title" class="eyebrow">Now sounding</h2>
+      <canvas id="dial" class="dial" width="260" height="350" role="img"
+              aria-label="Sixteen ring voices arranged as a compass, and four bars for the tactile controller: north, east, south, west."></canvas>
+      <p class="caption">16 voices around the ring. Bars: tactile compass for the vibration controller.</p>
 
-      <div class="row">
-        <button id="btn-scan" type="button" aria-pressed="false" aria-keyshortcuts="Space">Start scan</button>
-        <button id="btn-sweep" type="button" aria-keyshortcuts="Y">Play all years</button>
-        <button id="btn-where" type="button" aria-keyshortcuts="W">Where am I?</button>
-        <button id="btn-stop" type="button" aria-keyshortcuts="Escape">Stop sound</button>
+      <div class="field" role="group" aria-labelledby="year-label">
+        <span id="year-label" class="label">Year</span>
+        <div class="inline">
+          <button id="btn-prev-year" type="button" class="icon" aria-keyshortcuts="PageDown" aria-label="Previous year">◀</button>
+          <label class="sr-only" for="year">Year</label>
+          <select id="year"></select>
+          <button id="btn-next-year" type="button" class="icon" aria-keyshortcuts="PageUp" aria-label="Next year">▶</button>
+        </div>
       </div>
 
-      <div class="row" role="group" aria-labelledby="year-label">
-        <span id="year-label" class="group-label">Year</span>
-        <button id="btn-prev-year" type="button" aria-keyshortcuts="PageDown" aria-label="Previous year">◀</button>
-        <label class="sr-only" for="year">Year</label>
-        <select id="year"></select>
-        <button id="btn-next-year" type="button" aria-keyshortcuts="PageUp" aria-label="Next year">▶</button>
+      <div class="field" role="group" aria-labelledby="presets-label">
+        <span id="presets-label" class="label">Centre on</span>
+        <div id="presets" class="presets"></div>
       </div>
 
-      <div class="row" role="group" aria-labelledby="presets-label">
-        <span id="presets-label" class="group-label">Centre on</span>
-        <span id="presets" class="presets"></span>
-      </div>
-
-      <div class="row sliders">
-        <label for="radius">Ring radius <output id="radius-out" for="radius">1500 km</output></label>
+      <div class="field">
+        <label for="radius" class="label">Ring size <output id="radius-out" for="radius">1500 km</output></label>
         <input id="radius" type="range" min="250" max="4000" step="250" value="1500" aria-keyshortcuts="+ -">
-        <label for="duration">Scan length <output id="duration-out" for="duration">8 s</output></label>
+      </div>
+      <div class="field">
+        <label for="duration" class="label">Scan length <output id="duration-out" for="duration">8 s</output></label>
         <input id="duration" type="range" min="4" max="16" step="1" value="8">
-        <label for="volume">Volume <output id="volume-out" for="volume">80%</output></label>
+      </div>
+      <div class="field">
+        <label for="volume" class="label">Volume <output id="volume-out" for="volume">80%</output></label>
         <input id="volume" type="range" min="0" max="100" step="5" value="80">
       </div>
-
-      <div class="row">
+      <div class="field check">
         <input id="coast" type="checkbox" checked aria-keyshortcuts="C">
-        <label for="coast">Click when the ring crosses a coastline</label>
+        <label for="coast">Click at coastlines <kbd>C</kbd></label>
       </div>
-    </section>
-
-    <details id="help">
-      <summary id="help-summary">Keyboard shortcuts and how to listen</summary>
-      <h2 class="sr-only">Help</h2>
-      <h3>How to listen</h3>
-      <ul>
-        <li>A ring starts far from the centre and shrinks onto it.</li>
-        <li><strong>Pitch is direction north–south:</strong> high notes come from the north, low notes from the south.</li>
-        <li><strong>Left and right ear are west and east.</strong> A high note in your right ear means "north-east of the centre".</li>
-        <li><strong>Loudness and brightness are the data:</strong> louder, brighter tones mean more light on the map.</li>
-        <li>A soft muffled hum means unlit land. Silence means water. A click marks a coastline.</li>
-        <li>At the end the ring meets in one note: the value at the centre. A low thud means darkness there.</li>
-      </ul>
-      <h3>Keys</h3>
-      <table>
-        <thead><tr><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
-        <tbody>
-          <tr><td>Space or Enter</td><td>Start or stop a ring scan</td></tr>
-          <tr><td>Arrow keys</td><td>Move the centre by 1 degree (with Shift: 5 degrees)</td></tr>
-          <tr><td>Page Up / Page Down, or ] / [</td><td>Next / previous year</td></tr>
-          <tr><td>Home / End</td><td>2012 / 2023</td></tr>
-          <tr><td>1, 2, 3, 4</td><td>Centre on India, China, Bishkek, Europe</td></tr>
-          <tr><td>+ / −</td><td>Bigger / smaller ring</td></tr>
-          <tr><td>Y</td><td>Play all years: one note per year, higher means brighter</td></tr>
-          <tr><td>W</td><td>Where am I: year, centre, land or water, light level</td></tr>
-          <tr><td>C</td><td>Coastline clicks on or off</td></tr>
-          <tr><td>Escape</td><td>Stop all sound</td></tr>
-          <tr><td>? or H</td><td>Open this help</td></tr>
-        </tbody>
-      </table>
-      <p>Screen-reader users: move focus to the map (it is an application region) so single-letter keys reach EarthSonar. All actions are also available as buttons.</p>
-    </details>
+    </aside>
   </main>
 
-  <footer>
-    <p>Visualization frames: <a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights between 2012 and 2023 – EIC Version</a>, NASA's Scientific Visualization Studio (Black Marble, Suomi NPP VIIRS).
-    We sonify the rendered visualization, not the raw measurements.</p>
-    <p>EarthSonar is an independent NASA Space Apps Challenge 2026 project and is not endorsed by NASA. <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">Source code and credits</a>.</p>
+  <section class="about" aria-labelledby="about-title">
+    <h2 id="about-title">What you are hearing</h2>
+    <p>Each track is a real frame from NASA's Earth Information Center visualizations. EarthSonar reads the colours of the rendered map. It does not read raw measurements.
+      A soft muffled hum is unlit land, silence is water, and a click marks a coastline. At the end the ring meets in one note: the value at the centre. A low thud means darkness there.</p>
+    <p>Screen-reader users: move focus to the map, which is an application region, so single-letter keys reach EarthSonar. Every action is also a button.</p>
+  </section>
+
+  <footer class="footer">
+    <p>Frames: <a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights between 2012 and 2023 – EIC Version</a>, NASA's Scientific Visualization Studio (Black Marble, Suomi NPP VIIRS).
+      EarthSonar is an independent NASA Space Apps Challenge 2026 project and is not endorsed by NASA. <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">Source, data notes and credits</a>.</p>
   </footer>
+
+  <div class="keybar" role="note" aria-labelledby="keybar-title">
+    <span id="keybar-title" class="sr-only">Keyboard shortcuts:</span>
+    <span><kbd>Space</kbd> play</span>
+    <span><kbd>←↑↓→</kbd> move</span>
+    <span><kbd>PgUp</kbd><kbd>PgDn</kbd> year</span>
+    <span><kbd>1</kbd>–<kbd>4</kbd> places</span>
+    <span><kbd>⇧1</kbd>–<kbd>⇧4</kbd> tracks</span>
+    <span><kbd>Y</kbd> all years</span>
+    <span><kbd>W</kbd> where</span>
+    <span><kbd>+</kbd><kbd>−</kbd> ring</span>
+    <span><kbd>T</kbd> tutorial</span>
+    <span><kbd>Esc</kbd> stop</span>
+  </div>
 
   <script type="module" src="js/app.js"></script>
 </body>
