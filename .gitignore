@@ -1,6 +1,3 @@
-# Internal notes (not part of the submission)
-NOTES.local.md
-
 # Raw NASA SVS source files: too large for GitHub, kept locally only.
 # Web-ready media goes to media/ (each file < 50 MB) and IS committed.
 datasets/
@@ -22,7 +19,6 @@ __pycache__/
 node_modules/
 
 # Editors and OS clutter
-.local/
 .vscode/
 .idea/
 .DS_Store

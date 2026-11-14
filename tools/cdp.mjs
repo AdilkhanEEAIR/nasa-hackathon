@@ -1,5 +1,5 @@
 // Minimal headless-Chrome driver over the DevTools Protocol. No dependencies: Node 22 has a
-// built-in WebSocket. Shared by tools/measure_load.mjs and tools/screenshots.mjs.
+// built-in WebSocket. Shared by the tools in this folder.
 
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
