@@ -47,7 +47,17 @@ const state = {
 const engine = new SonicEngine();
 const voice = new Voice();
 let pendingScan = false; // Space pressed before the first data arrived: start when ready
-const view = new MapView({ imgA: $('map-a'), imgB: $('map-b'), overlay: $('overlay') });
+const view = new MapView({
+  world: $('world'),
+  imgA: $('map-a'),
+  imgB: $('map-b'),
+  overlay: $('overlay'),
+  onClick: (geo) => setCenter(geo),
+  onCamera: (cam) => {
+    $('zoom-badge').textContent = `${cam.s < 10 ? cam.s.toFixed(1) : Math.round(cam.s)}×`;
+    showFrame();
+  },
+});
 const dial = new VoiceDial($('dial'));
 
 /** Colour of a voice in the visuals: the instrument that is loudest on its arc. */
@@ -131,6 +141,40 @@ function yearUrl(year) {
 
 function trackImageUrl() {
   return state.track === 'change' ? viewUrl(state.manifest.nightlights.change) : yearUrl(state.year);
+}
+
+function currentEntry() {
+  return state.track === 'change' ? state.manifest.nightlights.change : state.manifest.nightlights.years[String(state.year)];
+}
+
+const HI_RES_FROM = 1.5;
+
+/**
+ * Shows the current frame: the 1920-px view normally, the 3840-px source view once zoomed
+ * past 1.5x. The high-resolution file is fetched only for the frame on screen, only when
+ * needed, and swapped in when it has arrived (so zooming never shows a blank map).
+ */
+function showFrame({ fade = false } = {}) {
+  if (!state.manifest) return;
+  const entry = currentEntry();
+  const low = viewUrl(entry);
+  const hi = entry.viewHi ? entry.viewHi[viewExt] : null;
+  const wantHi = hi && view.cam.s > HI_RES_FROM;
+  if (!wantHi) {
+    // Zoomed back out: keep the sharper image if it is already this frame's.
+    if (!hi || view.currentImage !== hi) view.setImage(low, { fade });
+    return;
+  }
+  if (view.currentImage === hi) return;
+  if (inflight.has(hi)) {
+    inflight.get(hi).then(() => { if (currentEntry() === entry) view.setImage(hi); });
+    if (view.currentImage !== low) view.setImage(low, { fade });
+    return;
+  }
+  if (view.currentImage !== low) view.setImage(low, { fade });
+  prefetchView(hi).then(() => {
+    if (currentEntry() === entry && view.cam.s > HI_RES_FROM) view.setImage(hi);
+  });
 }
 
 function once(url, fn) {
@@ -240,7 +284,7 @@ async function init() {
     prefetchView(viewUrl(first)),
   ]);
   state.land = buildMask(mask.data, mask.width, mask.height);
-  view.setImage(trackImageUrl());
+  showFrame();
   view.setCenter(state.center);
   renderLegend();
   updateDescription();
@@ -309,7 +353,7 @@ async function setYear(year, { speak = true } = {}) {
   state.year = y;
   $('year').value = String(y);
   await loadYear(y);
-  view.setImage(yearUrl(y));   // instant: keyboard-driven changes are never animated
+  showFrame();   // instant: keyboard-driven changes are never animated
   updateDescription();
   if (speak) announce(String(y));
   if (scan.running) {
@@ -322,6 +366,7 @@ async function setYear(year, { speak = true } = {}) {
 function setCenter(center, { speak = true } = {}) {
   state.center = { lat: clampLat(center.lat), lon: normalizeLon(center.lon), name: center.name || '' };
   view.setCenter(state.center);
+  view.follow(state.center.lat, state.center.lon); // a zoomed map keeps the scan centre in frame
   updateDescription();
   if (speak) announce(`Centre ${centreLabel()}.`);
 }
@@ -391,7 +436,7 @@ async function selectTrack(id) {
   for (const b of ['btn-prev-year', 'btn-next-year', 'year']) $(b).disabled = !yearsOnly;
   $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
   await currentFields();
-  view.setImage(trackImageUrl());
+  showFrame();
   updateDescription();
   announce(`Track ${TRACKS.indexOf(t) + 1}: ${t.title}. ${t.blurb} Press Space to scan.`);
 }
@@ -458,7 +503,7 @@ async function yearSweep() {
     }, (lead + i * step) * 1000);
   });
   setTimeout(() => {
-    view.setImage(yearUrl(state.year), { fade: true });
+    showFrame({ fade: true });
     updateDescription();
     const max = Math.max(...values);
     const min = Math.min(...values);
@@ -651,8 +696,11 @@ function onKey(e) {
     case 'PageDown': case '[': setYear(state.year - 1); break;
     case 'Home': setYear(YEARS[0]); break;
     case 'End': setYear(YEARS[YEARS.length - 1]); break;
-    case '+': case '=': setRadius(state.radiusKm + 250); break;
-    case '-': case '_': setRadius(state.radiusKm - 250); break;
+    case '+': case '=': view.zoomBy(1.5); break;
+    case '-': case '_': view.zoomBy(1 / 1.5); break;
+    case '0': view.resetCamera(); break;
+    case '.': case '>': setRadius(state.radiusKm + 250); break;
+    case ',': case '<': setRadius(state.radiusKm - 250); break;
     case 'y': case 'Y': yearSweep(); break;
     case 'c': case 'C': toggleCoast(); break;
     case 'v': case 'V': toggleVoice(); break;
@@ -716,12 +764,11 @@ function wire() {
   renderTracks();
   renderTimeline();
 
-  $('overlay').addEventListener('click', (ev) => setCenter(view.eventToLatLon(ev)));
   document.body.dataset.motion = reducedMotion() ? 'reduced' : 'full';
 }
 
 // Exposed for manual debugging in the browser console only.
-window.earthsonar = { engine, scan, state };
+window.earthsonar = { engine, scan, state, view };
 
 wire();
 init().catch((err) => {

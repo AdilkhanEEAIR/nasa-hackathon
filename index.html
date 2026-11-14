@@ -74,10 +74,13 @@
 
       <div class="stage" role="application" aria-roledescription="sound map" aria-describedby="keybar-title">
         <div id="loadbar" class="loadbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span class="fill"></span></div>
-        <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
-        <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
+        <div id="world" class="world">
+          <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
+          <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
+        </div>
         <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
                 aria-label="Night lights map. Loading."></canvas>
+        <p class="zoom-badge" id="zoom-badge" aria-hidden="true">1×</p>
       </div>
 
       <div class="timeline" aria-hidden="true" id="timeline"></div>
@@ -105,8 +108,8 @@
       </div>
 
       <div class="field">
-        <label for="radius" class="label">Ring size <output id="radius-out" for="radius">1500 km</output></label>
-        <input id="radius" type="range" min="250" max="4000" step="250" value="1500" aria-keyshortcuts="+ -">
+        <label for="radius" class="label">Ring size <kbd>,</kbd><kbd>.</kbd> <output id="radius-out" for="radius">1500 km</output></label>
+        <input id="radius" type="range" min="250" max="4000" step="250" value="1500" aria-keyshortcuts=", .">
       </div>
       <div class="field">
         <label for="duration" class="label">Scan length <output id="duration-out" for="duration">8 s</output></label>
@@ -149,7 +152,8 @@
     <span><kbd>⇧1</kbd>–<kbd>⇧4</kbd> tracks</span>
     <span><kbd>Y</kbd> all years</span>
     <span><kbd>W</kbd> where</span>
-    <span><kbd>+</kbd><kbd>−</kbd> ring</span>
+    <span><kbd>,</kbd><kbd>.</kbd> ring</span>
+    <span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd> zoom</span>
     <span><kbd>T</kbd> tutorial</span>
     <span><kbd>V</kbd> voice</span>
     <span><kbd>Esc</kbd> stop</span>

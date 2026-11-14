@@ -55,7 +55,8 @@ change in seven seconds.
 | Page Up / Page Down, `]` / `[` | Next / previous year |
 | Home / End | 2012 / 2023 |
 | 1 2 3 4 | India, China, Bishkek, Europe |
-| + / − | Bigger / smaller ring |
+| `.` / `,` | Bigger / smaller ring |
+| + / − / 0 | Zoom the map in / out / reset (wheel, pinch and drag also work) |
 | Y | Play all years |
 | W | Where am I: year, centre, land or water, light level |
 | S | Save the current scan as a WAV file |
@@ -180,6 +181,20 @@ the same as for night lights.
   are accumulated detections, not individual real-time strikes.
 - The change map shows the *direction* of change reliably (more / less / same). Its
   magnitude is approximate.
+
+## Zoom and pan (visual only)
+
+- The mouse wheel and pinch zoom toward the cursor, dragging moves the map, and a click sets
+  the ring centre. Keys: `+`, `−`, `0`.
+- **Zoom never changes the sound.** The ring is defined in kilometres on the sphere and reads
+  the same sound grids at every zoom level.
+- The ring, its loud arcs and the centre ripple are drawn through the same camera as the map,
+  so they stay geographically aligned. Tests check the screen ↔ map ↔ degrees conversion.
+- Past 1.5× the full-resolution source frame (3840 px) is fetched, for the frame on screen
+  only.
+- Zoom stops at **6×**. Beyond that each source pixel spans about two screen pixels and only
+  gets blurrier.
+- A selected preset, or a centre moved with the arrow keys, is kept in frame.
 
 ## Loading speed
 

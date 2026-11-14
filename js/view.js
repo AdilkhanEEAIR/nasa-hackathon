@@ -1,13 +1,16 @@
 // Visual layer for sighted users and demo videos. The sound never depends on it.
-// The map itself is two stacked <img> elements (cross-faded with opacity only); the ring,
-// centre and final-note ripple live on a separate overlay canvas.
+// The map is two stacked <img> elements inside a "world" layer that zooms and pans with a
+// single CSS transform (compositor-only). The ring, centre and final-note ripple are drawn
+// on a separate overlay canvas through the same camera, so every layer stays geographically
+// aligned at any zoom.
 
-import { lonLatToPixel } from './geo.js';
+import { geoToMap, mapToGeo, mapToScreen, screenToMap, zoomAt, panBy, clampCamera, ensureVisible, HOME } from './camera.js';
 
 export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class MapView {
-  constructor({ imgA, imgB, overlay }) {
+  constructor({ world, imgA, imgB, overlay, onClick, onCamera }) {
+    this.world = world;
     this.imgs = [imgA, imgB];
     this.front = 0;
     this.canvas = overlay;
@@ -15,25 +18,137 @@ export class MapView {
     this.ring = null;
     this.center = null;
     this.ripple = null;
+    this.cam = { ...HOME };
+    this.onClick = onClick;
+    this.onCamera = onCamera;
     this._rippleRaf = 0;
+    this._fitCanvas();
+    new ResizeObserver(() => { this._fitCanvas(); this.draw(); }).observe(overlay);
+    this._wireGestures();
+    this._applyCamera();
   }
 
-  get grid() {
-    return { lon0: -180, width: this.canvas.width, height: this.canvas.height };
+  /** Overlay canvas at device resolution so lines stay crisp when the map is zoomed. */
+  _fitCanvas() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(this.canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.round(this.canvas.clientHeight * dpr));
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+    }
+    this.dpr = dpr;
   }
+
+  get W() { return this.canvas.width; }
+  get H() { return this.canvas.height; }
+
+  // ------------------------------------------------------------ camera
+
+  setCamera(cam, { notify = true } = {}) {
+    this.cam = clampCamera(cam);
+    this._applyCamera();
+    this.draw();
+    if (notify && this.onCamera) this.onCamera(this.cam);
+  }
+
+  _applyCamera() {
+    const { s, cu, cv } = this.cam;
+    // translate() percentages are of the world layer's own size (= the stage), then scale.
+    this.world.style.transform = `translate(${(0.5 - cu * s) * 100}%, ${(0.5 - cv * s) * 100}%) scale(${s})`;
+  }
+
+  /** Zoom around the ring centre (keyboard), keeping it in frame. */
+  zoomBy(factor) {
+    const target = this.center ? geoToMap(this.center.lat, this.center.lon) : { u: this.cam.cu, v: this.cam.cv };
+    const p = mapToScreen(target.u, target.v, this.cam, this.W, this.H);
+    this.setCamera(zoomAt(this.cam, factor, p.x, p.y, this.W, this.H));
+  }
+
+  resetCamera() {
+    this.setCamera({ ...HOME });
+  }
+
+  /** Keeps a geographic point in frame (used when the ring centre moves). */
+  follow(lat, lon) {
+    const m = geoToMap(lat, lon);
+    const next = ensureVisible(this.cam, m.u, m.v);
+    if (next !== this.cam) this.setCamera(next);
+  }
+
+  _canvasPoint(ev) {
+    const r = this.canvas.getBoundingClientRect();
+    return { x: ((ev.clientX - r.left) / r.width) * this.W, y: ((ev.clientY - r.top) / r.height) * this.H };
+  }
+
+  _wireGestures() {
+    const el = this.canvas;
+    el.addEventListener('wheel', (ev) => {
+      ev.preventDefault();
+      const p = this._canvasPoint(ev);
+      // Exponential mapping: equal wheel steps feel like equal zoom steps at any scale.
+      this.setCamera(zoomAt(this.cam, Math.exp(-ev.deltaY * 0.0015), p.x, p.y, this.W, this.H));
+    }, { passive: false });
+
+    const pointers = new Map();
+    let moved = 0;
+    let pinch = null;
+    el.addEventListener('pointerdown', (ev) => {
+      el.setPointerCapture(ev.pointerId);
+      pointers.set(ev.pointerId, this._canvasPoint(ev));
+      moved = 0;
+      if (pointers.size === 2) {
+        const [a, b] = [...pointers.values()];
+        pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y), mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+      }
+    });
+    el.addEventListener('pointermove', (ev) => {
+      if (!pointers.has(ev.pointerId)) return;
+      const prev = pointers.get(ev.pointerId);
+      const cur = this._canvasPoint(ev);
+      pointers.set(ev.pointerId, cur);
+      if (pointers.size === 1) {
+        moved += Math.hypot(cur.x - prev.x, cur.y - prev.y);
+        if (moved > 4 * this.dpr) this.setCamera(panBy(this.cam, cur.x - prev.x, cur.y - prev.y, this.W, this.H));
+      } else if (pointers.size === 2 && pinch) {
+        const [a, b] = [...pointers.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        let cam = zoomAt(this.cam, dist / pinch.dist, mid.x, mid.y, this.W, this.H);
+        cam = panBy(cam, mid.x - pinch.mid.x, mid.y - pinch.mid.y, this.W, this.H);
+        pinch = { dist, mid };
+        moved = Infinity;
+        this.setCamera(cam);
+      }
+    });
+    const end = (ev) => {
+      if (!pointers.has(ev.pointerId)) return;
+      const p = pointers.get(ev.pointerId);
+      pointers.delete(ev.pointerId);
+      if (pointers.size < 2) pinch = null;
+      // A press that did not move is a click: it sets the ring centre.
+      if (pointers.size === 0 && moved <= 4 * this.dpr && ev.type === 'pointerup' && this.onClick) {
+        const m = screenToMap(p.x, p.y, this.cam, this.W, this.H);
+        this.onClick(mapToGeo(m.u, m.v));
+      }
+    };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+  }
+
+  // ------------------------------------------------------------ images
 
   /**
    * Shows a map image. `fade` cross-fades (used while a year sweep plays, so the picture
    * follows the music); direct keyboard changes switch instantly.
    */
-  setImage(url, { fade = false, alt = '' } = {}) {
+  setImage(url, { fade = false } = {}) {
     const cur = this.imgs[this.front];
     if (cur.getAttribute('src') === url) return;
     const next = this.imgs[1 - this.front];
     const instant = !fade || reducedMotion();
     next.classList.toggle('instant', instant);
     cur.classList.toggle('instant', instant);
-    next.alt = alt;
     next.src = url;
     const show = () => {
       next.classList.add('front');
@@ -43,6 +158,12 @@ export class MapView {
     if (next.complete && next.naturalWidth) show();
     else next.addEventListener('load', show, { once: true });
   }
+
+  get currentImage() {
+    return this.imgs[this.front].getAttribute('src');
+  }
+
+  // ------------------------------------------------------------ overlay
 
   setCenter(center) {
     this.center = center;
@@ -69,45 +190,44 @@ export class MapView {
     this._rippleRaf = requestAnimationFrame(tick);
   }
 
-  /** Converts a click position (CSS pixels) to latitude/longitude. */
-  eventToLatLon(ev) {
-    const r = this.canvas.getBoundingClientRect();
-    const x = ((ev.clientX - r.left) / r.width) * this.canvas.width;
-    const y = ((ev.clientY - r.top) / r.height) * this.canvas.height;
-    return { lat: 90 - (y / this.canvas.height) * 180, lon: -180 + (x / this.canvas.width) * 360 };
+  _project(p) {
+    const m = geoToMap(p.lat, p.lon);
+    const s = mapToScreen(m.u, m.v, this.cam, this.W, this.H);
+    return { x: s.x, y: s.y, u: m.u };
   }
 
   _polyline(points, close) {
     const { ctx } = this;
-    const w = this.canvas.width;
     let prev = null;
     let first = null;
     ctx.beginPath();
     for (const p of points) {
-      const q = lonLatToPixel(p.lat, p.lon, this.grid);
-      // Break the line where it wraps across the map edge instead of drawing a stripe.
-      if (!prev || Math.abs(q.x - prev.x) > w / 2) ctx.moveTo(q.x, q.y);
+      const q = this._project(p);
+      // Break the line where it wraps across the date line instead of drawing a stripe.
+      if (!prev || Math.abs(q.u - prev.u) > 0.5) ctx.moveTo(q.x, q.y);
       else ctx.lineTo(q.x, q.y);
       if (!first) first = q;
       prev = q;
     }
-    if (close && first && prev && Math.abs(first.x - prev.x) <= w / 2) ctx.lineTo(first.x, first.y);
+    if (close && first && prev && Math.abs(first.u - prev.u) <= 0.5) ctx.lineTo(first.x, first.y);
     ctx.stroke();
   }
 
   draw() {
-    const { ctx, canvas } = this;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { ctx } = this;
+    const k = this.dpr;
+    ctx.clearRect(0, 0, this.W, this.H);
 
     if (this.ring) {
       ctx.lineCap = 'round';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * k;
       ctx.strokeStyle = 'rgba(124, 216, 255, 0.85)';
       this._polyline(this.ring.flatMap((v) => v.points), true);
-      // Loud arcs are drawn thicker and warmer so a viewer can follow what is being heard.
+      // Loud arcs are drawn thicker in their instrument's colour, so a viewer can follow
+      // what is being heard.
       for (const v of this.ring) {
         if (v.gain <= 0.05) continue;
-        ctx.lineWidth = 2 + 7 * v.gain;
+        ctx.lineWidth = (2 + 7 * v.gain) * k;
         ctx.strokeStyle = v.color || '#ffd56a';
         ctx.globalAlpha = 0.35 + 0.65 * v.gain;
         this._polyline(v.points, false);
@@ -116,32 +236,29 @@ export class MapView {
     }
 
     if (this.center) {
-      const c = lonLatToPixel(this.center.lat, this.center.lon, this.grid);
-      ctx.lineWidth = 2;
+      const c = this._project(this.center);
+      ctx.lineWidth = 2 * k;
       ctx.strokeStyle = '#fff';
       ctx.beginPath();
-      ctx.arc(c.x, c.y, 6, 0, Math.PI * 2);
-      ctx.moveTo(c.x - 13, c.y);
-      ctx.lineTo(c.x - 8, c.y);
-      ctx.moveTo(c.x + 8, c.y);
-      ctx.lineTo(c.x + 13, c.y);
-      ctx.moveTo(c.x, c.y - 13);
-      ctx.lineTo(c.x, c.y - 8);
-      ctx.moveTo(c.x, c.y + 8);
-      ctx.lineTo(c.x, c.y + 13);
+      ctx.arc(c.x, c.y, 6 * k, 0, Math.PI * 2);
+      for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        ctx.moveTo(c.x + dx * 8 * k, c.y + dy * 8 * k);
+        ctx.lineTo(c.x + dx * 13 * k, c.y + dy * 13 * k);
+      }
       ctx.stroke();
 
       if (this.ripple) {
         const { t, level, still } = this.ripple;
         // Ease-out (fast start, gentle stop): the note's attack, then its decay.
         const e = 1 - (1 - t) ** 3;
-        const radius = still ? 18 : 8 + 34 * e;
-        const alpha = still ? 0.9 : 1 - e;
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = level > 0.001 ? `rgba(255, 213, 106, ${alpha})` : `rgba(183, 192, 207, ${alpha})`;
+        const radius = (still ? 18 : 8 + 34 * e) * k;
+        ctx.lineWidth = 3 * k;
+        ctx.globalAlpha = still ? 0.9 : 1 - e;
+        ctx.strokeStyle = level > 0.001 ? '#ffd56a' : '#b7c0cf';
         ctx.beginPath();
         ctx.arc(c.x, c.y, radius, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     }
   }
