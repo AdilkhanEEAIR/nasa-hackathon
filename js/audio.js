@@ -373,6 +373,28 @@ export class SonicEngine {
     const out = ctx.createGain();
     out.gain.value = level * this.trim * 0.35;
     out.connect(this.bus);
+    if (voice === 'drone') {
+      // CO2: a low, slowly swelling hum an octave down. More CO2 opens the filter and adds a
+      // detuned twin, so the sound thickens rather than simply getting louder.
+      const f = ctx.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = 220 + 1400 * level;
+      f.connect(out);
+      for (const cents of [-7, 7]) {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = freq / 2;
+        o.detune.value = cents * level * 2;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, when);
+        g.gain.linearRampToValueAtTime(cents < 0 ? 0.7 : 0.7 * level, when + 0.3);
+        g.gain.exponentialRampToValueAtTime(0.0005, when + 1.5);
+        o.connect(g).connect(f);
+        o.start(when);
+        o.stop(when + 1.6);
+      }
+      return;
+    }
     const parts = voice === 'wood' ? [[1, 1, 0.35], [4, 0.45, 0.06]] : [[1, 1, 0.5]];
     for (const [mul, amp, decay] of parts) {
       const o = ctx.createOscillator();

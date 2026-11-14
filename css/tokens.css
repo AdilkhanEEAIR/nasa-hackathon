@@ -81,6 +81,7 @@
   --data-nodata: var(--dp-nodata);
   --data-tactile: var(--dp-sky);
   --data-forest: var(--dp-green);
+  --data-co2: var(--dp-orange);
   --data-wind-calm: var(--dp-neutral);
   --data-wind-strong: var(--dp-orange);
 

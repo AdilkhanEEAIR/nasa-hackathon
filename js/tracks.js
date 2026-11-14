@@ -261,6 +261,7 @@ export const TRACK_PRESETS = {
     { key: '4', name: 'Equatorial calm', lat: 2, lon: -25, radiusKm: 1500 },
   ],
   forest: [],
+  co2: [],
   ocean: [
     { key: '1', name: 'Gulf Stream', lat: 38, lon: -68, radiusKm: 1200 },
     { key: '2', name: 'Kuroshio', lat: 35, lon: 145, radiusKm: 1200 },
@@ -282,6 +283,7 @@ export const TRACK_SOUND = {
   ocean: { layers: OCEAN_LAYERS, fullScale: ARC_FULL_SCALE, trim: 0.55, mapVoice: (v) => oceanVoice(v) },
   wind: { layers: WIND_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0, mapVoice: (v) => windVoice(v) },
   forest: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
+  co2: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
 };
 
 /**
@@ -290,7 +292,7 @@ export const TRACK_SOUND = {
  *   visual - the picture itself is sonified (brightness, hue, motion), not calibrated
  *            measurements.
  */
-export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual' };
+export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual', co2: 'visual' };
 
 /** Needle tracks play a rotating globe: no map centre, no presets, no ring. */
-export const NEEDLE_TRACKS = new Set(['forest']);
+export const NEEDLE_TRACKS = new Set(['forest', 'co2']);

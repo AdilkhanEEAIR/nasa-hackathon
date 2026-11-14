@@ -279,5 +279,17 @@
       "y1": 0.975
     },
     "period": "April 2019 - April 2020"
+  },
+  "co2": {
+    "source": "NASA SVS 5196",
+    "class": "visual",
+    "mode": "needle",
+    "video": "media/co2/dyamond-co2-orbit-720p30.68afdbdf4b.mp4",
+    "needle": {
+      "x": 0.495,
+      "y0": 0.06,
+      "y1": 0.925
+    },
+    "period": "14 Jan - 27 Feb 2020 (model)"
   }
 }

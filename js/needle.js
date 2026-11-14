@@ -23,6 +23,16 @@ export function forestValue(r, g, b) {
   return Math.max(0, Math.min(1, (Math.max(r, g) - 60) / 170));
 }
 
+/**
+ * DYAMOND CO2 (SVS 5196) as shown on the globe: CO2 plumes are drawn yellow to orange to red
+ * over a grey/white land base and a black ocean. "Warmth" of the colour (red minus blue)
+ * stands for "more CO2 in the picture"; greys, whites and black read 0.
+ */
+export function co2Value(r, g, b) {
+  if (Math.max(r, g, b) < 30 || g > r + 10) return 0;
+  return Math.max(0, Math.min(1, (r - b - 25) / 130));
+}
+
 /** Mean value per segment (top = 0) from an RGBA column read top to bottom. */
 export function needleSegments(rgba, rows, valueFn, n = NEEDLE_SEGMENTS) {
   const out = new Float32Array(n);
@@ -62,9 +72,9 @@ export class NeedleScan {
   }
 
   /** `geom`: needle x and its top/bottom on the disk, as fractions of the frame. */
-  start({ video, geom, valueFn, voice = 'wood' }) {
+  start({ video, geom, valueFn, voice = 'wood', slow = 1 }) {
     this.stop();
-    Object.assign(this, { video, geom, valueFn, voice });
+    Object.assign(this, { video, geom, valueFn, voice, slow });
     this.last = new Float64Array(NEEDLE_SEGMENTS);
     this.running = true;
     this._noteTimes = [];
@@ -80,7 +90,7 @@ export class NeedleScan {
       this._noteTimes = this._noteTimes.filter((t) => now - t < 1000);
       const struck = [];
       seg.forEach((v, k) => {
-        if (v < 0.12 || now - this.last[k] < noteInterval(v) || this._noteTimes.length >= MAX_NOTES_PER_S) return;
+        if (v < 0.12 || now - this.last[k] < noteInterval(v) * this.slow || this._noteTimes.length >= MAX_NOTES_PER_S) return;
         this.last[k] = now;
         this._noteTimes.push(now);
         this.engine.pluck(segmentFreq(k), 0.25 + 0.6 * Math.min(1, v), this.voice);

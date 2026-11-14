@@ -43,7 +43,8 @@ slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 | 03 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
 | 04 Ocean Temperature, 19 June 2007 | ✅ available |
 | 05 Forest Height, GEDI 2019–2020 (SVS 4950) | ✅ available · **Visual** (needle on a turning globe) — sonifies the picture, not calibrated measurements |
-| 06 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
+| 06 Carbon Dioxide, DYAMOND model, Jan–Feb 2020 (SVS 5196) | ✅ available · **Visual** (needle on an orbiting globe) — sonifies the picture, not ppm |
+| 07 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
 | ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
 | Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
 | Explore mode | ✅ available (E explores point by point, W names the place) |
@@ -255,14 +256,15 @@ printed on the frame are painted over. Details and checksums: DATA_NOTES section
 **Two classes of track.** Every track is labelled in the list and in its spoken intro:
 *Data-true* tracks read values back from the visualization's own colour scale; *Visual* tracks
 sonify the picture itself (brightness, hue, motion) and are marked "sonifies the picture, not
-calibrated measurements". Forest Height is Visual; the others are Data-true.
+calibrated measurements". Forest Height and Carbon Dioxide are Visual; the others are Data-true.
 
 **Needle mode (Visual, rotating globes).** A fixed vertical needle runs down the middle of the
 globe while the planet turns under it; it reads its pixels from top (north, high notes) to
 bottom (south, low notes) in 16 segments. Where it crosses the phenomenon a short note sounds
 at that height and a point on the needle flashes; ocean and space are silent. Forest Height
-uses wooden knocks: brighter vegetation in the picture knocks louder and quicker. Details:
-DATA_NOTES section 10.
+uses wooden knocks: brighter vegetation in the picture knocks louder and quicker. Carbon
+Dioxide uses a low hum that thickens as the plume colour warms. Details: DATA_NOTES sections
+10 and 11.
 
 ### Sound palette
 

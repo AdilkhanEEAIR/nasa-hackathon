@@ -1,7 +1,7 @@
 // Needle mode (js/needle.js): a fixed line down a turning globe, read north to south.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { forestValue, needleSegments, segmentFreq, noteInterval, NEEDLE_SEGMENTS } from '../js/needle.js';
+import { forestValue, co2Value, needleSegments, segmentFreq, noteInterval, NEEDLE_SEGMENTS } from '../js/needle.js';
 
 test('forest picture: ocean and space are silent, brighter vegetation reads higher', () => {
   assert.equal(forestValue(5, 5, 8), 0, 'space');
@@ -9,6 +9,13 @@ test('forest picture: ocean and space are silent, brighter vegetation reads high
   const short = forestValue(110, 100, 40);  // brown / olive
   const tall = forestValue(230, 235, 190);  // pale green to white
   assert.ok(short > 0 && tall > short);
+});
+
+test('CO2 picture: grey land, white desert and dark ocean are silent, warmer plumes read higher', () => {
+  assert.equal(co2Value(150, 150, 150), 0, 'grey land');
+  assert.equal(co2Value(230, 225, 215), 0, 'white desert');
+  assert.equal(co2Value(10, 10, 12), 0, 'ocean');
+  assert.ok(co2Value(220, 120, 40) > co2Value(200, 180, 90), 'orange above yellow');
 });
 
 test('segments are read top to bottom and the top sounds highest', () => {

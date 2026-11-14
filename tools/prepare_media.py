@@ -465,6 +465,28 @@ def forest(manifest: dict) -> None:
 
 
 
+# ---------------------------------------------------------------- CO2 (SVS 5196), needle
+
+CO_SRC = SRC / "svs-5196" / "dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4"
+# Globe disk, measured on frames 0, 400, 800, 1150: x 480..1406 (lit edge varies with the
+# night side), y 59..1002 of 1080, so the centre is x = 951 (0.495).
+CO_NEEDLE = {"x": 0.495, "y0": 0.06, "y1": 0.925}
+
+
+def co2(manifest: dict) -> None:
+    print("CO2 (SVS 5196), needle")
+    out = tmp("dyamond-co2-orbit-720p30.mp4")
+    run(["ffmpeg", "-v", "error", "-y", "-i", str(CO_SRC), "-vf", "scale=1280:720:flags=lanczos",
+         "-c:v", "libx264", "-preset", "slow", "-crf", "26", "-pix_fmt", "yuv420p", "-an",
+         "-movflags", "+faststart", str(out)])
+    manifest["co2"] = {
+        "source": "NASA SVS 5196", "class": "visual", "mode": "needle",
+        "video": publish(out, "co2", "dyamond-co2-orbit-720p30"),
+        "needle": CO_NEEDLE, "period": "14 Jan - 27 Feb 2020 (model)",
+    }
+
+
+
 NE_DIR = SRC / "naturalearth"
 
 
@@ -560,6 +582,7 @@ def main() -> None:
     ocean(manifest)
     wind(manifest)
     forest(manifest)
+    co2(manifest)
     natural_earth(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)

@@ -15,7 +15,13 @@ import {
   oceanFields, oceanTemp, describeTemp, oceanBandWeights, OCEAN_CALM, OCEAN_DENSE,
   TRACK_PRESETS, TRACK_SOUND, TRACK_CLASS, windFields, describeWind, WIND_RANGE_MS, NEEDLE_TRACKS,
 } from './tracks.js';
-import { NeedleScan, forestValue, NEEDLE_SEGMENTS } from './needle.js';
+import { NeedleScan, forestValue, co2Value, NEEDLE_SEGMENTS } from './needle.js';
+
+// How each needle track reads its picture and which voice plays it.
+const NEEDLE_READ = {
+  forest: { valueFn: forestValue, voice: 'wood', slow: 1, color: '--data-forest' },
+  co2: { valueFn: co2Value, voice: 'drone', slow: 2.2, color: '--data-co2' },
+};
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
 import { mix, resetTokens } from './theme.js';
@@ -51,6 +57,8 @@ export const TRACKS = [
     intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Temperature has five sounds. Ice-cold water is a pure tone with a slow shimmer. Cold water is soft and hollow. Mild water is reedy. Warm water is rich and flickers faster. Hot water is bright, an octave higher, and flickers fast. Where the current lines are dense the tone slides and swirls: that is moving water. Louder means more sea on the ring; land is silent. Y tells you the temperatures around the ring.' },
   { id: 'forest', title: 'Forest Height (GEDI)', blurb: 'Space station lidar, April 2019 to April 2020, on a turning globe.', ready: true,
     intro: 'Forest Height from the GEDI lidar on the International Space Station, April 2019 to April 2020, shown on a turning globe. A fixed needle runs down the middle of the globe, north at the top with high notes, south at the bottom with low notes. Where it crosses vegetation you hear wooden knocks: brighter green and white in the picture, meaning taller vegetation, knocks louder and quicker. Ocean is silent. Space plays and pauses.' },
+  { id: 'co2', title: 'Carbon Dioxide (DYAMOND)', blurb: 'CO2 plumes in a model, Jan to Feb 2020, on an orbiting globe.', ready: true,
+    intro: 'Carbon Dioxide from the DYAMOND model, January to February 2020, on an orbiting globe. The needle runs down the middle of the globe, north high, south low. Where the picture shows CO2 plumes, yellow to orange to red, you hear a low hum that thickens and brightens as the colour warms. Grey land and dark ocean are silent. Space plays and pauses.' },
   { id: 'wind', title: 'Near-Surface Wind', blurb: 'Wind 10 m above the surface, 29 Oct 2026 (GEOS-FP).', ready: true,
     intro: 'Near-Surface Wind: wind speed 10 metres above the surface from NASA\'s GEOS-FP model, 29 October 2026, read from the colour scale from 4 to 34 metres per second. Wind is rushing air: louder and brighter means stronger, and above about 12 metres per second a whistle joins in. Calm air is silent. Y tells you where the wind is strongest around the ring.' },
 ];
@@ -217,6 +225,7 @@ function updateDescription() {
   const isLt = state.track === 'lightning';
   const map = classTrack() ? classTrack().map
     : state.track === 'ocean' ? 'Map of sea surface currents on 19 June 2007, coloured by temperature from blue, 0 degrees, to red, 32 degrees Celsius; land is grey.'
+    : state.track === 'co2' ? 'Orbiting globe of modelled carbon dioxide, January to February 2020: yellow, orange and red plumes over grey land and a black ocean. A fixed needle runs down the middle.'
     : isNeedle() ? 'Turning globe of GEDI forest height, April 2019 to April 2020: brown and dark green short vegetation, bright green and white tall, blue ocean. A fixed needle runs down the middle.'
     : state.track === 'wind' ? 'Map of near-surface wind speed on 29 October 2026: dark is calm, blue to yellow is moderate, orange to dark red is strong; land without colour is calm.'
     : isLt ?`Lightning map${lightning && lightning.date ? ` for the 10 days to ${lightning.date}` : ''}: yellow dots are flashes seen from the space station.`
@@ -226,6 +235,7 @@ function updateDescription() {
   $('year-readout').textContent = state.track === 'aerosols' ? '19 Aug 2025'
     : state.track === 'ocean' ? '19 Jun 2007'
     : state.track === 'wind' ? '29 Oct 2026'
+    : state.track === 'co2' ? 'Jan–Feb 2020'
     : isNeedle() ? '2019–2020'
       : isLt ? (lightning && lightning.date) || '2017–2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
@@ -633,6 +643,10 @@ const LEGENDS = {
   nightlights: [
     [AMBER, 'Louder and brighter: more light'],
     ['--data-land', 'Soft hum: unlit land · silence: water'],
+  ],
+  co2: [
+    ['--data-co2', 'Warmer plume colour in the picture: lower, thicker, brighter hum'],
+    ['--data-nodata', 'Grey land, dark ocean and space: silent'],
   ],
   forest: [
     ['--data-forest', 'Brighter (taller) vegetation in the picture: louder, quicker wooden knocks'],
@@ -1508,7 +1522,7 @@ async function runDemo() {
 
 const needle = new NeedleScan(engine, {
   onStep: ({ segments, struck }) => {
-    for (const k of struck) view.needleFlash(k, NEEDLE_SEGMENTS, '--data-forest');
+    for (const k of struck) view.needleFlash(k, NEEDLE_SEGMENTS, NEEDLE_READ[state.track].color);
     const motor = Math.max(...segments);
     haptics({ n: segments[0], e: motor, s: segments[segments.length - 1], w: motor });
   },
@@ -1551,7 +1565,7 @@ async function toggleNeedle() {
   setScanButton(true);
   v.loop = true;
   try { await v.play(); } catch (err) { console.error(err); }
-  needle.start({ video: v, geom: entry.needle, valueFn: forestValue, voice: 'wood' });
+  needle.start({ video: v, geom: entry.needle, ...NEEDLE_READ[state.track] });
   announce('Playing the turning globe; the needle reads north to south.');
 }
 
@@ -1567,13 +1581,14 @@ function needleSummary() {
   const px = ctx.getImageData(0, 0, 1, 192).data;
   const thirds = [0, 1, 2].map((t) => {
     let s = 0;
-    for (let y = t * 64; y < (t + 1) * 64; y++) s += forestValue(px[y * 4], px[y * 4 + 1], px[y * 4 + 2]);
+    for (let y = t * 64; y < (t + 1) * 64; y++) s += NEEDLE_READ[state.track].valueFn(px[y * 4], px[y * 4 + 1], px[y * 4 + 2]);
     return s / 64;
   });
   const names = ['the north', 'the middle', 'the south'];
   const best = thirds.indexOf(Math.max(...thirds));
   if (Math.max(...thirds) < 0.05) { announce('The needle is over ocean right now: silent.', { say: 'result' }); return; }
-  announce(`On the needle right now, the brightest vegetation in the picture is in ${names[best]} of the globe.`, { say: 'result' });
+  const what = state.track === 'co2' ? 'the warmest CO2 colour' : 'the brightest vegetation';
+  announce(`On the needle right now, ${what} in the picture is in ${names[best]} of the globe.`, { say: 'result' });
 }
 
 // Exposed for manual debugging in the browser console only.

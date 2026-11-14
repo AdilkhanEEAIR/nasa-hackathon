@@ -448,7 +448,7 @@ Maryland); data GEDI L2B RH100 (relative height), April 2019 to April 2020.
 
 | File | URL | Size | Downloaded (UTC) | SHA-256 |
 |---|---|---|---|---|
-| `GEDI_global_w_colorbar_1080p60.mp4` | https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/GEDI_global_w_colorbar_1080p60.mp4 | 18.57 MB | 2026-11-14 16:16 | see `datasets/downloads.json` |
+| `GEDI_global_w_colorbar_1080p60.mp4` | https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/GEDI_global_w_colorbar_1080p60.mp4 | 18,574,070 B | 2026-11-14 11:09 UTC | `c47012d28b996d528069fc28f39ad7e9425be6e50f65d2b3274a1cc817d91915` |
 
 ffprobe: H.264 1920×1080, 60 fps, 51.5 s, 3089 frames. Windows Defender: no threats.
 
@@ -463,6 +463,34 @@ x = 0.5, y = 0.025–0.975 reads 192 pixels per tick in 16 segments, north at th
 notes). A segment with vegetation plays a wooden knock (marimba-like: a sine plus a fast-fading
 partial at 4×), louder and quicker for brighter vegetation; at most 24 knocks per second.
 Web copy: 1280×720, 30 fps, H.264, 2.93 MB.
+
+## 11. Carbon dioxide (SVS 5196, DYAMOND) — Visual track, needle mode
+
+**Source.** DYAMOND Global Carbon Dioxide, https://svs.gsfc.nasa.gov/5196/. Credit: NASA's
+Scientific Visualization Studio; visualizers AJ Christensen (SSAI), Greg Shirah (NASA/GSFC),
+Helen-Nicole Kostis (USRA), Mark SubbaRao (NASA/GSFC); scientists Lesley Ott (NASA/GSFC), Brad
+Weir (Morgan State University), William Putman (NASA/GSFC), Tomohiro Oda (USRA/EfSI); data
+DYAMOND (GEOS-MITgcm), January–March 2020. We use the "globe orbit" camera move.
+
+| File | URL | Size | Downloaded (UTC) | SHA-256 |
+|---|---|---|---|---|
+| `dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4` | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4 | 7,228,199 B | 2026-11-14 11:09 UTC | `bd0f6dfaf17b652e0e2c0aac4e5ac36c9a0120acb17d54d791ef9ac74eeb78e3` |
+| `dyamondCbar_6-27-2024a.png` | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondCbar_6-27-2024a.png | 48,713 B | 2026-11-14 11:09 UTC | `5354a4734cdf11dfd6738c0d8875d47d5d3b6779ea5a50a8dc71d24f08f11a5f` |
+| `dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4` | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4 | 7,228,199 B | 2026-11-14 16:22 UTC | `bd0f6dfaf17b652e0e2c0aac4e5ac36c9a0120acb17d54d791ef9ac74eeb78e3` |
+| `dyamondCbar_6-27-2024a.png` | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondCbar_6-27-2024a.png | 48,713 B | 2026-11-14 16:22 UTC | `5354a4734cdf11dfd6738c0d8875d47d5d3b6779ea5a50a8dc71d24f08f11a5f` |
+
+ffprobe: HEVC 1920×1080, 30 fps, 39.2 s, 1176 frames (dates on screen 14 Jan – 27 Feb 2020).
+Windows Defender: no threats. Web copy: H.264 1280×720, 2.47 MB.
+
+**Why Visual.** As found in section 8, the colorbar has no readable numbers on the frame, the
+low end is transparent and the plumes are blended over the base map, so ppm cannot be read
+back. We sonify the picture: the warmth of the plume colour (red minus blue) on non-grey
+pixels; grey land, white desert and the dark ocean read 0.
+
+**Needle.** Disk measured on frames 0, 400, 800, 1150: x 480–1406, y 59–1002 of 1080, centre
+x = 0.495. The needle runs from y = 0.06 to 0.925. Each segment with plume colour plays a low
+hum an octave down that thickens (detuned twin, wider filter) as the colour warms; notes are
+spaced 2.2× wider than the forest knocks so the hum stays a drone.
 
 ## 8. Datasets reviewed and rejected (honesty check)
 
