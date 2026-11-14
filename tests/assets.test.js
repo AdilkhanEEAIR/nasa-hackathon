@@ -27,10 +27,15 @@ function manifestPaths(obj, out = []) {
 }
 
 test('every media path in the manifest exists with exact case', () => {
-  const manifest = JSON.parse(readFileSync(join(ROOT, 'media/manifest.json'), 'utf8'));
+  const manifest = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
   const paths = manifestPaths(manifest);
-  assert.ok(paths.length >= 15);
+  assert.ok(paths.length >= 40);
   for (const p of paths) assert.ok(existsExactCase(p), `missing or wrong case: ${p}`);
+});
+
+test('media files are content-hashed (safe to cache as immutable)', () => {
+  const manifest = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
+  for (const p of manifestPaths(manifest)) assert.match(p, /\.[0-9a-f]{10}\.[a-z0-9]+$/, p);
 });
 
 test('every local href/src/import in the site exists with exact case and is relative', () => {
