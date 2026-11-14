@@ -36,6 +36,7 @@ const PAGE_CODE = String.raw`
     aerosols: T.aerosolFields(await grid(manifest.aerosols.sound)),
     ocean: T.oceanFields(await grid(manifest.ocean.sound)),
     wind: T.windFields(await grid(manifest.wind.sound)),
+    air: channelField(await grid(manifest.air.sound), 0),
   };
 
   // ---- analysis helpers

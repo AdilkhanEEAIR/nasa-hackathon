@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   dominant, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
   oceanTemp, oceanVoice, describeTemp, OCEAN_BANDS, OCEAN_LAYERS, oceanBandWeights, oceanBand,
-  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS, TRACK_CLASS, NEEDLE_TRACKS, windVoice, windFields, describeWind, WIND_RANGE_MS,
+  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS, TRACK_CLASS, NEEDLE_TRACKS, airKindAt, windVoice, windFields, describeWind, WIND_RANGE_MS,
 } from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
@@ -130,4 +130,11 @@ test('wind: the grid decodes speed only where a colour was read', () => {
 test('every track has a class, and the class is Data-true or Visual', () => {
   for (const t of Object.keys(TRACK_PRESETS)) assert.ok(['data', 'visual'].includes(TRACK_CLASS[t]), t);
   assert.equal(TRACK_CLASS.wind, 'data');
+});
+
+test('air quality: presets sit inside a strip that is not ozone', () => {
+  const strips = { edges: [0, 269, 539, 809, 1079, 1349, 1619, 1889, 1920], kinds: ['co', 'pm25', 'nox', 'o3', 'co', 'pm25', 'nox', 'o3'] };
+  const want = ['co', 'pm25', 'pm25', 'nox'];
+  TRACK_PRESETS.air.forEach((p, i) => assert.equal(airKindAt(p.lon, strips), want[i], p.name));
+  assert.equal(TRACK_CLASS.air, 'visual');
 });

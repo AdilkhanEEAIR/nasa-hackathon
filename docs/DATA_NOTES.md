@@ -492,6 +492,35 @@ x = 0.495. The needle runs from y = 0.06 to 0.925. Each segment with plume colou
 hum an octave down that thickens (detuned twin, wider filter) as the colour warms; notes are
 spaced 2.2× wider than the forest knocks so the hum stays a drone.
 
+## 12. Air quality (SVS 5533, GEOS-CF) — Visual track, ring inside one strip
+
+**Source.** Air Quality Model Runs, https://svs.gsfc.nasa.gov/5533/. Credit: NASA's Scientific
+Visualization Studio; visualizers Helen-Nicole Kostis and Joseph V. Ardizzone; scientist Lesley
+Ott; data GEOS-CF (NASA GMAO), July–August 2024.
+
+| File | URL | Size | Downloaded (UTC) | SHA-256 |
+|---|---|---|---|---|
+| `AirQuality_WithLabels_1920x1080_0000.png` | https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005533/AirQuality_WithLabels_1920x1080_0000.png | 2,306,930 B | 2026-11-14 11:11 UTC | `b28c1e0379019d9482a839be4c18b6a5906cb47dff31637563fcd3f6dfe48a00` |
+
+PNG signature checked; Windows Defender: no threats.
+
+**The frame.** One equirectangular world map (full ±90°, 180° W at x = 0), cut into vertical
+strips of about 50° of longitude; each strip shows a different pollutant with its own colour
+ramp and a name box (y 805–862). Strip edges, measured as colour jumps along rows 600–700:
+269, 538/539, 808/809, 1078/1079, 1348/1349, 1618/1619, 1888/1889. Order: CO, PM2.5, NOx, ozone,
+repeated.
+
+**Why Visual, and how.** There are no numeric scales on the frame. We sonify darkness within a
+strip's own ramp: value = (L_clean − L) / (L_clean − 40), with the clean-end luminance measured
+over open ocean (CO 215, PM2.5 245, NOx 185), after a 5-px median filter that removes the thin
+coastline strokes. Black pixels (no data in the picture) and the label boxes are 0. **Ozone strips
+are silent**: their grey/violet two-tone ramp cannot be put in order honestly. Strips are not
+comparable with each other, so the ring is meant to stay inside one strip; the presets do.
+
+**Sound.** "Hoarse" air: a low sawtooth roughened by a 27 Hz amplitude wobble (heard as rasp);
+darker strips open the filter. Measured offline: Central Africa fires (CO) RMS 0.142 vs a clean
+South Pacific PM2.5 area 0.003 before the track trim.
+
 ## 8. Datasets reviewed and rejected (honesty check)
 
 The rule for every track: a pixel colour must translate into a value honestly. Where it

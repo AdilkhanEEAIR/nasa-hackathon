@@ -487,6 +487,49 @@ def co2(manifest: dict) -> None:
 
 
 
+# ---------------------------------------------------------------- air quality (SVS 5533), Visual
+
+AQ_FRAME = SRC / "svs-5533" / "AirQuality_WithLabels_1920x1080_0000.png"
+# One equirectangular world map (full +-90 deg, 180 W at x = 0) cut into vertical strips of
+# about 50 deg of longitude, each strip coloured for a different pollutant. Strip edges were
+# measured as colour jumps along rows 600-700: 269, 538, 808, 1078, 1348, 1618, 1888.
+AQ_EDGES = [0, 269, 539, 809, 1079, 1349, 1619, 1889, 1920]
+AQ_KIND = ["co", "pm25", "nox", "o3", "co", "pm25", "nox", "o3"]
+AQ_ID = {"co": 1, "pm25": 2, "nox": 3, "o3": 4}
+# Luminance of each ramp's clean (lightest) end, measured over open ocean; darker in a strip
+# means more of that pollutant in the picture. Ozone uses a two-tone ramp (grey and violet)
+# that cannot be put in order honestly, so ozone strips stay silent.
+AQ_CLEAN_L = {"co": 215.0, "pm25": 245.0, "nox": 185.0}
+AQ_LABELS_Y = (805, 862)        # the pollutant name boxes: not data
+
+
+def air(manifest: dict) -> None:
+    print("Air quality (SVS 5533), Visual")
+    img = Image.open(AQ_FRAME).convert("RGB")
+    rgb = np.asarray(img).astype(np.float64)
+    lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+    # Thin coastline and border strokes would read as "dark": a median filter removes them.
+    lum = np.asarray(Image.fromarray(np.clip(lum, 0, 255).astype(np.uint8)).filter(ImageFilter.MedianFilter(5))).astype(np.float64)
+    out = np.zeros(rgb.shape, np.uint8)
+    for (x0, x1), kind in zip(zip(AQ_EDGES[:-1], AQ_EDGES[1:]), AQ_KIND):
+        out[:, x0:x1, 1] = AQ_ID[kind] * 50
+        if kind == "o3":
+            continue
+        l = lum[:, x0:x1]
+        v = np.clip((AQ_CLEAN_L[kind] - l) / (AQ_CLEAN_L[kind] - 40), 0, 1)
+        v[rgb[:, x0:x1].max(axis=2) < 40] = 0          # black: no data in the picture
+        out[:, x0:x1, 0] = np.round(v * 255).astype(np.uint8)
+    out[AQ_LABELS_Y[0]:AQ_LABELS_Y[1], :, 0] = 0
+    out[AQ_LABELS_Y[0]:AQ_LABELS_Y[1], :, 2] = 255
+    manifest["air"] = {
+        "source": "NASA SVS 5533", "class": "visual", "lon0": -180, "width": img.width, "height": img.height,
+        "view": publish_view(img, "air", "geoscf-air-0000"),
+        "sound": publish_image(Image.fromarray(out), "air", "sound-geoscf-air-0000", format="PNG", optimize=True),
+        "strips": {"edges": AQ_EDGES, "kinds": AQ_KIND}, "period": "first frame of the July-August 2024 run",
+    }
+
+
+
 NE_DIR = SRC / "naturalearth"
 
 
@@ -583,6 +626,7 @@ def main() -> None:
     wind(manifest)
     forest(manifest)
     co2(manifest)
+    air(manifest)
     natural_earth(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)

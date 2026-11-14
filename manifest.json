@@ -291,5 +291,41 @@
       "y1": 0.925
     },
     "period": "14 Jan - 27 Feb 2020 (model)"
+  },
+  "air": {
+    "source": "NASA SVS 5533",
+    "class": "visual",
+    "lon0": -180,
+    "width": 1920,
+    "height": 1080,
+    "view": {
+      "webp": "media/air/view-geoscf-air-0000.b31fc19070.webp",
+      "jpg": "media/air/view-geoscf-air-0000.b409889d73.jpg"
+    },
+    "sound": "media/air/sound-geoscf-air-0000.c81340a9b6.png",
+    "strips": {
+      "edges": [
+        0,
+        269,
+        539,
+        809,
+        1079,
+        1349,
+        1619,
+        1889,
+        1920
+      ],
+      "kinds": [
+        "co",
+        "pm25",
+        "nox",
+        "o3",
+        "co",
+        "pm25",
+        "nox",
+        "o3"
+      ]
+    },
+    "period": "first frame of the July-August 2024 run"
   }
 }
