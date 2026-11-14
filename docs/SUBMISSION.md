@@ -1,256 +1,214 @@
-# Sixth Sense — NASA Space Apps Challenge 2026 submission texts
+# Sixth Sense — submission texts
 
-Ready-to-paste text for each field of the submission form. Challenge: **The Earth Information
-Jukebox**. Local event: Bishkek.
+Ready-to-paste text for the fields of the NASA Space Apps Challenge 2026 submission form.
 
-- **Final project (open, no login):** https://earthsonar.vercel.app
-- **Source code:** https://github.com/AdilkhanEEAIR/nasa-hackathon
-- **Demo video:** `[paste the YouTube / Drive link after uploading — 28 s, English subtitles burned in]`
-- **Demo tab used to record it:** https://earthsonar.vercel.app/#demo (the old `/?demo` address still opens it)
-- **Player:** https://earthsonar.vercel.app/#jukebox · **How it works:** https://earthsonar.vercel.app/#how · **Data & credits:** https://earthsonar.vercel.app/#data
+- **Project name:** Sixth Sense — Hear and feel Earth data
+- **Team:** Rococo
+- **Members:** Dzhanteliev Adilkhan, Sakybaev Meder, Osmonbaev Aibek, Emilev Bektur
+- **Local event:** Bishkek, Ala-Too International University, Kyrgyzstan, 14–15 November 2026
+- **Challenge:** The Earth Information Jukebox
 
 ---
 
-## Project Name
-
-Sixth Sense — Hear and feel Earth data
-
-## High-Level Project Summary
+## High-level summary
 
 Sixth Sense is a web jukebox that turns NASA Earth Information Center visualizations into live
-sound, so people who cannot see a map can still explore it. You pick one of eight tracks (night
-lights 2012–2023, aerosols, lightning from the ISS, ocean temperature, near-surface wind, forest
-height, carbon dioxide, an atmospheric river) and a place. A
-"ring of sound" closes in on that place:
-- high notes come from the north and low notes from the south;
-- the left ear is west and the right ear is east;
-- louder means more.
+sound and vibration, so people who cannot see a map can still explore it. You choose one of
+eight tracks (night lights 2012–2023, aerosols, lightning seen from the ISS, ocean temperature,
+near-surface wind, forest height, carbon dioxide, an atmospheric river) and a place on Earth.
+A ring of sound closes in on that place: high notes come from the north and low notes from
+the south, the left ear is west and the right ear is east, and louder means more. Each
+phenomenon has its own voice: lightning cracks, dust rustles, smoke crackles, wind rushes.
 
-Each phenomenon has its own recognisable voice. Lightning cracks, dust rustles, smoke
-crackles, warm water flickers bright and fast, cold water shimmers slow. Sixth Sense works with
-the keyboard alone and with screen readers, and you can feel it: phone vibration on Android,
-rumble on a game controller. It matters because Earth science is shown almost only as pictures. Sixth Sense gives
-blind and low-vision people, and everyone else, a new way to hear where our planet is
-changing.
+It answers the challenge directly: EIC visual frames are paired with sonifications generated
+in real time in the browser, nothing is pre-recorded, and accessibility is the starting point,
+not an add-on. It matters because Earth science is shown almost only as pictures, while the
+World Health Organization reports that at least 2.2 billion people have a near or distance
+vision impairment. Sixth Sense gives them, and everyone else, a way to hear and feel where the
+planet is bright, smoky, stormy, warm or cold.
 
-## Link to Project Demo
+## Project demo
 
-`[YouTube/Drive link]` — 28 seconds, English subtitles on screen.
+Seven slides (PDF, English):
+https://github.com/AdilkhanEEAIR/nasa-hackathon/blob/main/docs/SixthSense-slides.pdf
 
-## Link to Final Project
+A 28-second live demo with English captions also runs on the site itself:
+https://earthsonar.vercel.app/#demo
 
-https://earthsonar.vercel.app (the player itself: https://earthsonar.vercel.app/#jukebox; source: https://github.com/AdilkhanEEAIR/nasa-hackathon)
+## Final project link
 
-## Detailed Project Description
+https://earthsonar.vercel.app
 
-**What it does.**
+Source code: https://github.com/AdilkhanEEAIR/nasa-hackathon
 
-Sixth Sense is a "jukebox" of NASA Earth Information Center (EIC) visualizations, each played
-as live, data-driven sound:
+## Project details
 
-1. **Night Lights 2012–2023.** A decade of city lights. One key plays all twelve years as a
-   rising or falling melody for any region.
-2. **Aerosols.** Black carbon (smoke), dust, sea salt and sulfate from the GEOS model, as four
-   instruments.
-3. **Lightning.** Six years of flashes detected from the International Space Station, played
-   as strikes in their real direction while the video runs.
-4. **Ocean Temperature.** Sea surface currents coloured by temperature. Five fixed bands (ice,
-   cold, mild, warm, hot) each have their own instrument, with more harmonics and a faster
-   shimmer as the water warms; dense currents make the tone slide, so moving water is heard.
-5. **Near-Surface Wind.** GEOS-FP wind speed read from its colorbar (4–34 m/s): rushing air
-   that gets louder and brighter, with a whistle in strong wind.
-6. **Forest Height (GEDI)**, 7. **Carbon Dioxide (DYAMOND)**: rotating globes played with a
-   **needle**, a fixed line down the middle of the globe read north (high) to south (low):
-   dry marimba strikes for forest, a thickening hum for CO2.
-8. **Atmospheric River**: a single still frame swept by the needle: water drops.
+**What it does.** Sixth Sense is a jukebox of eight NASA visualizations, each played as live,
+data-driven sound.
 
-**Two honest classes.** Tracks 1–5 are *Data-true*: values are read back from the
-visualization's own colour scale. Tracks 6–8 are *Visual*: they sonify the picture
-(brightness, hue, motion), not calibrated measurements. The class is shown in the track list
-and said in every intro.
+1. **Night Lights 2012–2023.** A decade of city lights. One key plays all twelve years as
+   twelve notes for any region.
+2. **Aerosols.** Smoke, dust, sea salt and sulfate as four instruments.
+3. **Lightning.** Six years of flashes detected from the International Space Station: a crack
+   for each new flash in its real direction, a rumble for stormy regions.
+4. **Ocean Temperature.** Cold water is a low hum, warm water rings high; where currents are
+   dense the tone slides.
+5. **Near-Surface Wind.** Rushing air that grows with speed; a whistle joins in strong wind.
+6. **Forest Height (GEDI).** Dry wooden strikes where a needle crosses vegetation on a
+   turning globe.
+7. **Carbon Dioxide (DYAMOND).** A breath that swells as a plume passes under the needle.
+8. **Atmospheric River.** Flowing water where the needle crosses the river of vapour.
 
 **How it works.**
 
-- You choose a centre: one of the track's presets, placed where its data has contrast (cities,
-  plumes, storm hot spots, ocean fronts such as the Gulf Stream and the Agulhas Current), the
-  arrow keys, a click, or a game controller's left stick.
-- A ring of 16 voices starts up to thousands of kilometres away and shrinks onto the centre.
-- **Each voice reads one arc of the ring.** Its pitch follows north–south, its stereo position
-  follows west–east, its loudness follows the value on the map, and its timbre tells *what*
-  the value is.
-- At the end the ring meets in a single note: the value at the centre.
-- The ring is computed on the sphere (great-circle distance), so it is a true circle on Earth
-  at any zoom.
+- You choose a centre (presets, arrow keys, a click or a game controller) and a ring size
+  from 250 to 4,000 km.
+- A ring of 16 voices starts that far away and shrinks onto the centre. It is computed on the
+  sphere with great-circle geometry, and re-read 30 times a second.
+- Each voice averages the pixel values on its own arc. Direction sets its pitch and stereo
+  position, the value sets loudness and brightness, the phenomenon sets the instrument.
+- All notes come from one pentatonic scale, so any combination is consonant: the data decides
+  which notes sound, the scale keeps it musical.
+- The scan ends in one note for the value at the centre, and a sentence for screen readers.
+- Globe videos and 3D stills use a needle of 12 voices instead of a ring.
+- All scales are fixed. The same sound always means the same pixel value, in every year and
+  place.
 
-Other modes:
-- **Explore mode** turns the centre into a probe you can walk around.
-- **"Where am I"** names the place ("110 km south of Bishkek") and the value under it.
-- **Home** shows a silent live ring over real 2023 night-lights data; "Hear this ring" opens
-  the jukebox there and plays it.
-- **Save scan as WAV** renders any scan offline, so people can build their own playlist of
-  Earth sounds.
-
-**Scientific honesty.**
-
-- We sonify the rendered visualizations, as the challenge asks, not raw measurements.
-- Every rule "pixel → value → sound" is fixed per dataset, documented, and never normalised
-  per frame:
-  - light thresholds;
-  - legend-colour classification for aerosols;
-  - hue matching against the official colorbar for temperature (round-trip error ≤ 1.5 °C);
-  - yellow-dot detection for lightning.
-- Limits are stated in the app and in the README:
-  - the aerosol legend is categorical;
-  - lightning coverage is ±52°, so silence there means "no data";
-  - the ocean frame is one model day and is not a trend.
-- Every frame index, crop and georeference was measured from the pixels and is written up in
-  `docs/DATA_NOTES.md`.
+**Two honest classes.** Tracks 1–5 are *Data-true*: values are read back from the
+visualization's own colour scale. Tracks 6–8 are *Visual*: they sonify the picture (hue,
+brightness), not calibrated measurements, and every intro says so.
 
 **Accessibility.**
 
-- Fully keyboard-operable, with labelled controls and a live status region.
-- An **Accessibility switch is the first thing on every page** (Alt+A from anywhere), with two
-  options remembered in the browser: a built-in voice guide (off by default, never speaks on
-  tab changes, and ducks the scan while it talks) and a large-text, high-contrast mode.
-- A short sound tutorial ("top is north, right is east, louder is more").
-- Large controls, AA contrast on a deep-blue theme, colour-blind-checked data colours,
-  keyboard hints always on screen.
-- `prefers-reduced-motion` support. Animations only show what is sounding.
+- Everything works from the keyboard; every action is also a labelled button.
+- A live region announces every action and result for screen readers.
+- The Accessibility menu is the first control on every page: an optional voice guide, large
+  text with high contrast, and Haptics.
+- Touch: phone vibration on Android and rumble on a game controller follow the same values
+  as the sound.
+- `prefers-reduced-motion` is respected; contrast is AA; data colours are colour-blind checked.
 
-**Touch.** Feel it: phone vibration on Android, rumble on a game controller.
+**What is new.** Most image sonifications sweep a line across the picture. A ring centred on
+the listener's own place gives direction and distance: "a loud, high sound in my right ear"
+means "something strong to the north-east of me". The listener steers it, explores point by
+point, and can feel it.
 
-- A Haptics switch in the Accessibility menu, shown only where vibration really works.
-- Android phones pulse for 10 to 60 ms, longer for a higher value under the scan.
-- A game controller moves the centre with its left stick; its heavy motor carries the south
-  (low notes) and its light motor the north (high notes).
-- Vibration does not work on iPhone or iPad, or on a computer without a rumble controller.
-- Future work: an Arduino controller with four motors was designed and checked only in
-  emulation; it has never been tested on a physical device and the site does not use it.
+**Limits we state openly.**
 
-**Tools.**
+- We sonify the rendered visualization, not raw measurements.
+- Night-lights pixels are about 21 km wide; the aerosol legend has no numbers; lightning is
+  seen only between about 52° north and south; ocean temperature is one model day; wind reads
+  from 3.6 to 34 m/s.
+- Vibration works on Android phones (Chrome) and on computers with a rumble controller
+  (Chrome or Edge). It does not work on iPhone or iPad. It was checked in browser emulation
+  only, not yet on physical devices.
+- Designed for blind and low-vision users. It has not yet been tested with blind users, and
+  no listening-test results are claimed.
 
-- A plain static website: HTML, CSS and JavaScript (Web Audio, Web Speech, Gamepad,
-  Vibration, Canvas), with no third-party JavaScript libraries.
-- Media preparation in Python with NumPy, Pillow and FFmpeg.
-- Hosted on Vercel. Automated tests use the Node.js test runner.
-- The home page loads 0.09 MB and the player 0.18 MB.
-- 81 automated tests (Node.js test runner), including colour contrast, the 28-second demo and a
-  silent voice guide on tab changes. Sound differences between places are measured offline
-  (docs/SOUND_CHECK.md).
+**Tools.** A static website in plain HTML, CSS and JavaScript (Web Audio, Canvas, Web Speech,
+Gamepad and Vibration APIs), with no third-party JavaScript libraries. Media preparation in
+Python with NumPy, Pillow and FFmpeg. Hosted on Vercel. 89 automated unit tests and
+headless-browser checks.
 
-**What we hope to achieve.** Make the EIC's visual stories reachable by ear and by touch, for
-blind and low-vision visitors first, and give every listener a new, musical sense of where the
-planet is bright, smoky, stormy, warm or cold.
+**What we hope to achieve.** Make the Earth Information Center's visual stories reachable by
+ear and by touch, for blind and low-vision people first.
 
-## NASA Data
+## AI and NASA data
 
-All visualizations come from NASA's Scientific Visualization Studio (SVS) and the Earth
-Information Center collection listed in the challenge resources.
+**Use of artificial intelligence.**
 
-1. **Change in Night Lights between 2012 and 2023 – EIC Version**, SVS ID 5313,
-   https://svs.gsfc.nasa.gov/5313/.
-   - Credit: NASA's Scientific Visualization Studio.
-   - Visualizer: Kel Elkins (USRA).
-   - Scientists: Zhuosen Wang (University of Maryland), Miguel Román (Leidos), Ranjay
-     Shrestha (SSAI), Srija Chakraborty (USRA), Virginia Kalb (NASA).
-   - Data: NASA Black Marble (Suomi NPP VIIRS).
-   - *Use:* one frame per year (2012–2023), read pixel by pixel for the Night Lights track.
-2. **GEOS Aerosols**, SVS ID 5669, https://svs.gsfc.nasa.gov/5669/.
-   - Credit: NASA Global Modeling and Assimilation Office (GMAO) and NASA's Scientific
-     Visualization Studio.
-   - Visualizers: Joseph V. Ardizzone, Helen-Nicole Kostis.
-   - Scientist: Lesley Ott.
-   - Data: GEOS-FP 2 km Replay, DOI 10.5281/zenodo.21893141.
-   - *Use:* the 19 Aug 2025 20:00 UTC frame and its legend, classified into four aerosol types.
-3. **Lightning Events Detected from the International Space Station (ISS) 2017–2023**, SVS ID
-   5011, https://svs.gsfc.nasa.gov/5011/.
-   - Credit: NASA's Scientific Visualization Studio.
-   - Visualizers: Michala Garrison (SSAI), Greg Shirah (NASA/GSFC), Kel Elkins (USRA), Alex
-     Kekesi (Global Science and Technology, Inc.).
-   - Data: Blakeslee, R. J. 2020, Quality Controlled LIS on ISS Science Data, NASA GHRC DAAC.
-   - *Use:* the Science On a Sphere movie, read frame by frame. Per-frame dates come from the
-     official `labels.txt`, where we correct a "2003" typo to 2023.
-4. **Global Sea Surface Currents and Temperature**, SVS ID 3912,
-   https://svs.gsfc.nasa.gov/3912/.
-   - Credit: NASA/Goddard Space Flight Center Scientific Visualization Studio.
-   - Animators: Greg Shirah, Horace Mitchell, Eric Sokolowsky.
-   - Producer: Michael Starobin.
-   - Scientists: Hong Zhang (UCLA), Dimitris Menemenlis (NASA/JPL).
-   - Data: ECCO2 model.
-   - *Use:* one flat frame (19 June 2007) and the SST colorbar. Temperature is recovered by
-     hue on the fixed 0–32 °C scale; current-line density drives the motion of the sound.
-5. **GEOS-FP Near-Surface Wind Speed**, SVS ID 5148, https://svs.gsfc.nasa.gov/5148/.
-   - Credit: NASA's Global Modeling and Assimilation Office. Visualizer: Joseph V. Ardizzone.
-   - Data: GEOS-FP. *Use:* one frame (29 Oct 2026, 09:00 UTC) and the colorbar; Data-true.
-6. **GEDI Forest Height**, SVS ID 4950, https://svs.gsfc.nasa.gov/4950/.
-   - Credit: NASA's Scientific Visualization Studio. Visualizers: Kel Elkins, Horace Mitchell,
-     Greg Shirah. Scientists: Temilola Fatoyinbo, Atticus Stovall. Data: GEDI L2B RH100.
-   - *Use:* the global rotating-globe movie, read by the needle; Visual.
-7. **DYAMOND Global Carbon Dioxide**, SVS ID 5196, https://svs.gsfc.nasa.gov/5196/.
-   - Credit: NASA's Scientific Visualization Studio. Visualizers: AJ Christensen, Greg Shirah,
-     Helen-Nicole Kostis, Mark SubbaRao. Scientists: Lesley Ott, Brad Weir, William Putman,
-     Tomohiro Oda. Data: DYAMOND. *Use:* the globe-orbit movie, read by the needle; Visual.
-8. **A 3D View of an Atmospheric River from an Earth System Model**, SVS ID 4960,
-   https://svs.gsfc.nasa.gov/4960/. Credit: NASA's Scientific Visualization Studio
-   (Greg Shirah, Horace Mitchell, Cindy Starr, Kel Elkins; scientists Allison Collow, Natalie
-   Thomas, Michael Bosilovich). Data: MERRA-2. *Use:* one still frame; Visual.
-9. **Method reference:** Data Sonification: Caldwell 73, SVS ID 13786,
-   https://svs.gsfc.nasa.gov/13786/ (in the challenge resources). The ring scan also follows
-   the principle of NASA's RS Puppis sonification (SVS 14260); no part of it is reused.
+- Code and documentation were written with Claude (Anthropic), through Claude Code, under the
+  team's direction and with the team's review. This covers the web app, the tests, the media
+  preparation scripts, the firmware kept for future work, and drafts of the README, the data
+  notes, the sound-design document, the slides and these texts.
+- The team chose the idea, the design, the datasets and the sound rules, and ran and checked
+  the result.
+- No AI-generated images, video or audio. Every image is an original NASA SVS frame, resized
+  or cropped. Every sound is synthesised live in the browser by fixed, documented rules. No
+  AI model interprets the data or makes any sound at run time.
+- No NASA logos or insignia were generated, used or modified.
 
-## Space Agency Partner & Other Data
+**NASA data.** All frames come from the NASA Scientific Visualization Studio (SVS). The site
+reads their pixels and turns them into sound; the exact rules are in `docs/SOUND_DESIGN.md`,
+and file addresses, checksums and measurements are in `docs/DATA_NOTES.md`.
 
-- **Other data:** none beyond NASA SVS frames. (SVS 5148 is tagged Earth Information Center on its
-  page but was not in the EIC gallery list when we checked on 14 Nov 2026; the agency logos
-  printed on that frame are painted over in our copy.)
-- **Built-in place names:** a short list of large-city coordinates used only to *say* where you
-  are. It is never sonified.
-- **Base maps** inside the NASA frames: Natural Earth (public domain), as credited by SVS.
-- **Optional map labels** (key L, visual only, never sonified): Natural Earth 1:110m country
-  borders and populated places (public domain, naturalearthdata.com).
-- **Used as Visual, not Data-true:** SVS 5196 (CO₂), 4950 (GEDI), and 4960 (atmospheric river). SVS 5425 (Perpetual Ocean 2) was prepared but is disabled on the site. SVS 5533 (air quality) was reviewed and is not used. Their colours cannot be turned into values
-  honestly (no numeric scales, transparency, shading, 3D views), so they sonify the picture and
-  say so. Details and checksums: docs/DATA_NOTES.md sections 8–13.
-- **Software (all open):**
-  - FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU), Node.js test runner;
-  - browser APIs: Web Audio, Web Speech, Gamepad, Vibration, Canvas.
-- No NASA logos or insignia are used.
+| Track | NASA SVS visualization | How it is used |
+|---|---|---|
+| Night Lights | Change in Night Lights between 2012 and 2023 – EIC Version, SVS 5313, https://svs.gsfc.nasa.gov/5313/ | one frame per year; brightness → loudness |
+| Aerosols | GEOS Aerosols, SVS 5669, https://svs.gsfc.nasa.gov/5669/ | legend colour → particle type → instrument |
+| Lightning | Lightning Events Detected from the ISS 2017–2023, SVS 5011, https://svs.gsfc.nasa.gov/5011/ | video; new yellow dots → strikes |
+| Ocean Temperature | Global Sea Surface Currents and Temperature, SVS 3912, https://svs.gsfc.nasa.gov/3912/ | hue on the colour bar → 0–32 °C → register |
+| Near-Surface Wind | GEOS-FP Near-Surface Wind Speed, SVS 5148, https://svs.gsfc.nasa.gov/5148/ | colour bar → 3.6–34 m/s → rushing air |
+| Forest Height | GEDI Forest Height, SVS 4950, https://svs.gsfc.nasa.gov/4950/ | Visual: green in the picture → wooden strikes |
+| Carbon Dioxide | DYAMOND Global Carbon Dioxide, SVS 5196, https://svs.gsfc.nasa.gov/5196/ | Visual: plume colour → breath |
+| Atmospheric River | A 3D View of an Atmospheric River from an Earth System Model, SVS 4960, https://svs.gsfc.nasa.gov/4960/ | Visual: vapour blue → flowing water |
 
-## Use of Artificial Intelligence
+Source collection: NASA Earth Information Center content database,
+https://svs.gsfc.nasa.gov/gallery/earth-information-center/. Seven of the eight
+visualizations are in the challenge's resource list; SVS 5148 is an SVS page tagged Earth
+Information Center.
 
-- **Code and documentation:** written with Claude (Anthropic's Claude Code), under the team's
-  direction and with the team's review. The team chose the idea, the design, the datasets and
-  the sound rules, and ran and checked everything. Automated tests cover the geometry, the
-  sound mapping and the haptics rule. AI assistance covered the web app, the tests, the
-  media preparation scripts, the firmware for a future controller (not used by the site), and drafts of the README, data notes and
-  these texts.
-- **No AI-generated images, video or audio.** Every image is an original NASA SVS frame
-  (resized or cropped). Every sound is synthesised live in the browser by fixed,
-  documented rules. No AI model makes or changes any sound.
-- **Data analysis:** done with scripts and checked against the frames by eye. No AI model
-  interprets the data at run time.
-- **No NASA branding** was generated or modified.
+**Space agency partner and other data.** None beyond the NASA SVS frames, except:
 
-## Project Submission Verification
+- Natural Earth 1:110m borders and populated places (public domain,
+  https://www.naturalearthdata.com), an optional visual label layer that is never sonified;
+- a short built-in list of large-city coordinates, used only to say where you are.
 
-Tick both boxes in the form: agreement to the terms, and confirmation that the work is
-original.
+## References
+
+**NASA visualizations and credits**
+
+1. Change in Night Lights between 2012 and 2023 – EIC Version, SVS 5313. NASA's Scientific
+   Visualization Studio; visualizer Kel Elkins. Data: NASA Black Marble (Suomi NPP VIIRS).
+2. GEOS Aerosols, SVS 5669. NASA Global Modeling and Assimilation Office and NASA's Scientific
+   Visualization Studio; Joseph V. Ardizzone, Helen-Nicole Kostis; scientist Lesley Ott.
+   Data: GEOS-FP 2 km Replay, DOI 10.5281/zenodo.21893141.
+3. Lightning Events Detected from the International Space Station (ISS) 2017–2023, SVS 5011.
+   NASA's Scientific Visualization Studio; Michala Garrison, Greg Shirah, Kel Elkins, Alex
+   Kekesi. Data: Blakeslee, R. J. 2020, Quality Controlled Lightning Imaging Sensor (LIS) on
+   International Space Station (ISS) Science Data, NASA GHRC DAAC.
+4. Global Sea Surface Currents and Temperature, SVS 3912. NASA/Goddard Space Flight Center
+   Scientific Visualization Studio; Greg Shirah, Horace Mitchell, Eric Sokolowsky. Data: ECCO2.
+5. GEOS-FP Near-Surface Wind Speed, SVS 5148. NASA's Global Modeling and Assimilation Office;
+   visualizer Joseph V. Ardizzone. Data: GEOS-FP.
+6. GEDI Forest Height, SVS 4950. NASA's Scientific Visualization Studio; Kel Elkins, Horace
+   Mitchell, Greg Shirah; scientists Temilola Fatoyinbo, Atticus Stovall. Data: GEDI L2B RH100.
+7. DYAMOND Global Carbon Dioxide, SVS 5196. NASA's Scientific Visualization Studio;
+   AJ Christensen, Greg Shirah, Helen-Nicole Kostis, Mark SubbaRao; scientists Lesley Ott,
+   Brad Weir, William Putman, Tomohiro Oda. Data: DYAMOND (GEOS-MITgcm).
+8. A 3D View of an Atmospheric River from an Earth System Model, SVS 4960. NASA's Scientific
+   Visualization Studio; Greg Shirah, Horace Mitchell, Cindy Starr, Kel Elkins; scientists
+   Allison Collow, Natalie Thomas, Michael Bosilovich. Data: MERRA-2.
+
+**Method**
+
+9. Data Sonification: Caldwell 73, NASA SVS 13786, https://svs.gsfc.nasa.gov/13786/ (in the
+   challenge resources).
+10. Sonification of RS Puppis, NASA SVS 14260, https://svs.gsfc.nasa.gov/14260/. Principle
+    only; no part of it is reused.
+
+**Other sources and tools**
+
+11. World Health Organization, "Blindness and vision impairment" fact sheet,
+    https://www.who.int/news-room/fact-sheets/detail/blindness-and-visual-impairment.
+12. Natural Earth, https://www.naturalearthdata.com (public domain).
+13. FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU), Node.js test runner.
+14. Browser APIs: Web Audio, Canvas 2D, Web Speech, Gamepad, Vibration.
+15. Claude (Anthropic), used as described under "AI and NASA data".
+
+Sixth Sense is not affiliated with or endorsed by NASA.
 
 ---
 
-### Checklist against the submission rules (NOTES.local.md 5.3–5.6)
+## Before you submit
 
-| Rule | Status |
+| Item | Status |
 |---|---|
-| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ the Demo tab (/#demo) runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/SixthSense-slides.pdf` |
-| Demo hosted externally, open link, no login | ⏳ **you** upload the recording (YouTube unlisted/public, or Drive "anyone with the link") |
-| Final project link open without login | ✅ https://earthsonar.vercel.app (checked without cookies) |
-| Everything in English | ✅ site, README, DATA_NOTES, PROTOCOL, these texts, slides |
-| NASA data used | ✅ 8 SVS visualizations (5 Data-true and 3 Visual tracks) |
-| AI use declared; AI images/video watermarked | ✅ declared above. No AI images or video exist, so no watermark is needed |
-| No NASA logo/insignia | ✅ none in the site, slides or video |
-| No personal data, no ads | ✅ |
-| References for all code, text, images | ✅ README "Credits and references" |
-| Team registered, Bishkek event selected, members listed | ⏳ **you**: check on spaceappschallenge.org before the deadline |
-| Terms and originality boxes ticked | ⏳ **you**, in the form |
-| Blindfold test results | ⏳ **you**: run the test. Its slot in the slides is empty on purpose; no numbers are invented |
+| Demo: at most 7 slides, or a video of at most 30 s with English subtitles | ready: 7 slides (PDF); the site demo runs 28 s |
+| Demo and project open without login | ready: GitHub and Vercel links are public |
+| Everything in English | ready |
+| NASA data used and named | ready: 8 SVS visualizations |
+| AI use declared | ready: site footer, README, this file, slide 7 |
+| No NASA logos or insignia | ready |
+| Team registered, Bishkek event selected, all four members listed | to do by the team on spaceappschallenge.org |
+| Terms and originality boxes ticked | to do by the team in the form |
