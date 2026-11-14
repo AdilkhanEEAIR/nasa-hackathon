@@ -20,7 +20,7 @@ The site is a jukebox: pick a track, press Space.
 | 03 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
 | 04 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
 | Voice guide and explore mode | ✅ available (V toggles the voice, E explores point by point) |
-| Tactile controller (Arduino, 4 vibration motors) | firmware and protocol ready; site link coming next |
+| Tactile controller (Arduino, 4 vibration motors) | ✅ site link ready (tested against an emulated board; real hardware test pending) |
 
 ---
 
@@ -316,6 +316,20 @@ a Space press during loading starts the scan as soon as the data arrives.
 Optional. The site works fully without it. An Arduino with a joystick (move the centre), a
 knob (year), a button (scan) and **four vibration motors (N, E, S, W)** connects by USB through
 Web Serial (Chrome or Edge).
+
+What each part does:
+- **Joystick:** moves the ring centre, about 6° per second at full tilt (half that in explore
+  mode). The place is spoken when the stick returns to rest.
+- **Knob:** chooses the year on track 1, the moment in the video on track 4, and the ring size
+  on tracks 2 and 3.
+- **Button 1** plays or stops; **joystick press** says where you are.
+- **Motors N/E/S/W** follow the ring: each motor takes the strongest voice on its side.
+  Lightning strikes give a full-strength jolt on their side. In explore mode all four motors
+  carry the value under the point.
+- **Phone fallback:** on Android Chrome, "Phone vibration" pulses the phone with the strongest
+  direction. iPhone browsers have no vibration API.
+- The link was tested in the browser against an emulated board that sends and checks every
+  protocol message, including garbled lines. A test on the real board is pending.
 
 - Protocol and wiring: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
 - Firmware: [`firmware/earthsonar_controller`](firmware/earthsonar_controller/earthsonar_controller.ino)

@@ -133,6 +133,16 @@
         <label for="voice">Voice guide <kbd>V</kbd></label>
       </div>
       <p id="voice-hint" class="caption">Speaks places, years and summaries. Screen-reader users may prefer it off.</p>
+
+      <div class="field" role="group" aria-labelledby="touch-label">
+        <span id="touch-label" class="label">Touch</span>
+        <button id="btn-serial" type="button" aria-describedby="serial-status">Connect controller</button>
+        <p id="serial-status" class="caption" role="status">Arduino with joystick and 4 vibration motors, by USB. Chrome or Edge on a computer.</p>
+        <div class="check" id="vibrate-row" hidden>
+          <input id="vibrate" type="checkbox">
+          <label for="vibrate">Phone vibration (Android)</label>
+        </div>
+      </div>
     </aside>
   </main>
 

@@ -14,6 +14,7 @@ import {
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
 } from './tracks.js';
 import { LightningSource } from './lightning.js';
+import { Controller } from './serial.js';
 import { LiveRingScan } from './scan.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
@@ -95,16 +96,53 @@ function voiceColor(v) {
   return AMBER;
 }
 
+// ---------------------------------------------------------------- touch: controller and phone
+
+const controller = new Controller({
+  onMessage: (msg) => onControllerMessage(msg),
+  onStatus: (s) => {
+    $('btn-serial').textContent = s === 'connected' ? 'Disconnect controller' : 'Connect controller';
+    $('serial-status').textContent = s === 'connected' ? 'Controller connected.' : 'Controller disconnected.';
+    announce(s === 'connected' ? 'Controller connected.' : 'Controller disconnected.');
+  },
+});
+let phoneVibrate = false;
+let lastBuzz = 0;
+
+/**
+ * Sends the four tactile directions to the controller motors and, as a fallback, pulses a
+ * phone's vibration motor with the strongest direction (Android Chrome; iPhones have none).
+ */
+function haptics(levels) {
+  if (controller.connected) controller.motors(levels);
+  if (phoneVibrate && navigator.vibrate) {
+    const max = Math.max(levels.n, levels.e, levels.s, levels.w);
+    const now = performance.now();
+    if (max > 0.15 && now - lastBuzz > 250) {
+      lastBuzz = now;
+      navigator.vibrate(Math.round(10 + 50 * max));
+    }
+  }
+}
+
+function hapticsOff() {
+  if (controller.connected) controller.stopMotors();
+  if (navigator.vibrate) navigator.vibrate(0);
+}
+
 const scan = new RingScan(engine, {
   onStep: ({ ring }) => {
     for (const v of ring) v.color = voiceColor(v);
     view.setRing(ring);
-    dial.update(ring.map((v) => v.gain), motorLevels(ring), ring.map((v) => v.color));
+    const m = motorLevels(ring);
+    dial.update(ring.map((v) => v.gain), m, ring.map((v) => v.color));
+    haptics(m);
   },
   onEnd: ({ completed, centreLevel, centreKind }) => {
     setScanButton(false);
     view.setRing(null);
     dial.clear();
+    hapticsOff();
     if (completed) {
       view.pulseCentre(centreLevel);
       const what = classTrack() ? classTrack().describe(centreLevel > 0.001 ? centreKind : null) : describeLevel(centreLevel);
@@ -124,7 +162,15 @@ const liveScan = new LiveRingScan(engine, {
   onStep: ({ ring }) => {
     for (const v of ring) v.color = v.struck ? '#ffffff' : '#ffe04d';
     view.setRing(ring);
-    dial.update(ring.map((v) => v.gain), motorLevels(ring), ring.map((v) => v.color));
+    const m = motorLevels(ring);
+    dial.update(ring.map((v) => v.gain), m, ring.map((v) => v.color));
+    // A strike is a short, full-strength jolt on its side; the rumble is the steady level.
+    for (const v of ring) {
+      if (!v.struck) continue;
+      const side = ['n', 'e', 's', 'w'][Math.round(v.bearing / 90) % 4];
+      m[side] = 1;
+    }
+    haptics(m);
     if (lightning) $('year-readout').textContent = lightning.date;
   },
 });
@@ -312,6 +358,7 @@ async function toggleLightning() {
     setScanButton(false);
     view.setRing(null);
     dial.clear();
+    hapticsOff();
     announce(`Paused at ${lightning.date}.`);
     return;
   }
@@ -791,6 +838,7 @@ async function updateProbe() {
   engine.setProbe({ gains, brightness: peak, land: onLand ? 1 : 0, lat: c.lat });
   const motor = Math.max(...Object.values(gains));
   dial.update(new Float32Array(16).fill(motor), { n: motor, e: motor, s: motor, w: motor });
+  haptics({ n: motor, e: motor, s: motor, w: motor });
 }
 
 async function toggleExplore(force) {
@@ -810,8 +858,77 @@ async function toggleExplore(force) {
     state.explore = false;
     engine.silenceProbe();
     dial.clear();
+    hapticsOff();
     $('btn-explore').setAttribute('aria-pressed', 'false');
     announce('Explore mode off.');
+  }
+}
+
+// ---------------------------------------------------------------- controller input
+
+let joy = { x: 0, y: 0 };
+let joyTimer = 0;
+let joyMoved = false;
+let lastPotStep = null;
+
+/**
+ * Joystick: moves the centre smoothly (about 6 degrees per second at full tilt, half that in
+ * explore mode); when the stick returns to rest the new place is spoken once.
+ */
+function joyTick() {
+  if (joy.x === 0 && joy.y === 0) {
+    clearInterval(joyTimer);
+    joyTimer = 0;
+    if (joyMoved) { joyMoved = false; announce(`Centre ${centreLabel()}.`); }
+    return;
+  }
+  const speed = (state.explore ? 3 : 6) / 20; // degrees per tick at 20 Hz
+  const c = state.center;
+  const dLon = (joy.x / 100) * speed / Math.max(0.2, Math.cos((c.lat * Math.PI) / 180));
+  setCenter({ lat: c.lat + (joy.y / 100) * speed, lon: c.lon + dLon }, { speak: false });
+  joyMoved = true;
+}
+
+function onControllerMessage(msg) {
+  if (msg.type === 'hello') {
+    $('serial-status').textContent = `Controller "${msg.name}" (protocol ${msg.version}) connected.`;
+  } else if (msg.type === 'joy') {
+    joy = msg;
+    if ((msg.x || msg.y) && !joyTimer) joyTimer = setInterval(joyTick, 50);
+  } else if (msg.type === 'pot') {
+    // The knob picks a step on the current track: a year, a moment in the video, or a ring size.
+    if (state.track === 'nightlights') {
+      const step = Math.round((msg.value / 1000) * (YEARS.length - 1));
+      if (step !== lastPotStep) { lastPotStep = step; setYear(YEARS[step]); }
+    } else if (state.track === 'lightning' && lightning && lightning.ready) {
+      const step = Math.round((msg.value / 1000) * 100);
+      if (step !== lastPotStep) { lastPotStep = step; seekLightning(0, (step / 100) * $('map-video').duration); }
+    } else {
+      const step = Math.round((msg.value / 1000) * 15);
+      if (step !== lastPotStep) { lastPotStep = step; setRadius(250 + step * 250); }
+    }
+  } else if (msg.type === 'button' && msg.pressed) {
+    ensureSound();
+    if (msg.id === 1) toggleScan();
+    else whereAmI();
+  }
+}
+
+async function toggleController() {
+  if (!Controller.supported) {
+    announce('This browser has no Web Serial. Use Chrome or Edge on a computer; everything else works without the controller.');
+    return;
+  }
+  if (controller.connected) {
+    controller.stopMotors();
+    try { await controller.port.close(); } catch { /* already closed */ }
+    controller._closed();
+    return;
+  }
+  try {
+    await controller.connect();
+  } catch (err) {
+    announce('No controller selected.');
   }
 }
 
@@ -881,6 +998,7 @@ function stopAll() {
   voice.cancel();
   if (state.explore) toggleExplore(false);
   engine.stopAll();
+  hapticsOff();
   setScanButton(false);
   view.setRing(null);
   dial.clear();
@@ -997,6 +1115,18 @@ function wire() {
   $('btn-sweep').addEventListener('click', yearSweep);
   $('btn-where').addEventListener('click', whereAmI);
   $('btn-explore').addEventListener('click', () => toggleExplore());
+  $('btn-serial').addEventListener('click', toggleController);
+  if (!Controller.supported) {
+    $('serial-status').textContent = 'Needs Chrome or Edge on a computer (Web Serial). Everything else works without it.';
+  }
+  if ('vibrate' in navigator && matchMedia('(pointer: coarse)').matches) {
+    $('vibrate-row').hidden = false;
+    $('vibrate').addEventListener('change', (e) => {
+      phoneVibrate = e.target.checked;
+      if (phoneVibrate) navigator.vibrate(40);
+      announce(`Phone vibration ${phoneVibrate ? 'on' : 'off'}.`);
+    });
+  }
   $('btn-wav').addEventListener('click', saveWav);
   $('btn-tutorial').addEventListener('click', tutorial);
   $('btn-prev-year').addEventListener('click', () => setYear(state.year - 1));
@@ -1037,7 +1167,7 @@ function wire() {
 }
 
 // Exposed for manual debugging in the browser console only.
-window.earthsonar = { engine, scan, state, view };
+window.earthsonar = { engine, scan, state, view, controller, onControllerMessage };
 
 wire();
 init().catch((err) => {
