@@ -322,7 +322,9 @@ loading starts the scan as soon as the data arrives.
 |---|---|---|---|
 | Before (all 12 years as lossless PNG, sequential requests), no warm-up | 3.05 s | 4.74 s | 0.64 MB (7.4 MB total) |
 | After, same method, no warm-up | 2.19 s | 1.58 s | 0.14 MB |
-| After, warm-up + median of 3 runs | **0.85 s** | **1.43 s** | **0.14 MB** |
+| After, warm-up + median of 3 runs | 0.85 s | 1.43 s | 0.14 MB |
+| Tabbed site: Home tab (no player code, no map data) | **0.72 s** | **0.77 s** | **0.08 MB** |
+| Tabbed site: Jukebox tab opened by direct link | **1.03 s** | **1.53 s** | **0.17 MB** |
 
 - **Sound and sight are separate files.**
   - Sound grids are lossless 8-bit PNGs that hold the exact values the sonification uses.

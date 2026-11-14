@@ -114,7 +114,7 @@ Other modes:
 - Media preparation in Python with NumPy, Pillow and FFmpeg.
 - Arduino C++ firmware.
 - Hosted on Vercel. Automated tests use the Node.js test runner.
-- First-screen load is about 0.14 MB, ready in under 1.5 s on slow 4G.
+- The landing page loads 0.08 MB; the player loads 0.17 MB and is ready in about 1.5 s on slow 4G.
 
 **What we hope to achieve.** Make the EIC's visual stories reachable by ear and by touch, for
 blind and low-vision visitors first, and give every listener a new, musical sense of where the
