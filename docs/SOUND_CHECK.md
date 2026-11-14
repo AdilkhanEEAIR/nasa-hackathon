@@ -158,3 +158,25 @@ sounding on a frozen frame while the video was paused or buffering.
 3. Track 9: set Scan length, press Space: the line crosses the globe in that time; silence over
    the Pacific, sliding tones at the Gulf Stream, then a spoken/written summary.
 4. Pause the video mid-way (Space): the sound must stop with the picture.
+
+## Ocean Temperature, ambient version (14 November 2026, late evening)
+
+Temperature now chooses the register and the layer; north–south chooses the note inside the
+register; west–east stays the stereo position. Cold water is a low, dense hum an octave down
+with its top cut off (320–650 Hz low-pass); mild water is a soft, slowly breathing pad in the
+middle; warm water rings an octave up; from 30 °C a twin 40 cents sharp beats against the hot
+tone (a light tension) and the water is called "hottest water". Attacks are 0.4–0.5 s so the
+layers flow into each other. No anomalies or seasonal pulse: one model day, no baseline.
+
+| Place | Temp heard °C | RMS | Centroid Hz |
+|---|---|---|---|
+| Southern Ocean front | 6.0 | see below | 154 |
+| Agulhas Current | 14.5 | 0.089 | 346 |
+| Equatorial Pacific | 26.8 | 0.093 | 725 |
+| Arabian Sea | 29.3 | 0.070 | 664 |
+
+On screen: the 0–32 °C colorbar next to the map and "Centre: 24 °C" in large type; "Where am
+I" and the scan result name the degrees (the scan result also gives the ring's range).
+
+**Check by ear:** keys 5 (Southern Ocean) → 3 (Agulhas) → 4 (Equatorial Pacific) on track 4:
+low hum → middle pad → high ringing; a long, soft fade between them while the ring moves.

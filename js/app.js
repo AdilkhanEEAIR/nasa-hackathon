@@ -12,7 +12,7 @@ import {
   dominant,
   AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
-  oceanFields, oceanTemp, describeTemp, oceanBandWeights, OCEAN_CALM, OCEAN_DENSE,
+  oceanFields, oceanTemp, describeTemp, oceanBandWeights, OCEAN_CALM, OCEAN_DENSE, HOTTEST_C,
   TRACK_PRESETS, TRACK_SOUND, TRACK_CLASS, windFields, describeWind, WIND_RANGE_MS, NEEDLE_TRACKS,
 } from './tracks.js';
 import { NeedleScan, forestValue, co2Value, NEEDLE_SEGMENTS } from './needle.js';
@@ -57,7 +57,7 @@ export const TRACKS = [
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: true,
     intro: 'Lightning: flashes seen by the Lightning Imaging Sensor on the International Space Station, 2017 to 2023, shown as a 10-day window. Each new flash is a sharp crack in its direction; many storms make a low thunder rumble. The sensor only sees up to about 52 degrees north and south, so silence there means no data. Space plays and pauses; Page Up and Page Down jump a month.' },
   { id: 'ocean', title: 'Ocean Temperature', blurb: 'Surface currents coloured by temperature, 19 June 2007.', ready: true,
-    intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Temperature has five sounds. Ice-cold water is a pure tone with a slow shimmer. Cold water is soft and hollow. Mild water is reedy. Warm water is rich and flickers faster. Hot water is bright, an octave higher, and flickers fast. Where the current lines are dense the tone slides and swirls: that is moving water. Louder means more sea on the ring; land is silent. Y tells you the temperatures around the ring.' },
+    intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Temperature chooses the register: cold water is a low, dense hum; mild water is a soft pad in the middle; warm water rings high, and from 30 degrees the hottest water gets a light tension. North is still higher within each register. Where the current lines are dense the tone slides: that is moving water. Louder means more sea on the ring; land is silent. Y tells you the temperatures around the ring.' },
   { id: 'wind', title: 'Near-Surface Wind', blurb: 'Wind 10 m above the surface, 29 Oct 2026 (GEOS-FP).', ready: true,
     intro: 'Near-Surface Wind: wind speed 10 metres above the surface from NASA\'s GEOS-FP model, 29 October 2026, read from the colour scale from 4 to 34 metres per second. Wind is rushing air: louder and brighter means stronger, and above about 12 metres per second a whistle joins in. Calm air is silent. Y tells you where the wind is strongest around the ring.' },
   { id: 'forest', title: 'Forest Height (GEDI)', blurb: 'Space station lidar, April 2019 to April 2020, on a turning globe.', ready: true,
@@ -169,7 +169,9 @@ const scan = new RingScan(engine, {
     hapticsOff();
     if (completed) {
       view.pulseCentre(centreLevel);
-      const what = classTrack() ? classTrack().describe(centreLevel > 0.001 ? centreKind : null) : describeLevel(centreLevel);
+      const what = classTrack() ? classTrack().describe(centreLevel > 0.001 ? centreKind : null)
+        : state.track === 'ocean' ? `${describeTemp(centreTemp())}; around the ring ${ringTempRange()}`
+          : describeLevel(centreLevel);
       announce(`Scan finished. At the centre: ${what}.`, { say: 'result' });
     }
   },
@@ -256,6 +258,9 @@ function updateDescription() {
   }
   $('when-label').textContent = state.track === 'nightlights' ? 'Year' : 'Date';
   markTimeline(classTrack() || isLt ? null : state.year);
+  showCentreTemp();
+  $('temp-scale').hidden = state.track !== 'ocean';
+  if (state.track === 'ocean' && state.manifest) $('temp-scale-img').src = state.manifest.ocean.legend;
 }
 
 // ---------------------------------------------------------------- data loading
@@ -397,6 +402,30 @@ async function currentFields() {
 /** How arc values become sound on the current track (see scan.js defaultVoice). */
 function currentMapVoice() {
   return TRACK_SOUND[state.track] ? TRACK_SOUND[state.track].mapVoice : undefined;
+}
+
+/** Temperature at the ring centre (deg C) or null, read like "Where am I". */
+function centreTemp() {
+  if (!state.ocean) return null;
+  const c = state.center;
+  return oceanTemp(sampleField(state.ocean.cover, c.lat, c.lon, 2), sampleField(state.ocean.temp, c.lat, c.lon, 2));
+}
+
+/** Coldest and warmest temperature heard on the ring at its starting size, in words. */
+function ringTempRange() {
+  const temps = readRing(state.ocean, null, state.center, state.radiusKm)
+    .map((v) => oceanTemp(v.levels.cover, v.levels.temp)).filter((t) => t !== null);
+  if (!temps.length) return 'no ocean';
+  return `from about ${Math.round(Math.min(...temps))} to ${Math.round(Math.max(...temps))} degrees Celsius`;
+}
+
+/** Large centre temperature under the ocean title. */
+function showCentreTemp() {
+  const el = $('temp-readout');
+  if (state.track !== 'ocean') { el.hidden = true; return; }
+  const t = centreTemp();
+  el.hidden = false;
+  el.textContent = t === null ? 'Centre: land, no ocean' : `Centre: ${Math.round(t)} °C${t >= HOTTEST_C ? ' · hottest water' : ''}`;
 }
 
 /** Blue (cold) to red (warm) for the ocean visuals, matching the source colorbar's ends. */
@@ -749,10 +778,10 @@ const LEGENDS = {
     ['--data-nodata', 'Calm (below 4 m/s): silent'],
   ],
   ocean: [
-    ['--data-cold', 'Ice-cold to cold: pure or hollow tone, slow shimmer'],
-    ['--data-warm', 'Warm to hot: rich, bright tone, fast flicker'],
-    ['--data-land', 'Dense current lines: the tone slides and swirls'],
-    ['--data-nodata', 'Land: silent'],
+    ['--data-cold', 'Cold water: low, dense hum'],
+    ['--data-land', 'Mild water: soft pads in the middle'],
+    ['--data-warm', 'Warm water: high ringing tones; from 30 °C a light tension'],
+    ['--data-nodata', 'Land: silent · dense currents make the tone slide'],
   ],
   lightning: [
     ['--data-flash', 'New flash: sharp crack in its direction'],

@@ -93,17 +93,23 @@ export const OCEAN_BANDS = [
 // current lines are on the arc, so busy currents are heard as moving water.
 const OCEAN_GLIDE = { rate: 0.35, rateBoost: 2.5, cents: 28, filterCents: 900 };
 
+// Ambient ocean. Temperature picks the register and the layer; the compass (north-south)
+// picks the note inside that register; west-east stays the stereo position. Long attacks
+// (`smooth`, seconds) let the layers flow into each other as the ring moves.
 export const OCEAN_LAYERS = [
-  // Ice: a pure sine (one partial), the slowest shimmer.
-  { name: 'ice', type: 'sine', octave: 0, cutoffLo: 2000, cutoffHi: 2000, peak: 1.0, tremolo: { rate: 0.7, depth: 0.3 }, glide: OCEAN_GLIDE },
-  // Cold: a soft, hollow triangle with few harmonics, dark filter.
-  { name: 'cold', type: 'triangle', octave: 0, cutoffLo: 700, cutoffHi: 900, peak: 0.9, tremolo: { rate: 1.6, depth: 0.3 } },
-  // Mild: a square wave (odd harmonics), half-open filter, moderate shimmer.
-  { name: 'mild', type: 'square', octave: 0, cutoffLo: 1300, cutoffHi: 1800, peak: 0.75, tremolo: { rate: 3, depth: 0.4 } },
-  // Warm: a sawtooth (all harmonics), open filter, faster flicker.
-  { name: 'warm', type: 'sawtooth', octave: 0, cutoffLo: 3000, cutoffHi: 4000, peak: 1.3, tremolo: { rate: 5, depth: 0.5 } },
-  // Hot: a bright sawtooth an octave up, filter wide open, rapid flicker.
-  { name: 'hot', type: 'sawtooth', octave: 1, cutoffLo: 6000, cutoffHi: 8000, peak: 1.45, tremolo: { rate: 8.5, depth: 0.6 } },
+  // Ice-cold: a low, dense hum an octave down, top cut off.
+  { name: 'ice', type: 'sine', octave: -1, cutoffLo: 320, cutoffHi: 320, peak: 0.95, smooth: 0.5, glide: OCEAN_GLIDE },
+  // Cold: a low, darker triangle hum, still an octave down.
+  { name: 'cold', type: 'triangle', octave: -1, cutoffLo: 520, cutoffHi: 650, peak: 0.8, smooth: 0.5 },
+  // Mild: soft pads in the middle register, slowly breathing.
+  { name: 'mild', type: 'triangle', octave: 0, cutoffLo: 1300, cutoffHi: 1700, peak: 1.0, smooth: 0.45, tremolo: { rate: 0.45, depth: 0.35 } },
+  // Warm: high ringing tones an octave up, a gentle shimmer.
+  { name: 'warm', type: 'sine', octave: 1, cutoffLo: 5000, cutoffHi: 6000, peak: 0.95, smooth: 0.4, tremolo: { rate: 3.5, depth: 0.25 } },
+  // Hot: brighter ringing tones an octave up, a quicker shimmer.
+  { name: 'hot', type: 'triangle', octave: 1, cutoffLo: 6500, cutoffHi: 8000, peak: 0.9, smooth: 0.4, tremolo: { rate: 6, depth: 0.3 } },
+  // Hottest water (30 C and above): a twin 40 cents sharp beats against the hot tone, a
+  // light tension in the sound. Nothing about trends or anomalies: one day, no baseline.
+  { name: 'tension', type: 'sine', octave: 1, detune: 40, cutoffLo: 6000, cutoffHi: 6000, peak: 0.6, smooth: 0.4 },
 ];
 
 /** Blend weights (0..1, summing to 1) of the five bands for a temperature in deg C. */
@@ -153,14 +159,19 @@ export function oceanVoice(v) {
   const loud = Math.min(1, Math.max(water, cover) / OCEAN_FULL_WATER) ** 0.7;
   const w = oceanBandWeights(t);
   const gains = Object.fromEntries(Object.entries(w).map(([k, x]) => [k, x * loud]));
+  gains.tension = loud * Math.max(0, Math.min(1, (t - HOTTEST_C + 0.5) / 1.5));
   const density = cover / Math.max(0.1, water);
   const motion = Math.max(0, Math.min(1, (density - OCEAN_CALM) / (OCEAN_DENSE - OCEAN_CALM)));
   return { gains, brightness: t / OCEAN_RANGE_C, land: 0, temp: t, motion };
 }
 
+// From here the water is called "hottest water" and the sound gains a light tension.
+export const HOTTEST_C = 30;
+
 export function describeTemp(t) {
   if (t === null || t === undefined) return 'no ocean flow here';
-  return `sea surface about ${Math.round(t)} degrees Celsius, ${oceanBand(t).label}`;
+  const label = t >= HOTTEST_C ? 'hottest water' : oceanBand(t).label;
+  return `sea surface about ${Math.round(t)} degrees Celsius, ${label}`;
 }
 
 /**

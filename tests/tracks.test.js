@@ -42,15 +42,16 @@ test('ocean: five fixed temperature bands, blended between neighbours', () => {
   assert.equal(oceanBand(28).name, 'hot');
 });
 
-test('ocean: warmer bands have more harmonics and faster shimmer', () => {
-  const partials = { sine: 1, triangle: 2, square: 3, sawtooth: 4 };
-  const rank = OCEAN_LAYERS.map((l) => partials[l.type] + (l.octave > 0 ? 1 : 0));
-  const rate = OCEAN_LAYERS.map((l) => l.tremolo.rate);
-  for (let i = 1; i < OCEAN_LAYERS.length; i++) {
-    assert.ok(rank[i] >= rank[i - 1], `harmonics never decrease (${OCEAN_LAYERS[i].name})`);
-    assert.ok(rate[i] > rate[i - 1], `shimmer gets faster (${OCEAN_LAYERS[i].name})`);
-  }
-  assert.ok(rank[4] > rank[0] + 2, 'hot is far richer than ice');
+test('ocean: temperature chooses the register, cold is low and cut, hottest water gets tension', () => {
+  const by = Object.fromEntries(OCEAN_LAYERS.map((l) => [l.name, l]));
+  assert.ok(by.ice.octave < by.mild.octave && by.mild.octave < by.warm.octave, 'low, middle, high');
+  assert.ok(by.ice.cutoffHi <= 400 && by.cold.cutoffHi <= 700, 'cold water has its top cut off');
+  assert.ok(OCEAN_LAYERS.every((l) => (l.smooth ?? 0) >= 0.4), 'long attacks so layers flow');
+  const v = (t) => oceanVoice({ levels: { cover: 0.5, temp: 0.5 * (t / 32) }, land: 0 });
+  assert.equal(v(28).gains.tension, 0);
+  assert.ok(v(31).gains.tension > 0);
+  assert.match(describeTemp(30.6), /hottest water/);
+  assert.doesNotMatch(describeTemp(24), /hottest/);
 });
 
 test('ocean: dense current lines give more motion, calm water little', () => {

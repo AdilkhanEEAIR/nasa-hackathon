@@ -157,6 +157,7 @@ export class SonicEngine {
         osc = ctx.createOscillator();
         osc.type = spec.type;
         osc.frequency.value = base * 2 ** spec.octave;
+        if (spec.detune) osc.detune.value = spec.detune;
       } else {
         osc = ctx.createBufferSource();
         osc.buffer = this._texture(source);
@@ -234,7 +235,7 @@ export class SonicEngine {
       } else {
         cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
       }
-      l.gain.gain.setTargetAtTime(target, when, SMOOTH);
+      l.gain.gain.setTargetAtTime(target, when, l.spec.smooth ?? SMOOTH);
       l.filter.frequency.setTargetAtTime(cutoff, when, SMOOTH);
     });
     return total;
