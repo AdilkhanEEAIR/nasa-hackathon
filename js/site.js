@@ -4,7 +4,8 @@
 // Tabs follow the WAI-ARIA tabs pattern: role=tablist/tab/tabpanel, roving tabindex, arrow
 // keys and Home/End move between tabs, and each tab has its own address (#home, #jukebox…).
 
-const TABS = ['home', 'jukebox', 'demo', 'how', 'data', 'hardware'];
+const TABS = ['home', 'jukebox', 'demo'];
+// Any other address, including the removed #how, #data and #hardware tabs, opens Home.
 const HEAVY = new Set(['jukebox', 'demo']);
 
 const tabEl = (id) => document.getElementById(`tab-${id}`);
@@ -48,9 +49,15 @@ function loadPlayer() {
   return player;
 }
 
+// Tabs removed in the November 2026 rework; old links to them land on Home.
+const RETIRED = new Set(['how', 'data', 'hardware']);
+
+/** Tab for the current address, or null for an in-page anchor such as #main (skip link). */
 function tabFromHash() {
   const id = location.hash.replace('#', '');
-  return TABS.includes(id) ? id : 'home';
+  if (TABS.includes(id)) return id;
+  if (!id || RETIRED.has(id)) return 'home';
+  return null;
 }
 
 /** Shows one tab. `focusTab` moves focus to the tab button (keyboard navigation in the list). */
@@ -107,7 +114,11 @@ function wireTabs() {
     show(id, { push: true });
     panelEl(id).focus();
   });
-  window.addEventListener('popstate', () => show(tabFromHash()));
+  window.addEventListener('popstate', () => {
+    if (RETIRED.has(location.hash.slice(1))) history.replaceState(null, '', `${location.pathname}#home`);
+    const id = tabFromHash();
+    if (id) show(id);
+  });
   // Intent to open the player (pointer over or focus on a way in) starts fetching its code.
   const wantsPlayer = (e) => {
     const el = e.target.closest && e.target.closest('[data-tab="jukebox"], [data-tab="demo"], a[href="#jukebox"], a[href="#demo"]');
@@ -122,5 +133,6 @@ if (new URLSearchParams(location.search).has('demo')) {
   history.replaceState(null, '', `${location.pathname}#demo`);
 }
 wireTabs();
-show(tabFromHash());
+if (RETIRED.has(location.hash.slice(1))) history.replaceState(null, '', `${location.pathname}#home`);
+show(tabFromHash() || 'home');
 document.body.dataset.shell = 'ready';

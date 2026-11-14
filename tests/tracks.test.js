@@ -1,45 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  changeClass, dominant, describeChange, CHANGE_LAYERS, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
+  dominant, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
   oceanTemp, oceanVoice, describeTemp,
 } from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
 import { destination } from '../js/geo.js';
 
-// Colours measured on the change map (docs/DATA_NOTES.md 1.4).
-test('change classes: measured on-map colours land in the right class', () => {
-  const purple = changeClass(96, 77, 123);
-  assert.ok(purple.more > 0 && purple.less === 0 && purple.same === 0, JSON.stringify(purple));
-  const orange = changeClass(131, 98, 71);
-  assert.ok(orange.less > 0 && orange.more === 0, JSON.stringify(orange));
-  const white = changeClass(105, 92, 99);
-  assert.ok(white.same > 0 && white.more === 0 && white.less === 0, JSON.stringify(white));
-  // Colorbar end points.
-  assert.ok(changeClass(148, 105, 197).more > 0);
-  assert.ok(changeClass(229, 158, 89).less > 0);
-  assert.ok(changeClass(252, 252, 252).same > 0);
-});
-
-test('change classes: base map (ocean, desert, ice) is silent', () => {
-  for (const c of [[1, 0, 2], [26, 21, 15], [15, 9, 4], [33, 33, 33]]) {
-    assert.deepEqual(changeClass(...c), { more: 0, less: 0, same: 0 }, `rgb ${c}`);
-  }
-});
-
-test('dominant and neutral descriptions', () => {
-  assert.equal(dominant({ more: 0.2, less: 0.1, same: 0 }), 'more');
-  assert.equal(dominant({ more: 0, less: 0, same: 0 }), null);
-  assert.match(describeChange('less'), /less light/);
-  assert.doesNotMatch(describeChange('less'), /because|war|crisis|conflict/i);
-});
-
-test('change layers are three distinct instruments', () => {
-  const names = CHANGE_LAYERS.map((l) => l.name);
-  assert.deepEqual(names, ['more', 'less', 'same']);
-  const sig = new Set(CHANGE_LAYERS.map((l) => `${l.type}/${l.octave}`));
-  assert.equal(sig.size, 3);
+test('dominant picks the loudest class, or null for silence', () => {
+  assert.equal(dominant({ smoke: 0.2, dust: 0.1, salt: 0 }), 'smoke');
+  assert.equal(dominant({ smoke: 0, dust: 0, salt: 0 }), null);
 });
 
 test('ocean: temperature from cover/temp means, land silent, warm is brighter', () => {

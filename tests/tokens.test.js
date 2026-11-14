@@ -116,7 +116,6 @@ const deltaE = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 const LEGENDS = {
   aerosols: ['data-smoke', 'data-dust', 'data-salt', 'data-sulfate'],
-  change: ['data-change-more', 'data-change-less', 'data-change-same'],
   ocean: ['data-cold', 'data-warm'],
   lightning: ['data-flash', 'data-rumble', 'data-nodata'],
   nightlights: ['data-lights', 'data-land'],

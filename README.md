@@ -11,16 +11,20 @@ NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · 
 
 ![The EarthSonar jukebox during a ring scan around India, 2012](docs/screenshots/jukebox-scan-desktop.jpg)
 
-The site has six tabs, each with its own address:
+The site has three tabs, each with its own address:
 
 | Tab | Address | What is there |
 |---|---|---|
 | Home | https://earthsonar.vercel.app/#home | One sentence, a way into the jukebox and the demo, the rule in short |
-| Jukebox | https://earthsonar.vercel.app/#jukebox | The player: pick a track, press Space |
+| Jukebox | https://earthsonar.vercel.app/#jukebox | The player: pick a track, press Space; T plays the sound rule as a short tutorial |
 | Demo | https://earthsonar.vercel.app/#demo | A fixed 28-second scenario with English subtitles |
-| How it works | https://earthsonar.vercel.app/#how | The value → sound rule, the ring, the palette, the limits |
-| Data & Credits | https://earthsonar.vercel.app/#data | NASA sources, credits, AI use |
-| Hardware | https://earthsonar.vercel.app/#hardware | The tactile controller |
+
+The site footer keeps a compact source line ("Data: NASA Scientific Visualization Studio"),
+which opens the full list of sources with SVS IDs and credits, plus the Natural Earth and AI
+notes. The former *How it works*, *Data & Credits* and *Hardware* tabs were folded into this
+README: [the rule](#value--sound-rule), [the palette](#sound-palette),
+[limitations](#limitations-please-read), [credits](#credits-and-references) and
+[the controller](#tactile-controller). Old links to `#how`, `#data` and `#hardware` open Home.
 
 **Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
 before sound): what it is → India 2012 vs 2023 → aerosols → lightning → address. The old
@@ -34,10 +38,10 @@ slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 | Track | Status |
 |---|---|
 | 01 Night Lights 2012–2023 | ✅ available |
-| 02 What Changed, 2012 → 2023 | ✅ available |
-| 03 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
-| 04 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
-| 05 Ocean Temperature, 19 June 2007 | ✅ available |
+| 02 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
+| 03 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
+| 04 Ocean Temperature, 19 June 2007 | ✅ available |
+| ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
 | Voice guide and explore mode | ✅ available (V toggles the voice, E explores point by point) |
 | Tactile controller (Arduino, 4 vibration motors) | ✅ site link ready (tested against an emulated board; real hardware test pending) |
 
@@ -141,7 +145,7 @@ so equal pixel values always give equal sounds.
 | Centre note | Light level at the centre → loudness and brightness of the final chord. Zero gives a low thud. |
 | Year sweep | Mean light level inside the ring disk → 15 pentatonic degrees on a log scale from 0.001 to 0.03, the same for every region and year. |
 
-**What Changed (2012 → 2023)**
+**What Changed (2012 → 2023)** — *removed from the site; kept here for the record*
 
 The change map colours each lit pixel by the direction of change. EarthSonar gives each
 direction its own instrument. The compass rule (pitch and stereo) and the loudness rule are
@@ -238,9 +242,6 @@ For noise-based instruments, the centre of the noise band follows the same compa
 | Phenomenon | Instrument |
 |---|---|
 | City lights | Warm triangle tone with a gentle twinkle (5.5 Hz tremolo); it opens up (gets brighter) with more light |
-| More light (change) | High, bright sparkle (one octave up) |
-| Less light (change) | Low, muffled buzz (one octave down) |
-| Little change | Soft, quiet sine |
 | Smoke, black carbon | Crackle with a low rumble |
 | Dust | Dry rustle |
 | Sea salt | Soft surf |
@@ -258,7 +259,7 @@ Loudness is matched in two steps, both measured from offline renders:
 
 | Visualization | NASA SVS ID | Frames we use |
 |---|---|---|
-| Change in Night Lights between 2012 and 2023 – EIC Version | [5313](https://svs.gsfc.nasa.gov/5313/) | One frame per year from the first, inset-free pass (frames 7 … 235), and the change map (frame 400). |
+| Change in Night Lights between 2012 and 2023 – EIC Version | [5313](https://svs.gsfc.nasa.gov/5313/) | One frame per year from the first, inset-free pass (frames 7 … 235). (The change map, frame 400, fed the removed What Changed track.) |
 | GEOS Aerosols | [5669](https://svs.gsfc.nasa.gov/5669/) | The single frame 2025-08-19 20:00 UTC and its legend. |
 | Lightning Events Detected from the ISS 2017–2023 | [5011](https://svs.gsfc.nasa.gov/5011/) | The Science On a Sphere movie, re-encoded at 30 fps, with per-frame dates from the official `labels.txt`. |
 | Global Sea Surface Currents and Temperature | [3912](https://svs.gsfc.nasa.gov/3912/) | One flat 2048 × 1024 frame (frame 25000, 2007-06-19 12:00 UTC per `flat_ecco2_dates.txt`) and the SST colorbar. |
@@ -291,8 +292,6 @@ Loudness is matched in two steps, both measured from offline renders:
 - **Lightning coverage is about ±52° latitude** (the ISS orbit). Silence further north or
   south means "no data", not "no lightning". Each dot is shown for a 10-day window, so dots
   are accumulated detections, not individual real-time strikes.
-- The change map shows the *direction* of change reliably (more / less / same). Its
-  magnitude is approximate.
 
 ## Zoom and pan (visual only)
 
@@ -389,8 +388,8 @@ Web Serial (Chrome or Edge).
 What each part does:
 - **Joystick:** moves the ring centre, about 6° per second at full tilt (half that in explore
   mode). The place is spoken when the stick returns to rest.
-- **Knob:** chooses the year on track 1, the moment in the video on track 4, and the ring size
-  on tracks 2 and 3.
+- **Knob:** chooses the year on track 1, the moment in the video on track 3, and the ring size
+  on tracks 2 and 4.
 - **Button 1** plays or stops; **joystick press** says where you are.
 - **Motors N/E/S/W** follow the ring: each motor takes the strongest voice on its side.
   Lightning strikes give a full-strength jolt on their side. In explore mode all four motors
@@ -399,6 +398,11 @@ What each part does:
   direction. iPhone browsers have no vibration API.
 - The link was tested in the browser against an emulated board that sends and checks every
   protocol message, including garbled lines. A test on the real board is pending.
+
+Connect it:
+1. Flash the firmware below to an Arduino Uno or Nano.
+2. Plug it in by USB and open the site in Chrome or Edge on a computer.
+3. In the Jukebox tab, choose **Connect controller** and pick the port.
 
 - Protocol and wiring: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
 - Firmware: [`firmware/earthsonar_controller`](firmware/earthsonar_controller/earthsonar_controller.ino)

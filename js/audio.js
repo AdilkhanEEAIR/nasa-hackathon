@@ -15,7 +15,7 @@ const SMOOTH = 0.06;          // seconds; gain glides avoid zipper noise between
 /** Default single instrument (night lights): triangle wave, brightness opens the filter. */
 export const DEFAULT_LAYERS = [
   // City lights: a warm triangle tone with a gentle twinkle (tremolo), so it is recognisable
-  // and never confused with the plain "more light" sparkle of the change track.
+  // next to the plain tones of the other tracks.
   { name: 'main', type: 'triangle', octave: 0, cutoffLo: 600, cutoffHi: 4800, peak: 1.05, tremolo: { rate: 5.5, depth: 0.35 } },
 ];
 

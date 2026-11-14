@@ -57,9 +57,6 @@
   /* ------------------------------------------------------------------ semantic: data */
   --data-lights: var(--dp-yellow);
   --data-land: var(--dp-quiet);
-  --data-change-more: var(--dp-purple);
-  --data-change-less: var(--dp-orange);
-  --data-change-same: var(--dp-neutral);
   --data-smoke: var(--dp-orange);
   --data-dust: var(--dp-purple);
   --data-salt: var(--dp-sky);

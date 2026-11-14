@@ -20,9 +20,6 @@
           <button class="tab" role="tab" id="tab-home" data-tab="home" aria-controls="panel-home" aria-selected="true">Home</button>
           <button class="tab" role="tab" id="tab-jukebox" data-tab="jukebox" aria-controls="panel-jukebox" aria-selected="false" tabindex="-1">Jukebox</button>
           <button class="tab" role="tab" id="tab-demo" data-tab="demo" aria-controls="panel-demo" aria-selected="false" tabindex="-1">Demo</button>
-          <button class="tab" role="tab" id="tab-how" data-tab="how" aria-controls="panel-how" aria-selected="false" tabindex="-1">How it works</button>
-          <button class="tab" role="tab" id="tab-data" data-tab="data" aria-controls="panel-data" aria-selected="false" tabindex="-1">Data &amp; Credits</button>
-          <button class="tab" role="tab" id="tab-hardware" data-tab="hardware" aria-controls="panel-hardware" aria-selected="false" tabindex="-1">Hardware</button>
         </div>
       </nav>
     </div>
@@ -53,10 +50,9 @@
 
       <div class="cards">
         <section class="card" aria-labelledby="home-tracks">
-          <h2 id="home-tracks" class="card__title">Five tracks</h2>
+          <h2 id="home-tracks" class="card__title">Four tracks</h2>
           <ol class="plain-list numbered">
             <li>Night Lights 2012–2023</li>
-            <li>What Changed</li>
             <li>Aerosols</li>
             <li>Lightning from the space station</li>
             <li>Ocean Temperature</li>
@@ -120,7 +116,7 @@
             <button id="btn-wav" type="button" class="button" aria-keyshortcuts="S">Save as WAV <kbd>S</kbd></button>
             <button id="btn-stop" type="button" class="button button--quiet" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
           </div>
-          <p id="wav-note" class="note" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2, 3 and 5 can be saved.</p>
+          <p id="wav-note" class="note" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2 and 4 can be saved.</p>
 
           <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
 
@@ -206,7 +202,7 @@
         <span><kbd>←↑↓→</kbd> move</span>
         <span><kbd>PgUp</kbd><kbd>PgDn</kbd> year</span>
         <span><kbd>1</kbd>–<kbd>4</kbd> places</span>
-        <span><kbd>⇧1</kbd>–<kbd>⇧5</kbd> tracks</span>
+        <span><kbd>⇧1</kbd>–<kbd>⇧4</kbd> tracks</span>
         <span><kbd>Y</kbd> summary</span>
         <span><kbd>W</kbd> where</span>
         <span><kbd>E</kbd> explore</span>
@@ -229,86 +225,21 @@
       <p class="note">Press Escape to stop at any time. The demo is the same player as the Jukebox tab, with its timing fixed for recording.</p>
     </section>
 
-    <!-- ================================================================ HOW IT WORKS -->
-    <section class="panel panel--prose" id="panel-how" role="tabpanel" aria-labelledby="tab-how" tabindex="-1" hidden>
-      <h1 class="title">How it works</h1>
-      <p class="lede">Choose a place. A ring of sixteen voices starts far away and closes in on it. Each voice listens to one arc of the ring, so you hear where things are as well as how much of them there is.</p>
-
-      <h2 class="section-title">The rule</h2>
-      <dl class="rule-list rule-list--wide">
-        <div><dt>Pitch</dt><dd>North–south position. High notes come from the north, low notes from the south. Notes come from a major pentatonic scale, so any mix stays musical.</dd></div>
-        <div><dt>Stereo</dt><dd>West–east position. West is in the left ear, east in the right.</dd></div>
-        <div><dt>Loudness</dt><dd>How much is on the arc: light, dust, flashes, ocean. The scale is fixed per track and never re-normalised from frame to frame.</dd></div>
-        <div><dt>Timbre</dt><dd>What the phenomenon is. You learn it once and it holds for every track.</dd></div>
-        <div><dt>The end of a scan</dt><dd>The ring meets in one note: the value at the centre. A low thud means nothing is there.</dd></div>
-      </dl>
-
-      <h2 class="section-title">The ring</h2>
-      <p>The ring is computed on the sphere with great-circle distance, so it is a true circle on Earth at any zoom. Explore mode turns the centre into a probe you move with the arrow keys. A spoken guide names the nearest city and the value under the probe.</p>
-
-      <h2 class="section-title">The palette</h2>
-      <table class="table">
-        <thead><tr><th scope="col">Track</th><th scope="col">What you hear</th></tr></thead>
-        <tbody>
-          <tr><td>Night Lights</td><td>Warm, twinkling tone for city lights. Soft hum for unlit land, silence for water.</td></tr>
-          <tr><td>What Changed</td><td>High sparkle for more light, low muffled buzz for less, quiet sine for little change.</td></tr>
-          <tr><td>Aerosols</td><td>Crackle for smoke, dry rustle for dust, surf for sea salt, buzz for sulfate.</td></tr>
-          <tr><td>Lightning</td><td>A sharp crack for each new flash, a low rumble for storm density.</td></tr>
-          <tr><td>Ocean Temperature</td><td>A dull tone for cold water, a bright one for warm. Land is silent.</td></tr>
-        </tbody>
-      </table>
-
-      <h2 class="section-title">Limits</h2>
-      <ul class="plain-list bullets">
-        <li>We sonify the rendered visualizations, not raw measurements. "Brighter" means brighter on the map.</li>
-        <li>The aerosol legend is categorical. It names the type but gives no amounts.</li>
-        <li>Lightning is only seen up to about 52° north and south. Silence there means no data.</li>
-        <li>The ocean frame is one model day, 19 June 2007. It is not a trend.</li>
-      </ul>
-    </section>
-
-    <!-- ================================================================ DATA & CREDITS -->
-    <section class="panel panel--prose" id="panel-data" role="tabpanel" aria-labelledby="tab-data" tabindex="-1" hidden>
-      <h1 class="title">Data &amp; credits</h1>
-      <p class="lede">Every image is an original frame from NASA's Scientific Visualization Studio, from the Earth Information Center collection. EarthSonar reads the frames pixel by pixel with fixed, documented rules.</p>
-      <table class="table">
-        <thead><tr><th scope="col">Visualization</th><th scope="col">SVS ID</th><th scope="col">Credit</th></tr></thead>
-        <tbody>
-          <tr><td><a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights between 2012 and 2023 – EIC Version</a></td><td>5313</td><td>NASA's Scientific Visualization Studio. Visualizer Kel Elkins. Data: NASA Black Marble (Suomi NPP VIIRS).</td></tr>
-          <tr><td><a href="https://svs.gsfc.nasa.gov/5669/">GEOS Aerosols</a></td><td>5669</td><td>NASA GMAO and NASA SVS. Joseph V. Ardizzone, Helen-Nicole Kostis; Lesley Ott.</td></tr>
-          <tr><td><a href="https://svs.gsfc.nasa.gov/5011/">Lightning Events Detected from the ISS 2017–2023</a></td><td>5011</td><td>NASA SVS. Michala Garrison, Greg Shirah, Kel Elkins, Alex Kekesi. Data: LIS on ISS, NASA GHRC DAAC.</td></tr>
-          <tr><td><a href="https://svs.gsfc.nasa.gov/3912/">Global Sea Surface Currents and Temperature</a></td><td>3912</td><td>NASA/GSFC SVS. Greg Shirah, Horace Mitchell, Eric Sokolowsky. Data: ECCO2.</td></tr>
-        </tbody>
-      </table>
-      <p>Map labels (key L, visual only): <a href="https://www.naturalearthdata.com">Natural Earth</a>, public domain. Method references: <a href="https://svs.gsfc.nasa.gov/13786/">Data Sonification: Caldwell 73</a> (SVS 13786), and the ring idea follows NASA's RS Puppis sonification (SVS 14260).</p>
-
-      <h2 class="section-title">Use of artificial intelligence</h2>
-      <p>The code and documentation were written with Claude (Anthropic) under the team's direction and review. No images, video or audio were generated by AI. Every sound is synthesised live in the browser by the rules on the How it works tab.</p>
-      <p>Full data notes, measurements and the datasets we reviewed and rejected are in the <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">source repository</a>.</p>
-    </section>
-
-    <!-- ================================================================ HARDWARE -->
-    <section class="panel panel--prose" id="panel-hardware" role="tabpanel" aria-labelledby="tab-hardware" tabindex="-1" hidden>
-      <h1 class="title">Hardware</h1>
-      <p class="lede">An optional controller lets you feel the map. The website works fully without it.</p>
-      <dl class="rule-list rule-list--wide">
-        <div><dt>Joystick</dt><dd>Moves the ring centre. The place is spoken when the stick returns to rest.</dd></div>
-        <div><dt>Knob</dt><dd>Chooses the year, the moment in the lightning video, or the ring size.</dd></div>
-        <div><dt>Button</dt><dd>Plays or stops. Pressing the joystick says where you are.</dd></div>
-        <div><dt>Four motors</dt><dd>North, east, south and west: a tactile compass driven by the same ring. A lightning strike is a short jolt on its side.</dd></div>
-      </dl>
-      <h2 class="section-title">Connect it</h2>
-      <ol class="plain-list numbered">
-        <li>Flash the firmware from the repository to an Arduino Uno or Nano.</li>
-        <li>Plug it in by USB and open this site in Chrome or Edge on a computer.</li>
-        <li>In the Jukebox tab, choose "Connect controller" and pick the port.</li>
-      </ol>
-      <p>On Android phones, "Phone vibration" pulses the phone instead. The serial protocol, wiring and power budget are documented in <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon/blob/main/docs/PROTOCOL.md">PROTOCOL.md</a>.</p>
-    </section>
   </main>
 
   <footer class="site-footer">
-    <p>Visualization frames: NASA's Scientific Visualization Studio. EarthSonar is an independent NASA Space Apps Challenge 2026 project and is not endorsed by NASA. <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">Source code</a>.</p>
+    <details class="sources">
+      <summary>Data: NASA Scientific Visualization Studio <span class="sources__hint">(sources and credits)</span></summary>
+      <ul class="sources__list">
+        <li><a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights between 2012 and 2023 – EIC Version</a>, SVS 5313. NASA's Scientific Visualization Studio; visualizer Kel Elkins. Data: NASA Black Marble (Suomi NPP VIIRS).</li>
+        <li><a href="https://svs.gsfc.nasa.gov/5669/">GEOS Aerosols</a>, SVS 5669. NASA GMAO and NASA SVS: Joseph V. Ardizzone, Helen-Nicole Kostis; scientist Lesley Ott.</li>
+        <li><a href="https://svs.gsfc.nasa.gov/5011/">Lightning Events Detected from the ISS 2017–2023</a>, SVS 5011. NASA SVS: Michala Garrison, Greg Shirah, Kel Elkins, Alex Kekesi. Data: LIS on ISS, NASA GHRC DAAC.</li>
+        <li><a href="https://svs.gsfc.nasa.gov/3912/">Global Sea Surface Currents and Temperature</a>, SVS 3912. NASA/GSFC SVS: Greg Shirah, Horace Mitchell, Eric Sokolowsky. Data: ECCO2.</li>
+        <li>Map labels (key L, visual only, never sonified): <a href="https://www.naturalearthdata.com">Natural Earth</a>, public domain.</li>
+      </ul>
+    </details>
+    <p>AI use: code and documentation written with Claude (Anthropic) under the team's direction and review; no AI-generated images, video or audio, every sound is synthesised live.</p>
+    <p>Not affiliated with or endorsed by NASA. A NASA Space Apps Challenge 2026 project · <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">Source code</a></p>
   </footer>
 </body>
 </html>

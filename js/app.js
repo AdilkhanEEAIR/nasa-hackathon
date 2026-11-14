@@ -9,7 +9,7 @@ import { buildMask, meanOver, sampleField } from './fields.js';
 import { clampLat, normalizeLon, formatLatLon, diskPoints } from './geo.js';
 import { degreeToFreq, degreeForIndex } from './music.js';
 import {
-  CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange,
+  dominant,
   AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
   OCEAN_LAYERS, oceanFields, oceanTemp, oceanVoice, describeTemp,
@@ -27,11 +27,6 @@ const AMBER = '--data-lights'; // design-token name (css/tokens.css), resolved a
 
 /** Tracks whose map is split into named classes, each played by its own instrument. */
 const CLASS_TRACKS = {
-  change: {
-    layers: CHANGE_LAYERS, colors: CHANGE_COLORS, describe: describeChange, slug: 'change-2012-2023',
-    names: { more: 'more light', less: 'less light', same: 'little change' }, when: 'Changes 2012 to 2023', fullScale: 0.08, trim: 1.3,
-    map: 'Map of change in night lights between 2012 and 2023: purple more light, orange less light, white little change.',
-  },
   aerosols: {
     layers: AEROSOL_LAYERS, colors: AEROSOL_COLORS, describe: describeAerosol, slug: 'aerosols-2025-08-19',
     names: AEROSOL_NAMES, when: '19 August 2025, 20:00 UTC', fullScale: 0.6, trim: 0.9,
@@ -43,8 +38,6 @@ const classTrack = () => CLASS_TRACKS[state.track] || null;
 export const TRACKS = [
   { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true,
     intro: 'Night Lights, 2012 to 2023: yearly maps of light at night from NASA Black Marble. Warm bell tones are city lights; louder and brighter means more light. A soft muffled hum is unlit land, and silence is water. Page Up and Page Down change the year.' },
-  { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: true,
-    intro: 'What Changed: the difference between 2012 and 2023. A high bright sparkle means more light in 2023. A low muffled buzz means less light. A soft quiet tone means little change. Y gives a summary of the ring.' },
   { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: true,
     intro: 'Aerosols: tiny particles in the air from the GEOS model, 19 August 2025. Each type has its own sound. Smoke and black carbon crackle like fire. Dust is a dry rustle. Sea salt is soft surf. Sulfate is a buzzing tone. Louder means more. Y gives a summary of the ring.' },
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: true,
@@ -70,7 +63,6 @@ const state = {
   durationS: 8,
   manifest: null,
   fields: new Map(),   // year -> value field
-  change: null,        // {more, less, same} value fields from the change map
   land: null,
   busy: false,
   aerosols: null,      // {smoke, dust, salt, sulfate} value fields
@@ -162,7 +154,7 @@ const LIGHTNING_FULL = 0.04;
 // Measured live against the night-lights scan (analyser on the master bus): RMS 0.022 vs
 // 0.073, so the lightning track is lifted to match.
 const LIGHTNING_TRIM = 2.5;
-let lightning = null; // LightningSource, created when track 4 is first chosen
+let lightning = null; // LightningSource, created when the lightning track is first chosen
 
 const liveScan = new LiveRingScan(engine, {
   onStep: ({ ring }) => {
@@ -216,8 +208,7 @@ function updateDescription() {
       : `Night lights map for ${state.year}.`;
   $('overlay').setAttribute('aria-label', `${map} Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`);
   $('centre-readout').textContent = state.center.name || formatLatLon(state.center.lat, state.center.lon);
-  $('year-readout').textContent = state.track === 'change' ? '2012 → 2023'
-    : state.track === 'aerosols' ? '19 Aug 2025'
+  $('year-readout').textContent = state.track === 'aerosols' ? '19 Aug 2025'
     : state.track === 'ocean' ? '19 Jun 2007'
       : isLt ? (lightning && lightning.date) || '2017–2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
@@ -247,7 +238,6 @@ function trackImageUrl() {
 }
 
 function currentEntry() {
-  if (state.track === 'change') return state.manifest.nightlights.change;
   if (state.track === 'aerosols') return state.manifest.aerosols;
   if (state.track === 'ocean') return state.manifest.ocean;
   return state.manifest.nightlights.years[String(state.year)];
@@ -311,18 +301,6 @@ async function loadYear(year, progress) {
   state.fields.set(year, channelField(img, 0));
 }
 
-async function loadChange(progress) {
-  if (state.change) return;
-  const entry = state.manifest.nightlights.change;
-  const [img] = await Promise.all([
-    loadGrid(entry.sound, progress && progress.part('sound-change')),
-    prefetchView(viewUrl(entry)),
-  ]);
-  if (progress) progress.finish('sound-change');
-  // R, G, B channels = more, less, same (see tools/prepare_media.py).
-  state.change = { more: channelField(img, 0), less: channelField(img, 1), same: channelField(img, 2) };
-}
-
 /** Value fields for the current track (and year). */
 async function loadAerosols(progress) {
   if (state.aerosols) return;
@@ -336,10 +314,6 @@ async function loadAerosols(progress) {
 }
 
 async function currentFields() {
-  if (state.track === 'change') {
-    if (!state.change) await withProgress('What Changed', (p) => loadChange(p));
-    return state.change;
-  }
   if (state.track === 'aerosols') {
     if (!state.aerosols) await withProgress('Aerosols', (p) => loadAerosols(p));
     return state.aerosols;
@@ -464,7 +438,7 @@ async function prefetchRest() {
     await Promise.all([loadYear(y), prefetchView(yearUrl(y))]).catch(() => {});
   }
   await idle();
-  await loadChange().catch(() => {});
+  await loadAerosols().catch(() => {});
 }
 
 async function init() {
@@ -608,11 +582,6 @@ const LEGENDS = {
     [AMBER, 'Louder and brighter: more light'],
     ['--data-land', 'Soft hum: unlit land · silence: water'],
   ],
-  change: [
-    [CHANGE_COLORS.more, 'Violet, more light: high bright sparkle'],
-    [CHANGE_COLORS.less, 'Orange, less light: low muffled buzz'],
-    [CHANGE_COLORS.same, 'Pale grey, little change: soft quiet tone'],
-  ],
   ocean: [
     ['--data-cold', 'Cold water: dull, dark tone'],
     ['--data-warm', 'Warm water: bright, rich tone'],
@@ -683,7 +652,7 @@ async function selectTrack(id) {
 }
 
 /**
- * "Y" on class tracks (What Changed, Aerosols): how the signal inside the ring divides
+ * "Y" on class tracks (Aerosols): how the signal inside the ring divides
  * between the classes. Each class is played on its own instrument, largest share first,
  * louder for a larger share, then the shares are read out.
  */
@@ -715,7 +684,7 @@ async function classSummary() {
     state.busy = false;
     updateProbe();
   }, order.length * 900 + 100);
-  const what = state.track === 'change' ? 'of the lit area' : 'of the aerosol signal';
+  const what = 'of the aerosol signal';
   const parts = order.map((k) => `${Math.round((100 * m[k]) / total)} percent ${ct.names[k]}`);
   announce(`Inside the ring around ${centreLabel()}, ${what}: ${parts.join(', ')}.`);
 }
@@ -732,7 +701,7 @@ function pingYear(year) {
  * Plays one note per year: the mean rendered brightness inside the disk around the centre,
  * on a fixed logarithmic pentatonic scale shared by all regions and years.
  */
-/** Track 4's "Y": where the lightning is around the centre in the current 10-day window. */
+/** Lightning "Y": where the lightning is around the centre in the current 10-day window. */
 async function lightningSummary() {
   await ensureSound();
   const f = await currentFields();
@@ -767,7 +736,7 @@ async function lightningSummary() {
   announce(`In the 10 days to ${date}: ${level} lightning within the ring around ${centreLabel()}, most of it to the ${names[order[0]]}.`);
 }
 
-/** Track 5's "Y": coldest and warmest directions around the ring and the mean temperature,
+/** Ocean "Y": coldest and warmest directions around the ring and the mean temperature,
  * heard as a sweep of the ocean tone from the coldest to the warmest side. */
 async function oceanSummary() {
   await ensureSound();
