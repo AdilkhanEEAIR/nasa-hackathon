@@ -1,0 +1,21 @@
+# Only the static site is deployed: index.html, css/, js/, media/ (+ vercel.json).
+# Raw sources, internal notes, tooling and docs stay out of the deployment.
+datasets/
+NOTES.local.md
+tools/
+tests/
+docs/
+firmware/
+frames/
+tmp/
+temp/
+.local/
+.vscode/
+.git/
+.nojekyll
+package.json
+README.md
+*.py
+*.tmp
+.env
+.env.*
