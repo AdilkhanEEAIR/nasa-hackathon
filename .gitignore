@@ -31,3 +31,6 @@ desktop.ini
 *.swp
 
 .vercel
+
+# Intermediate encodes (tools/prepare_media.py cache)
+build/
