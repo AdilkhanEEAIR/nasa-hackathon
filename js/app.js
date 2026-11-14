@@ -705,7 +705,7 @@ const LEGENDS = {
     ['--data-land', 'Soft hum: unlit land · silence: water'],
   ],
   river: [
-    ['--data-salt', 'Stronger blue (water vapour) in the picture: more, louder water drops'],
+    ['--data-salt', 'Stronger blue (water vapour) in the picture: louder, brighter flowing water'],
     ['--data-nodata', 'Land, labels and dark ocean: silent'],
   ],
   currents: [
@@ -713,12 +713,12 @@ const LEGENDS = {
     ['--data-nodata', 'Land, snow and space: silent'],
   ],
   co2: [
-    ['--data-co2', 'Warmer plume colour in the picture: lower, thicker, brighter hum'],
+    ['--data-co2', 'Warmer plume colour in the picture: a louder, brighter breath'],
     ['--data-nodata', 'Grey land, dark ocean and space: silent'],
   ],
   forest: [
-    ['--data-forest', 'Brighter (taller) vegetation in the picture: louder, quicker wooden knocks'],
-    ['--data-nodata', 'Ocean and space: silent'],
+    ['--data-forest', 'Green in the picture: dry marimba strikes, louder and faster for brighter (taller) green'],
+    ['--data-nodata', 'Ocean, desert, ice and space: silent'],
   ],
   wind: [
     ['--data-wind-calm', 'Light wind: soft, low rush of air'],
