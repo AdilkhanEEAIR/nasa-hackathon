@@ -17,9 +17,9 @@ The site is a jukebox: pick a track, press Space.
 |---|---|
 | 01 Night Lights 2012–2023 | ✅ available |
 | 02 What Changed, 2012 → 2023 | ✅ available |
-| 03 Aerosols (dust, black carbon, sea salt, sulfate) | coming next |
+| 03 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
 | 04 Lightning from the ISS, 2017–2023 | coming next |
-| Voice guide and explore mode | coming next |
+| Voice guide and explore mode | ✅ available (V toggles the voice, E explores point by point) |
 | Tactile controller (Arduino, 4 vibration motors) | firmware and protocol ready; site link coming next |
 
 ---
@@ -142,6 +142,56 @@ the same as for night lights.
   brightness also carries the underlying light level ([DATA_NOTES](docs/DATA_NOTES.md) 1.4).
 
 ---
+
+**Aerosols (19 August 2025, 20:00 UTC)**
+
+The GEOS aerosol frame colours four particle types, and the legend gives no amounts.
+EarthSonar classifies each pixel and plays each class on its own instrument.
+
+| Pixel class | Rule | Instrument |
+|---|---|---|
+| Black carbon (smoke) | nearest legend chromaticity (210, 94, 69) | Crackle over a low rumble, like fire |
+| Dust | nearest legend chromaticity (193, 154, 220) | Dry, high rustle (band-passed noise) |
+| Sea salt | nearest legend chromaticity (133, 170, 169); **never on land**, where grey relief has the same chromaticity | Soft surf: low noise that swells and recedes |
+| Sulfate | nearest legend chromaticity (83, 220, 52) | Buzzing square-wave tone |
+| None | max channel < 35, or a small white dot on land (a city of the base map) | Silence, or the land hum |
+
+- **Amount** is brightness above the base map: `(max − 62) / 193` on land and
+  `(max − 35) / 220` over water. It is a relative amount only, because the legend has no
+  scale.
+- **Full loudness** is reached at an arc mean of 0.6. This is fixed for the frame, and the
+  aerosols cover the map far more densely than night lights do.
+- **Ring summary (Y):** each class inside the ring plays on its own instrument, largest share
+  first, and the shares are read out.
+- Classification runs once in `tools/prepare_media.py`, which writes a lossless class grid.
+  On this frame: smoke 1.7% of pixels, dust 3.7%, sea salt 19.4%, sulfate 14.6%.
+
+### Sound palette
+
+One law for every track:
+- **timbre** says *what* the phenomenon is;
+- **pitch** says *where* it is on the north–south axis;
+- **stereo** says west or east;
+- **loudness** says *how much*.
+
+For noise-based instruments, the centre of the noise band follows the same compass pitch.
+
+| Phenomenon | Instrument |
+|---|---|
+| City lights | Warm triangle tone that opens up (gets brighter) with more light |
+| More light (change) | High, bright sparkle (one octave up) |
+| Less light (change) | Low, muffled buzz (one octave down) |
+| Little change | Soft, quiet sine |
+| Smoke, black carbon | Crackle with a low rumble |
+| Dust | Dry rustle |
+| Sea salt | Soft surf |
+| Sulfate | Buzzing tone |
+| Unlit land / water / coast | Muffled hum / silence / click |
+
+Loudness is matched in two steps, both measured from offline renders:
+- each instrument at full value gives about the same RMS;
+- each track has a fixed trim, so a full scan averages RMS 0.07–0.12 with peaks at or below
+  0.75. Dense and sparse maps sound equally loud, and nothing clips.
 
 ## Data and processing
 

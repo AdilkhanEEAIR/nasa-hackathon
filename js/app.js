@@ -8,7 +8,10 @@ import { VoiceDial } from './dial.js';
 import { buildMask, meanOver, sampleField } from './fields.js';
 import { clampLat, normalizeLon, formatLatLon, diskPoints } from './geo.js';
 import { degreeToFreq, degreeForIndex } from './music.js';
-import { CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange } from './tracks.js';
+import {
+  CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange,
+  AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
+} from './tracks.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
 import { describePlace } from './places.js';
@@ -16,12 +19,28 @@ import { describePlace } from './places.js';
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
 const AMBER = '#ffd56a';
 
+/** Tracks whose map is split into named classes, each played by its own instrument. */
+const CLASS_TRACKS = {
+  change: {
+    layers: CHANGE_LAYERS, colors: CHANGE_COLORS, describe: describeChange, slug: 'change-2012-2023',
+    names: { more: 'more light', less: 'less light', same: 'little change' }, when: 'Changes 2012 to 2023', fullScale: 0.08, trim: 1.3,
+    map: 'Map of change in night lights between 2012 and 2023: purple more light, orange less light, white little change.',
+  },
+  aerosols: {
+    layers: AEROSOL_LAYERS, colors: AEROSOL_COLORS, describe: describeAerosol, slug: 'aerosols-2025-08-19',
+    names: AEROSOL_NAMES, when: '19 August 2025, 20:00 UTC', fullScale: 0.6, trim: 0.9,
+    map: 'Aerosol map for 19 August 2025: orange smoke and black carbon, purple dust, blue sea salt, green sulfate.',
+  },
+};
+const classTrack = () => CLASS_TRACKS[state.track] || null;
+
 export const TRACKS = [
   { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true,
     intro: 'Night Lights, 2012 to 2023: yearly maps of light at night from NASA Black Marble. Warm bell tones are city lights; louder and brighter means more light. A soft muffled hum is unlit land, and silence is water. Page Up and Page Down change the year.' },
   { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: true,
     intro: 'What Changed: the difference between 2012 and 2023. A high bright sparkle means more light in 2023. A low muffled buzz means less light. A soft quiet tone means little change. Y gives a summary of the ring.' },
-  { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: false },
+  { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: true,
+    intro: 'Aerosols: tiny particles in the air from the GEOS model, 19 August 2025. Each type has its own sound. Smoke and black carbon crackle like fire. Dust is a dry rustle. Sea salt is soft surf. Sulfate is a buzzing tone. Louder means more. Y gives a summary of the ring.' },
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: false },
 ];
 
@@ -45,6 +64,7 @@ const state = {
   change: null,        // {more, less, same} value fields from the change map
   land: null,
   busy: false,
+  aerosols: null,      // {smoke, dust, salt, sulfate} value fields
   explore: false,     // explore mode: a sustained probe tone at the centre point
   probeLand: null,
 };
@@ -67,7 +87,7 @@ const dial = new VoiceDial($('dial'));
 
 /** Colour of a voice in the visuals: the instrument that is loudest on its arc. */
 function voiceColor(v) {
-  if (state.track === 'change') return CHANGE_COLORS[dominant(v.gains)] || AMBER;
+  if (classTrack()) return classTrack().colors[dominant(v.gains)] || AMBER;
   return AMBER;
 }
 
@@ -83,7 +103,7 @@ const scan = new RingScan(engine, {
     dial.clear();
     if (completed) {
       view.pulseCentre(centreLevel);
-      const what = state.track === 'change' ? describeChange(centreLevel > 0.001 ? centreKind : null) : describeLevel(centreLevel);
+      const what = classTrack() ? classTrack().describe(centreLevel > 0.001 ? centreKind : null) : describeLevel(centreLevel);
       announce(`Scan finished. At the centre: ${what}.`);
     }
   },
@@ -117,14 +137,13 @@ function centreLabel() {
 }
 
 function updateDescription() {
-  const map = state.track === 'change'
-    ? 'Map of change in night lights between 2012 and 2023: purple more light, orange less light, white little change.'
-    : `Night lights map for ${state.year}.`;
+  const map = classTrack() ? classTrack().map : `Night lights map for ${state.year}.`;
   $('overlay').setAttribute('aria-label', `${map} Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`);
   $('centre-readout').textContent = state.center.name || formatLatLon(state.center.lat, state.center.lon);
-  $('year-readout').textContent = state.track === 'change' ? '2012 → 2023' : String(state.year);
+  $('year-readout').textContent = state.track === 'change' ? '2012 → 2023'
+    : state.track === 'aerosols' ? '19 Aug 2025' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
-  markTimeline(state.track === 'change' ? null : state.year);
+  markTimeline(classTrack() ? null : state.year);
 }
 
 // ---------------------------------------------------------------- data loading
@@ -145,11 +164,13 @@ function yearUrl(year) {
 }
 
 function trackImageUrl() {
-  return state.track === 'change' ? viewUrl(state.manifest.nightlights.change) : yearUrl(state.year);
+  return viewUrl(currentEntry());
 }
 
 function currentEntry() {
-  return state.track === 'change' ? state.manifest.nightlights.change : state.manifest.nightlights.years[String(state.year)];
+  if (state.track === 'change') return state.manifest.nightlights.change;
+  if (state.track === 'aerosols') return state.manifest.aerosols;
+  return state.manifest.nightlights.years[String(state.year)];
 }
 
 const HI_RES_FROM = 1.5;
@@ -221,17 +242,32 @@ async function loadChange(progress) {
 }
 
 /** Value fields for the current track (and year). */
+async function loadAerosols(progress) {
+  if (state.aerosols) return;
+  const entry = state.manifest.aerosols;
+  const [img] = await Promise.all([
+    loadGrid(entry.sound, progress && progress.part('sound-aerosols')),
+    prefetchView(viewUrl(entry)),
+  ]);
+  if (progress) progress.finish('sound-aerosols');
+  state.aerosols = aerosolFields(img);
+}
+
 async function currentFields() {
   if (state.track === 'change') {
     if (!state.change) await withProgress('What Changed', (p) => loadChange(p));
     return state.change;
+  }
+  if (state.track === 'aerosols') {
+    if (!state.aerosols) await withProgress('Aerosols', (p) => loadAerosols(p));
+    return state.aerosols;
   }
   await loadYear(state.year);
   return state.fields.get(state.year);
 }
 
 function currentLayers() {
-  return state.track === 'change' ? CHANGE_LAYERS : DEFAULT_LAYERS;
+  return classTrack() ? classTrack().layers : DEFAULT_LAYERS;
 }
 
 /**
@@ -339,7 +375,7 @@ async function toggleScan() {
   }
   const fields = await currentFields();
   setScanButton(true);
-  const what = state.track === 'change' ? 'changes 2012 to 2023' : String(state.year);
+  const what = classTrack() ? classTrack().when : String(state.year);
   announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`, { speak: false });
   scan.start({
     fields,
@@ -347,6 +383,7 @@ async function toggleScan() {
     center: state.center,
     radiusKm: state.radiusKm,
     durationS: state.durationS,
+    fullScale: classTrack() ? classTrack().fullScale : undefined,
   });
 }
 
@@ -412,6 +449,12 @@ const LEGENDS = {
     [CHANGE_COLORS.less, 'Orange, less light: low muffled buzz'],
     [CHANGE_COLORS.same, 'White, little change: soft quiet tone'],
   ],
+  aerosols: [
+    [AEROSOL_COLORS.smoke, 'Smoke / black carbon: crackle'],
+    [AEROSOL_COLORS.dust, 'Dust: dry rustle'],
+    [AEROSOL_COLORS.salt, 'Sea salt: soft surf'],
+    [AEROSOL_COLORS.sulfate, 'Sulfate: buzzing tone'],
+  ],
 };
 
 function renderLegend() {
@@ -438,6 +481,7 @@ async function selectTrack(id) {
   if (state.busy) return;
   if (scan.running) scan.stop(false);
   state.track = id;
+  engine.trim = classTrack() ? classTrack().trim : 1;
   engine.setLayers(currentLayers());
   renderTracks();
   renderLegend();
@@ -455,30 +499,41 @@ async function selectTrack(id) {
 }
 
 /**
- * Track 2's "Y": how the lit area inside the ring divides between more light, less light and
- * little change, as three notes (one per instrument, loudness = share) and a sentence.
+ * "Y" on class tracks (What Changed, Aerosols): how the signal inside the ring divides
+ * between the classes. Each class is played on its own instrument, largest share first,
+ * louder for a larger share, then the shares are read out.
  */
-async function changeSummary() {
+async function classSummary() {
   if (state.busy) return;
   await ensureSound();
   if (scan.running) scan.stop(false);
+  const ct = classTrack();
   const f = await currentFields();
   const pts = diskPoints(state.center, state.radiusKm, 8, 60);
-  const m = { more: meanOver(f.more, pts, 1), less: meanOver(f.less, pts, 1), same: meanOver(f.same, pts, 1) };
-  const total = m.more + m.less + m.same;
+  const m = Object.fromEntries(Object.keys(f).map((k) => [k, meanOver(f[k], pts, 1)]));
+  const total = Object.values(m).reduce((a, b) => a + b, 0);
   if (total < 1e-4) {
     engine.centreNote(0);
-    announce(`Inside the ring around ${centreLabel()}: no lights on the map.`);
+    announce(`Inside the ring around ${centreLabel()}: ${ct.describe(null)}.`);
     return;
   }
-  const pct = (x) => Math.round((100 * x) / total);
-  const notes = [['more', 10, 'triangle', 1], ['less', 2, 'sawtooth', 0.15], ['same', 6, 'sine', 0.5]];
-  notes.forEach(([k, deg, type, bright], i) => {
-    const share = m[k] / total;
-    if (share > 0.01) engine.note(degreeToFreq(deg), { when: 0.2 + i * 0.6, duration: 0.55, level: 0.08 + 0.4 * share, type, bright });
+  const order = Object.keys(m).filter((k) => m[k] / total >= 0.01).sort((a, b) => m[b] - m[a]);
+  state.busy = true;
+  order.forEach((k, i) => {
+    setTimeout(() => {
+      engine.setProbe({ gains: { [k]: 0.35 + 0.65 * (m[k] / total) }, brightness: 0.6, land: 0, lat: state.center.lat });
+      dial.update(new Float32Array(16).fill(m[k] / total), { n: 0, e: 0, s: 0, w: 0 }, new Array(16).fill(ct.colors[k]));
+    }, i * 900);
   });
-  announce(`Inside the ring around ${centreLabel()}, of the lit area: ${pct(m.more)} percent more light, `
-    + `${pct(m.less)} percent less light, ${pct(m.same)} percent little change.`);
+  setTimeout(() => {
+    engine.silenceProbe();
+    dial.clear();
+    state.busy = false;
+    updateProbe();
+  }, order.length * 900 + 100);
+  const what = state.track === 'change' ? 'of the lit area' : 'of the aerosol signal';
+  const parts = order.map((k) => `${Math.round((100 * m[k]) / total)} percent ${ct.names[k]}`);
+  announce(`Inside the ring around ${centreLabel()}, ${what}: ${parts.join(', ')}.`);
 }
 
 /** Pings one year chip in the visual timeline when its note sounds. */
@@ -494,7 +549,7 @@ function pingYear(year) {
  * on a fixed logarithmic pentatonic scale shared by all regions and years.
  */
 async function yearSweep() {
-  if (state.track === 'change') { changeSummary(); return; }
+  if (classTrack()) { classSummary(); return; }
   if (state.busy || !requireReadyTrack()) return;
   await ensureSound();
   if (scan.running) scan.stop(false);
@@ -566,9 +621,9 @@ async function tutorial() {
 /** Values at the centre point for the current track: words for "where am I" and the probe. */
 function pointReading(fields) {
   const c = state.center;
-  if (state.track === 'change') {
+  if (classTrack()) {
     const levels = readPoint(fields, c.lat, c.lon);
-    return { levels, words: describeChange(dominant(levels)) };
+    return { levels, words: classTrack().describe(dominant(levels)) };
   }
   const level = sampleField(fields, c.lat, c.lon, 1);
   return { levels: { main: level }, words: describeLevel(level) };
@@ -579,7 +634,7 @@ async function whereAmI() {
   const fields = await currentFields();
   const c = state.center;
   const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
-  const when = state.track === 'change' ? 'Changes 2012 to 2023' : String(state.year);
+  const when = classTrack() ? classTrack().when : String(state.year);
   const place = describePlace(c.lat, c.lon, onLand);
   announce(`${place}. ${onLand ? 'Land' : 'Water'}, ${pointReading(fields).words}. ${when}. `
     + `${formatLatLon(c.lat, c.lon)}.`);
@@ -641,12 +696,14 @@ async function saveWav() {
       center: state.center,
       radiusKm: state.radiusKm,
       durationS: state.durationS,
+      fullScale: classTrack() ? classTrack().fullScale : undefined,
+      trim: engine.trim,
       coastClicks: scan.coastClicks,
       volume: engine.volume,
     });
     const place = (state.center.name || formatLatLon(state.center.lat, state.center.lon))
       .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const what = state.track === 'change' ? 'change-2012-2023' : `nightlights-${state.year}`;
+    const what = classTrack() ? classTrack().slug : `nightlights-${state.year}`;
     const name = `earthsonar-${what}-${place}.wav`;
     const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
     const a = document.createElement('a');
