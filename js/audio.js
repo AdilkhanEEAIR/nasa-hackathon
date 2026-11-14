@@ -12,6 +12,8 @@ const VOICE_PEAK = 0.16;      // per-voice ceiling; 16 voices then sum safely in
 const LAND_HUM = 0.025;       // quiet bed under unlit land so continents are audible
 const SMOOTH = 0.06;          // seconds; gain glides avoid zipper noise between ring steps
 const DUCK = 0.25;            // mix level (-12 dB) under the spoken guide
+// Attack time of each struck voice (s): the visual flash is timed to the end of the attack.
+const PLUCK_ATTACK = { wood: 0.008, drone: 0.25, water: 0.006, glide: 0.12 };
 
 /** Default single instrument (night lights): triangle wave, brightness opens the filter. */
 export const DEFAULT_LAYERS = [
@@ -368,8 +370,11 @@ export class SonicEngine {
    * quickly fading partial four times higher and a tiny click, all at the needle pitch.
    */
   pluck(freq, level = 0.5, voice = 'wood', when = this.now) {
-    if (!this.ready) return;
+    if (!this.ready) return 0;
     const ctx = this.ctx;
+    // When the note peaks at the speakers, in seconds from now: output latency + attack.
+    const latency = (ctx.baseLatency || 0) + (ctx.outputLatency || 0);
+    const peak = latency + (when - ctx.currentTime) + (PLUCK_ATTACK[voice] ?? 0.01);
     const out = ctx.createGain();
     out.gain.value = level * this.trim * 0.35;
     out.connect(this.bus);
@@ -387,13 +392,13 @@ export class SonicEngine {
         o.detune.value = cents * level * 2;
         const g = ctx.createGain();
         g.gain.setValueAtTime(0, when);
-        g.gain.linearRampToValueAtTime(cents < 0 ? 0.7 : 0.7 * level, when + 0.3);
-        g.gain.exponentialRampToValueAtTime(0.0005, when + 1.5);
+        g.gain.linearRampToValueAtTime(cents < 0 ? 0.7 : 0.7 * level, when + PLUCK_ATTACK.drone);
+        g.gain.exponentialRampToValueAtTime(0.0005, when + 1.3);
         o.connect(g).connect(f);
         o.start(when);
-        o.stop(when + 1.6);
+        o.stop(when + 1.4);
       }
-      return;
+      return peak;
     }
     if (voice === 'water' || voice === 'glide') {
       // water: a droplet, the pitch springs up quickly (atmospheric river);
@@ -405,33 +410,35 @@ export class SonicEngine {
         o.frequency.setValueAtTime(freq, when);
         o.frequency.exponentialRampToValueAtTime(freq * 1.8, when + 0.05);
         g.gain.setValueAtTime(0, when);
-        g.gain.linearRampToValueAtTime(1, when + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.0005, when + 0.16);
+        g.gain.linearRampToValueAtTime(1, when + PLUCK_ATTACK.water);
+        g.gain.exponentialRampToValueAtTime(0.0005, when + 0.2);
       } else {
         o.frequency.setValueAtTime(freq, when);
         o.frequency.exponentialRampToValueAtTime(freq * 0.94, when + 0.9);
         g.gain.setValueAtTime(0, when);
-        g.gain.linearRampToValueAtTime(0.8, when + 0.15);
+        g.gain.linearRampToValueAtTime(0.8, when + PLUCK_ATTACK.glide);
         g.gain.exponentialRampToValueAtTime(0.0005, when + 1.0);
       }
       o.connect(g).connect(out);
       o.start(when);
       o.stop(when + 1.05);
-      return;
+      return peak;
     }
-    const parts = voice === 'wood' ? [[1, 1, 0.35], [4, 0.45, 0.06]] : [[1, 1, 0.5]];
+    // Wood: a soft 8 ms knock (no click), a body that rings 0.45 s and a short bright partial.
+    const parts = voice === 'wood' ? [[1, 1, 0.45], [4, 0.35, 0.07]] : [[1, 1, 0.5]];
     for (const [mul, amp, decay] of parts) {
       const o = ctx.createOscillator();
       o.type = 'sine';
       o.frequency.value = freq * mul;
       const g = ctx.createGain();
       g.gain.setValueAtTime(0, when);
-      g.gain.linearRampToValueAtTime(amp, when + 0.004);
+      g.gain.linearRampToValueAtTime(amp, when + PLUCK_ATTACK.wood);
       g.gain.exponentialRampToValueAtTime(0.0005, when + decay);
       o.connect(g).connect(out);
       o.start(when);
       o.stop(when + decay + 0.05);
     }
+    return peak;
   }
 
   /** A plucked note. `when` is seconds from now (live); `at` is an absolute context time. */

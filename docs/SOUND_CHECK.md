@@ -109,3 +109,52 @@ Loudness stays within the shared 0.07–0.12 RMS window, so temperature is never
 
 These numbers describe the synthesis; whether the differences are *clear to a listener* is
 for the blindfold test to decide.
+
+## Needle tracks 6, 7, 9: sync and clarity (14 November 2026, evening)
+
+**Why sound and picture drifted apart.** The flash on the needle was drawn the moment a note
+was *scheduled*, but a note reaches the speakers only after the audio output latency (58 ms in
+the test browser) plus its attack — 300 ms for the CO2 hum, 150 ms for the current glide. The
+needle also read the video on a 30 Hz timer instead of the frame actually presented, and kept
+sounding on a frozen frame while the video was paused or buffering.
+
+**Fix.**
+- `pluck()` returns when the note will peak at the speakers (output latency + attack); the
+  flash is scheduled for that moment.
+- The needle reads frames with `requestVideoFrameCallback`, i.e. exactly the frame on screen at
+  its own media time; no notes while the video is paused, seeking or buffering, or when no new
+  frame was presented (this also covers the loop seam).
+- At most 12 notes per second overall and about 3 per second per segment; a segment must reach
+  0.18 to sound; loudness follows value^1.3, so rich parts are over 4× louder than thin ones.
+- Softer attacks (wood 8 ms, drone 250 ms, glide 120 ms), the shared light room reverb.
+- The still-frame sweep moves the line and plays the column under it in the same step, lasts
+  exactly the Scan length, and ends with a summary of where the picture was strongest.
+
+**Flash vs note peak, measured in headless Chrome (`sync.mjs`, 6 s per track):**
+
+| Track | Before: |flash − note peak| | After | Notes per second before → after |
+|---|---|---|---|
+| 6 Forest Height (wood) | 62 ms | 0 ms scheduled, ≤ 17 ms on screen (next frame) | 7.8 → 4.7 |
+| 7 Carbon Dioxide (hum) | 358 ms | 0 ms scheduled, ≤ 17 ms on screen | 3.3 → 2.2 |
+| 9 Ocean Currents (glide) | 208 ms | 0 ms scheduled, ≤ 17 ms on screen | 2.3 → 1.3 |
+
+**Two contrasting places per track (3 s each):**
+
+| Track | Place | Notes / s | Mean level | Distinct pitches |
+|---|---|---|---|---|
+| 6 Forest | Africa under the needle (video 20 s) | 1.0 | 0.23 | 2 |
+| 6 Forest | Pacific under the needle (video 40 s) | 0 | — | 0 |
+| 7 CO2 | South American fire plumes (video 30 s) | 3.3 | 0.34 | 4 |
+| 7 CO2 | grey Asia and Indian Ocean (video 10 s) | 0.7 | 0.22 | 2 |
+| 9 Currents | left third of the sweep, Pacific | 0 | — | 0 |
+| 9 Currents | middle third, Gulf Stream and Caribbean | 1.7 | 0.25 | 5 |
+
+**Check by ear (headphones):**
+1. Track 6: press Space and watch the needle: every green dot should land with a knock, never
+   before it. Over the Pacific it must go quiet; over Asia and South America the knocks come
+   quicker and louder.
+2. Track 7: the hum should swell exactly as the orange dot on the needle lights up; over the
+   South American fires it thickens, over grey land it thins to a few soft notes.
+3. Track 9: set Scan length, press Space: the line crosses the globe in that time; silence over
+   the Pacific, sliding tones at the Gulf Stream, then a spoken/written summary.
+4. Pause the video mid-way (Space): the sound must stop with the picture.

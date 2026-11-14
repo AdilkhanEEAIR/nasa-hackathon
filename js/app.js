@@ -1640,13 +1640,15 @@ const needle = new NeedleScan(engine, {
       const g = state.manifest[state.track].needle;
       view.setNeedle({ x, y0: g.y0, y1: g.y1 });
     }
-    for (const k of struck) view.needleFlash(k, NEEDLE_SEGMENTS, NEEDLE_READ[state.track].color);
+    for (const s of struck) view.needleFlash(s.k, NEEDLE_SEGMENTS, NEEDLE_READ[state.track].color, s.delayMs);
+    if (isSweep()) sweepSums[Math.min(2, Math.floor(((x - state.manifest[state.track].needle.x0) / (state.manifest[state.track].needle.x1 - state.manifest[state.track].needle.x0)) * 3))] += segments.reduce((a, b) => a + b, 0);
     const motor = Math.max(...segments);
     haptics({ n: segments[0], e: motor, s: segments[segments.length - 1], w: motor });
   },
 });
 
 const sweepFields = {}; // value grids of still frames, by track
+let sweepSums = [0, 0, 0]; // what the sweep heard in the left, middle and right third
 
 function needleVideo() {
   return $('needle-video');
@@ -1694,9 +1696,18 @@ async function toggleNeedle() {
       sweepFields[state.track] = channelField(img, 0);
     }
     setScanButton(true);
+    sweepSums = [0, 0, 0];
     needle.start({
       field: sweepFields[state.track], geom: entry.needle, durationS: state.durationS, ...NEEDLE_READ[state.track],
-      onEnd: () => { setScanButton(false); hapticsOff(); announce('Sweep finished.', { say: 'result' }); },
+      onEnd: () => {
+        setScanButton(false);
+        hapticsOff();
+        const total = sweepSums.reduce((a, b) => a + b, 0);
+        const third = ['left (west)', 'middle', 'right (east)'][sweepSums.indexOf(Math.max(...sweepSums))];
+        const what = state.track === 'currents' ? 'bright current streaks' : 'strong blue water vapour';
+        announce(total < 1 ? `Sweep finished: the picture is almost empty of ${what}.`
+          : `Sweep finished: the most ${what} are in the ${third} third of the picture.`, { say: 'result' });
+      },
     });
     announce('Sweeping the picture from left to right.');
     return;

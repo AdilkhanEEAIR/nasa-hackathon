@@ -9,7 +9,8 @@ import { degreeToFreq } from './music.js';
 
 export const NEEDLE_SEGMENTS = 16;
 const SAMPLE_ROWS = 192;          // pixels read along the needle per tick
-const MAX_NOTES_PER_S = 24;       // keeps dense continents legible
+const MAX_NOTES_PER_S = 12;       // keeps dense continents legible: no mush
+const MIN_VALUE = 0.18;           // below this a segment is "empty" and silent
 
 /**
  * GEDI forest height (SVS 4950) as shown on the globe: brown/dark green = short vegetation,
@@ -74,7 +75,12 @@ export function segmentFreq(k, n = NEEDLE_SEGMENTS) {
 
 /** Time between notes on one segment: more of the phenomenon, quicker notes (fixed curve). */
 export function noteInterval(value) {
-  return 650 - 470 * Math.min(1, value);
+  return 900 - 600 * Math.min(1, value);
+}
+
+/** Note loudness for a segment value: a steep curve so empty and rich parts differ clearly. */
+export function noteLevel(value) {
+  return 0.12 + 0.88 * Math.min(1, value) ** 1.3;
 }
 
 export class NeedleScan {
@@ -103,7 +109,8 @@ export class NeedleScan {
     this.running = true;
     this._noteTimes = [];
     const t0 = performance.now();
-    const tick = () => {
+    this._lastMediaTime = -1;
+    const tick = (mediaTime = null) => {
       if (!this.running) return;
       let seg;
       let x = geom.x;
@@ -117,7 +124,12 @@ export class NeedleScan {
           return;
         }
       } else {
-        if (video.readyState < 2) return;
+        // Only a frame that is on screen and moving may sound: no notes while the video is
+        // paused, seeking or buffering, or when no new frame has been presented.
+        if (video.paused || video.seeking || video.readyState < 3) return;
+        const mt = mediaTime ?? video.currentTime;
+        if (mt === this._lastMediaTime) return;
+        this._lastMediaTime = mt;
         const vw = video.videoWidth;
         const vh = video.videoHeight;
         this._ctx.drawImage(video, geom.x * vw - 1, geom.y0 * vh, 2, (geom.y1 - geom.y0) * vh, 0, 0, 2, SAMPLE_ROWS);
@@ -127,19 +139,33 @@ export class NeedleScan {
       this._noteTimes = this._noteTimes.filter((t) => now - t < 1000);
       const struck = [];
       seg.forEach((v, k) => {
-        if (v < 0.12 || now - this.last[k] < noteInterval(v) * this.slow || this._noteTimes.length >= MAX_NOTES_PER_S) return;
+        if (v < MIN_VALUE || now - this.last[k] < noteInterval(v) * this.slow || this._noteTimes.length >= MAX_NOTES_PER_S) return;
         this.last[k] = now;
         this._noteTimes.push(now);
-        this.engine.pluck(segmentFreq(k), 0.25 + 0.6 * Math.min(1, v), this.voice);
-        struck.push(k);
+        // pluck() returns when the note will peak at the speakers (output latency + attack);
+        // the flash is scheduled for that moment, so eye and ear agree.
+        const peakS = this.engine.pluck(segmentFreq(k), noteLevel(v), this.voice) || 0;
+        struck.push({ k, delayMs: peakS * 1000 });
       });
       if (this.onStep) this.onStep({ segments: seg, struck, x });
     };
-    this._timer = setInterval(tick, 1000 / 30);
+    if (video && video.requestVideoFrameCallback) {
+      // Read exactly the frame the browser has just presented, at its own media time.
+      const onFrame = (_now, meta) => {
+        if (!this.running) return;
+        tick(meta.mediaTime);
+        this._vfc = video.requestVideoFrameCallback(onFrame);
+      };
+      this._vfc = video.requestVideoFrameCallback(onFrame);
+    } else {
+      this._timer = setInterval(tick, 1000 / 30);
+    }
   }
 
   stop() {
     this.running = false;
     clearInterval(this._timer);
+    if (this._vfc && this.video && this.video.cancelVideoFrameCallback) this.video.cancelVideoFrameCallback(this._vfc);
+    this._vfc = 0;
   }
 }

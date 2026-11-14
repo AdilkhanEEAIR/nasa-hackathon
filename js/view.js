@@ -223,10 +223,11 @@ export class MapView {
   }
 
   /** A note on needle segment k (0 = top) blooms and fades on the line. */
-  needleFlash(k, n, color) {
+  needleFlash(k, n, color, delayMs = 0) {
     if (!this.needle || reducedMotion()) return;
     const g = this.needle;
-    this.flashes.push({ u: g.x, v: g.y0 + ((k + 0.5) / n) * (g.y1 - g.y0), color, t0: performance.now() });
+    // t0 is when the note peaks at the speakers, so the flash blooms with the sound.
+    this.flashes.push({ u: g.x, v: g.y0 + ((k + 0.5) / n) * (g.y1 - g.y0), color, t0: performance.now() + delayMs });
     this._animateFlashes();
   }
 
@@ -368,6 +369,7 @@ export class MapView {
       const size = num('--overlay-flash-size');
       this.flashes = this.flashes.filter((f) => now - f.t0 < dur);
       for (const f of this.flashes) {
+        if (now < f.t0) continue; // scheduled: its note has not peaked yet
         // Ease-out: a quick bloom, then a long fade, like a plucked note.
         const t = (now - f.t0) / dur;
         const e = 1 - (1 - t) ** 3;

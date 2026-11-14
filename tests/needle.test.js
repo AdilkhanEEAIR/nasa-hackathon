@@ -29,9 +29,11 @@ test('segments are read top to bottom and the top sounds highest', () => {
   assert.ok(segmentFreq(0) > segmentFreq(NEEDLE_SEGMENTS - 1), 'north is high');
 });
 
-test('more of the phenomenon, quicker notes, never more than about 5 per second per segment', () => {
+test('more of the phenomenon, quicker and louder notes, at most about 3 per second per segment', async () => {
+  const { noteLevel } = await import('../js/needle.js');
   assert.ok(noteInterval(1) < noteInterval(0.3));
-  assert.ok(noteInterval(1) >= 180);
+  assert.ok(noteInterval(1) >= 300);
+  assert.ok(noteLevel(1) / noteLevel(0.2) > 4, 'rich parts are clearly louder than thin ones');
 });
 
 test('still-frame sweep reads the precomputed grid column, top to bottom', async () => {
