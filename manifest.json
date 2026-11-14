@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "landMask": {
+    "file": "media/masks/land.abb914798a.png",
+    "lon0": -180,
+    "width": 1920,
+    "height": 1080,
+    "derivedFrom": "night-lights base map, 2012 frame"
+  },
+  "nightlights": {
+    "source": "NASA SVS 5313",
+    "lon0": -180,
+    "width": 1920,
+    "height": 1080,
+    "years": {
+      "2012": {
+        "view": {
+          "webp": "media/nl/view-2012.6a7997f782.webp",
+          "jpg": "media/nl/view-2012.7951c2d49c.jpg"
+        },
+        "sound": "media/nl/sound-2012.bcc0bfdade.png",
+        "sourceFrame": 7,
+        "sourceTime": 0.233
+      },
+      "2013": {
+        "view": {
+          "webp": "media/nl/view-2013.c14a7dd8b4.webp",
+          "jpg": "media/nl/view-2013.81bdc0638e.jpg"
+        },
+        "sound": "media/nl/sound-2013.c0deee7812.png",
+        "sourceFrame": 24,
+        "sourceTime": 0.8
+      },
+      "2014": {
+        "view": {
+          "webp": "media/nl/view-2014.0f3a8f54cd.webp",
+          "jpg": "media/nl/view-2014.cb66bdb908.jpg"
+        },
+        "sound": "media/nl/sound-2014.6aa89e3bb0.png",
+        "sourceFrame": 42,
+        "sourceTime": 1.4
+      },
+      "2015": {
+        "view": {
+          "webp": "media/nl/view-2015.d9cfd07444.webp",
+          "jpg": "media/nl/view-2015.8da460aa91.jpg"
+        },
+        "sound": "media/nl/sound-2015.3806945939.png",
+        "sourceFrame": 60,
+        "sourceTime": 2.0
+      },
+      "2016": {
+        "view": {
+          "webp": "media/nl/view-2016.5bd96dd026.webp",
+          "jpg": "media/nl/view-2016.d826d96697.jpg"
+        },
+        "sound": "media/nl/sound-2016.18f0b64674.png",
+        "sourceFrame": 77,
+        "sourceTime": 2.567
+      },
+      "2017": {
+        "view": {
+          "webp": "media/nl/view-2017.55ad6bffae.webp",
+          "jpg": "media/nl/view-2017.1a6d9af862.jpg"
+        },
+        "sound": "media/nl/sound-2017.5aba44158b.png",
+        "sourceFrame": 95,
+        "sourceTime": 3.167
+      },
+      "2018": {
+        "view": {
+          "webp": "media/nl/view-2018.2b5bb6c7af.webp",
+          "jpg": "media/nl/view-2018.2475aea101.jpg"
+        },
+        "sound": "media/nl/sound-2018.7e99068635.png",
+        "sourceFrame": 113,
+        "sourceTime": 3.767
+      },
+      "2019": {
+        "view": {
+          "webp": "media/nl/view-2019.1505d3fbf2.webp",
+          "jpg": "media/nl/view-2019.93eb236391.jpg"
+        },
+        "sound": "media/nl/sound-2019.6b5bb46cbe.png",
+        "sourceFrame": 130,
+        "sourceTime": 4.333
+      },
+      "2020": {
+        "view": {
+          "webp": "media/nl/view-2020.59c9ac83d0.webp",
+          "jpg": "media/nl/view-2020.e9938dfe99.jpg"
+        },
+        "sound": "media/nl/sound-2020.ed06cdbc2b.png",
+        "sourceFrame": 148,
+        "sourceTime": 4.933
+      },
+      "2021": {
+        "view": {
+          "webp": "media/nl/view-2021.e5dc3ab3fc.webp",
+          "jpg": "media/nl/view-2021.99f838943c.jpg"
+        },
+        "sound": "media/nl/sound-2021.2f64b057f4.png",
+        "sourceFrame": 166,
+        "sourceTime": 5.533
+      },
+      "2022": {
+        "view": {
+          "webp": "media/nl/view-2022.c0b82fe5cc.webp",
+          "jpg": "media/nl/view-2022.2d3de39c48.jpg"
+        },
+        "sound": "media/nl/sound-2022.729dbb7216.png",
+        "sourceFrame": 184,
+        "sourceTime": 6.133
+      },
+      "2023": {
+        "view": {
+          "webp": "media/nl/view-2023.85ad058ec8.webp",
+          "jpg": "media/nl/view-2023.6c1c3bf74c.jpg"
+        },
+        "sound": "media/nl/sound-2023.9694489fe5.png",
+        "sourceFrame": 235,
+        "sourceTime": 7.833
+      }
+    },
+    "change": {
+      "view": {
+        "webp": "media/nl/view-change.4629f9b956.webp",
+        "jpg": "media/nl/view-change.ffd3c70c28.jpg"
+      },
+      "sound": "media/nl/sound-change.685ba8c6d5.png",
+      "channels": [
+        "more",
+        "less",
+        "same"
+      ],
+      "sourceFrame": 400,
+      "sourceTime": 13.333
+    }
+  },
+  "aerosols": {
+    "source": "NASA SVS 5669",
+    "lon0": -180,
+    "width": 1920,
+    "height": 1080,
+    "view": {
+      "webp": "media/aerosols/view-2025-08-19T20.2725e72123.webp",
+      "jpg": "media/aerosols/view-2025-08-19T20.e011aacc60.jpg"
+    },
+    "pixels": "media/aerosols/pixels-2025-08-19T20.4fc158f92c.png",
+    "legend": "media/aerosols/legend.e3a280ef5b.png",
+    "validTime": "2025-08-19T20:00:00Z"
+  },
+  "lightning": {
+    "source": "NASA SVS 5011",
+    "lon0": -180,
+    "width": 2048,
+    "height": 1024,
+    "video": "media/lightning/lightning-2048x1024-30p.095c6c2808.mp4",
+    "poster": "media/lightning/poster.954585cb3d.webp",
+    "dates": "media/lightning/dates.de2364f171.json",
+    "frames": 3001,
+    "fps": 30,
+    "coverageLat": [
+      -52,
+      52
+    ]
+  }
+}
