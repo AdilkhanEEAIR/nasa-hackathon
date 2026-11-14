@@ -86,6 +86,7 @@ export class SonicEngine {
   _buildVoices() {
     for (const v of [...this.voices, this.probe].filter(Boolean)) {
       for (const l of v.layers) { try { l.osc.stop(); } catch { /* already stopped */ } }
+      if (v.glide) { try { v.glide.lfo.stop(); } catch { /* already stopped */ } }
       v.pan.disconnect();
     }
     this.voices = [];
@@ -183,11 +184,38 @@ export class SonicEngine {
       else osc.start(t0, Math.random() * osc.buffer.duration);
       return { spec, osc, filter, gain };
     });
-    return { bearing, pan, layers, base };
+    // Glide: one slow LFO per voice swings the pitch a little and the filter a lot. Its depth
+    // and speed follow a "motion" value (ocean: density of current lines), so moving water is
+    // heard as a sliding, swirling tone. The compass pitch stays the centre of the swing.
+    const gspec = this.layers.find((l) => l.glide)?.glide;
+    let glide = null;
+    if (gspec) {
+      const lfo = ctx.createOscillator();
+      lfo.frequency.value = gspec.rate * (0.85 + 0.3 * Math.random());
+      const toPitch = ctx.createGain();
+      const toFilter = ctx.createGain();
+      toPitch.gain.value = 0;
+      toFilter.gain.value = 0;
+      lfo.connect(toPitch);
+      lfo.connect(toFilter);
+      for (const l of layers) {
+        if (l.osc.detune) toPitch.connect(l.osc.detune);
+        toFilter.connect(l.filter.detune);
+      }
+      lfo.start(t0);
+      glide = { spec: gspec, lfo, toPitch, toFilter, rate: lfo.frequency.value };
+    }
+    return { bearing, pan, layers, base, glide };
   }
 
   /** Same loudness/timbre rule as a ring voice, applied to any voice object. */
-  _drive(v, g, brightness, land, when) {
+  _drive(v, g, brightness, land, when, motion = 0) {
+    if (v.glide) {
+      const m = Math.max(0, Math.min(1, motion));
+      v.glide.toPitch.gain.setTargetAtTime(m * v.glide.spec.cents, when, 0.2);
+      v.glide.toFilter.gain.setTargetAtTime(m * v.glide.spec.filterCents, when, 0.2);
+      v.glide.lfo.frequency.setTargetAtTime(v.glide.rate * (1 + m * v.glide.spec.rateBoost), when, 0.3);
+    }
     let total = 0;
     for (const x of Object.values(g)) total = Math.max(total, x);
     v.layers.forEach((l, i) => {
@@ -212,7 +240,7 @@ export class SonicEngine {
    * Explore mode: a sustained tone at the probe point. Pitch follows latitude (north high,
    * same law as the ring), loudness and timbre follow the value exactly like a ring voice.
    */
-  setProbe({ gains, brightness = 0, land = 0, lat = 0 }) {
+  setProbe({ gains, brightness = 0, land = 0, lat = 0, motion = 0 }) {
     if (!this.ready || !this.probe) return;
     const when = this.now;
     const deg = Math.max(0, Math.min(14, Math.round(((lat + 60) / 135) * 14)));
@@ -221,7 +249,7 @@ export class SonicEngine {
     for (const l of this.probe.layers) {
       if (l.osc.frequency) l.osc.frequency.setTargetAtTime(base * 2 ** l.spec.octave, when, 0.03);
     }
-    this._drive(this.probe, gains, brightness, land, when);
+    this._drive(this.probe, gains, brightness, land, when, motion);
     // The probe is louder than one ring voice: it is the only thing sounding.
     this.probe.pan.pan.setValueAtTime(0, when);
   }
@@ -252,13 +280,13 @@ export class SonicEngine {
    * the first layer); `brightness` 0..1 opens the filters; `land` 0..1 is the land share
    * under the arc (unlit land gets a quiet hum on the first layer).
    */
-  setVoice(k, { gain, gains, brightness = 0, land = 0 }, when = this.now) {
+  setVoice(k, { gain, gains, brightness = 0, land = 0, motion = 0 }, when = this.now) {
     const g = gains || { [this.layers[0].name]: gain || 0 };
     let total = 0;
     for (const x of Object.values(g)) total = Math.max(total, x);
     this.levels[k] = total;
     if (!this.ready) return;
-    this._drive(this.voices[k], g, brightness, land, when);
+    this._drive(this.voices[k], g, brightness, land, when, motion);
   }
 
   silenceVoices(when = this.now) {

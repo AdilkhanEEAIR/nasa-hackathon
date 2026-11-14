@@ -12,7 +12,8 @@ import {
   dominant,
   AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
-  OCEAN_LAYERS, oceanFields, oceanTemp, oceanVoice, describeTemp,
+  oceanFields, oceanTemp, describeTemp, oceanBandWeights, OCEAN_CALM, OCEAN_DENSE,
+  TRACK_PRESETS, TRACK_SOUND,
 } from './tracks.js';
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
@@ -43,15 +44,12 @@ export const TRACKS = [
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: true,
     intro: 'Lightning: flashes seen by the Lightning Imaging Sensor on the International Space Station, 2017 to 2023, shown as a 10-day window. Each new flash is a sharp crack in its direction; many storms make a low thunder rumble. The sensor only sees up to about 52 degrees north and south, so silence there means no data. Space plays and pauses; Page Up and Page Down jump a month.' },
   { id: 'ocean', title: 'Ocean Temperature', blurb: 'Surface currents coloured by temperature, 19 June 2007.', ready: true,
-    intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Cold water is a dull, dark tone; warm water is bright and rich. Louder means more ocean on the ring. Land is silent. Y tells you the temperatures around the ring.' },
+    intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Temperature has five sounds. Ice-cold water is a pure tone with a slow shimmer. Cold water is soft and hollow. Mild water is reedy. Warm water is rich and flickers faster. Hot water is bright, an octave higher, and flickers fast. Where the current lines are dense the tone slides and swirls: that is moving water. Louder means more sea on the ring; land is silent. Y tells you the temperatures around the ring.' },
 ];
 
-export const PRESETS = [
-  { key: '1', name: 'India', lat: 22.5, lon: 79.0, radiusKm: 1500 },
-  { key: '2', name: 'China', lat: 32.0, lon: 110.0, radiusKm: 2000 },
-  { key: '3', name: 'Bishkek', lat: 42.87, lon: 74.59, radiusKm: 1500 },
-  { key: '4', name: 'Europe', lat: 48.5, lon: 9.0, radiusKm: 1500 },
-];
+// Each track has its own centre presets (js/tracks.js); night lights are the starting set.
+export const PRESETS = TRACK_PRESETS.nightlights;
+const currentPresets = () => TRACK_PRESETS[state.track] || PRESETS;
 
 const $ = (id) => document.getElementById(id);
 
@@ -69,6 +67,7 @@ const state = {
   ocean: null,         // {cover, temp} value fields
   explore: false,     // explore mode: a sustained probe tone at the centre point
   probeLand: null,
+  centreFromPreset: true, // the centre is still a preset (not moved by hand): a track switch moves it
 };
 
 const engine = new SonicEngine();
@@ -125,7 +124,7 @@ function haptics(levels) {
 
 function hapticsOff() {
   if (controller.connected) controller.stopMotors();
-  if (navigator.vibrate) navigator.vibrate(0);
+  if (phoneVibrate && navigator.vibrate) navigator.vibrate(0);
 }
 
 const scan = new RingScan(engine, {
@@ -341,7 +340,7 @@ async function currentFields() {
 
 /** How arc values become sound on the current track (see scan.js defaultVoice). */
 function currentMapVoice() {
-  return state.track === 'ocean' ? (v) => oceanVoice(v) : undefined;
+  return TRACK_SOUND[state.track] ? TRACK_SOUND[state.track].mapVoice : undefined;
 }
 
 /** Blue (cold) to red (warm) for the ocean visuals, matching the source colorbar's ends. */
@@ -351,7 +350,7 @@ function tempColor(t) {
 }
 
 function currentLayers() {
-  if (state.track === 'ocean') return OCEAN_LAYERS;
+  if (state.track === 'ocean') return TRACK_SOUND.ocean.layers;
   if (state.track === 'lightning') return LIGHTNING_LAYERS;
   return classTrack() ? classTrack().layers : DEFAULT_LAYERS;
 }
@@ -505,7 +504,7 @@ async function toggleScan() {
   if (state.track === 'lightning') { toggleLightning(); return; }
   const fields = await currentFields();
   setScanButton(true);
-  const what = classTrack() ? classTrack().when : String(state.year);
+  const what = classTrack() ? classTrack().when : state.track === 'ocean' ? '19 June 2007' : String(state.year);
   announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`, { speak: false });
   scan.start({
     fields,
@@ -551,15 +550,32 @@ function setCenter(center, { speak = true } = {}) {
   view.follow(state.center.lat, state.center.lon); // a zoomed map keeps the scan centre in frame
   updateDescription();
   if (speak) announce(`Centre ${centreLabel()}.`);
+  state.centreFromPreset = false;
   updateProbe();
 }
 
-function applyPreset(p) {
+function applyPreset(p, { speak = true } = {}) {
   state.radiusKm = p.radiusKm;
   $('radius').value = String(p.radiusKm);
   $('radius-out').textContent = `${p.radiusKm} km`;
-  setCenter(p);
+  setCenter(p, { speak });
+  state.centreFromPreset = true;
   if (scan.running) { scan.stop(false); toggleScan(); }
+}
+
+/** Buttons for the current track's presets (keys 1-5). */
+function renderPresets() {
+  const box = $('presets');
+  box.textContent = '';
+  for (const p of currentPresets()) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'button';
+    b.innerHTML = `${p.name} <kbd>${p.key}</kbd>`;
+    b.setAttribute('aria-keyshortcuts', p.key);
+    b.addEventListener('click', () => applyPreset(p));
+    box.appendChild(b);
+  }
 }
 
 function moveCenter(dLat, dLon) {
@@ -583,8 +599,9 @@ const LEGENDS = {
     ['--data-land', 'Soft hum: unlit land · silence: water'],
   ],
   ocean: [
-    ['--data-cold', 'Cold water: dull, dark tone'],
-    ['--data-warm', 'Warm water: bright, rich tone'],
+    ['--data-cold', 'Ice-cold to cold: pure or hollow tone, slow shimmer'],
+    ['--data-warm', 'Warm to hot: rich, bright tone, fast flicker'],
+    ['--data-land', 'Dense current lines: the tone slides and swirls'],
     ['--data-nodata', 'Land: silent'],
   ],
   lightning: [
@@ -626,11 +643,14 @@ async function selectTrack(id) {
   if (liveScan.running) { liveScan.stop(); $('map-video').pause(); setScanButton(false); }
   state.track = id;
   const isLt = id === 'lightning';
-  // Open ocean fills every voice at once: measured RMS 0.13-0.18 before trim, ~0.09 after.
-  engine.trim = classTrack() ? classTrack().trim : isLt ? LIGHTNING_TRIM : id === 'ocean' ? 0.55 : 1;
+  engine.trim = isLt ? LIGHTNING_TRIM : TRACK_SOUND[id].trim;
   engine.setLayers(currentLayers());
   renderTracks();
   renderLegend();
+  renderPresets();
+  // A centre still sitting on a preset moves to this track's first preset, where its data has
+  // contrast (an ocean ring centred on India would be half silent).
+  if (state.centreFromPreset) applyPreset(currentPresets()[0], { speak: false });
   $('track-title').textContent = t.title;
   document.body.dataset.track = id;
   $('map-video').hidden = !isLt;
@@ -764,7 +784,8 @@ async function oceanSummary() {
   const lo = temps[0];
   const hi = temps[temps.length - 1];
   state.busy = true;
-  [lo.t, mean, hi.t].forEach((t, i) => setTimeout(() => engine.setProbe({ gains: { sea: 0.8 }, brightness: t / 32, land: 0, lat: state.center.lat }), i * 700));
+  const bandGains = (t) => Object.fromEntries(Object.entries(oceanBandWeights(t)).map(([k, w]) => [k, 0.8 * w]));
+  [lo.t, mean, hi.t].forEach((t, i) => setTimeout(() => engine.setProbe({ gains: bandGains(t), brightness: t / 32, land: 0, lat: state.center.lat }), i * 700));
   setTimeout(() => { engine.silenceProbe(); state.busy = false; updateProbe(); }, 2200);
   announce(`Inside the ring around ${centreLabel()}: sea surface from about ${Math.round(lo.t)} degrees to the ${lo.dir} `
     + `to about ${Math.round(hi.t)} degrees to the ${hi.dir}; average about ${Math.round(mean)} degrees Celsius.`);
@@ -852,7 +873,8 @@ function pointReading(fields) {
   if (state.track === 'ocean') {
     const cover = sampleField(fields.cover, c.lat, c.lon, 2);
     const t = oceanTemp(cover, sampleField(fields.temp, c.lat, c.lon, 2));
-    return { levels: { sea: t === null ? 0 : 1 }, words: describeTemp(t), temp: t };
+    const motion = Math.max(0, Math.min(1, (cover - OCEAN_CALM) / (OCEAN_DENSE - OCEAN_CALM)));
+    return { levels: oceanBandWeights(t), words: describeTemp(t), temp: t, motion };
   }
   if (state.track === 'lightning') {
     if (Math.abs(c.lat) > LIGHTNING_COVERAGE_LAT) return { levels: { rumble: 0 }, words: 'outside the sensor coverage, no data' };
@@ -898,6 +920,7 @@ async function updateProbe() {
     brightness: isOcean ? (pr.temp ?? 0) / 32 : peak,
     land: onLand && !isOcean ? 1 : 0, // the ocean track keeps land silent
     lat: c.lat,
+    motion: pr.motion || 0,
   });
   const motor = Math.max(...Object.values(gains));
   dial.update(new Float32Array(16).fill(motor), { n: motor, e: motor, s: motor, w: motor });
@@ -1154,7 +1177,7 @@ function onKey(e) {
   }
 
   const step = e.shiftKey ? 5 : 1;
-  const preset = PRESETS.find((p) => p.key === e.key);
+  const preset = currentPresets().find((p) => p.key === e.key);
   let handled = true;
   switch (e.key) {
     case ' ': case 'Enter': toggleScan(); break;
@@ -1233,15 +1256,7 @@ function wire() {
   $('voice').disabled = !voice.supported;
   $('voice').addEventListener('change', (e) => toggleVoice(e.target.checked));
 
-  for (const p of PRESETS) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'button';
-    b.innerHTML = `${p.name} <kbd>${p.key}</kbd>`;
-    b.setAttribute('aria-keyshortcuts', p.key);
-    b.addEventListener('click', () => applyPreset(p));
-    $('presets').appendChild(b);
-  }
+  renderPresets();
   for (const y of YEARS) {
     const o = document.createElement('option');
     o.value = String(y);

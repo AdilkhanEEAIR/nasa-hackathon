@@ -217,9 +217,9 @@ export class LiveRingScan {
 
 /**
  * Renders a complete scan offline with the same engine, instruments and step rate as the
- * live scan, and returns a WAV file as an ArrayBuffer.
+ * live scan, and returns the AudioBuffer (used by the WAV export and by tools/sound_report.mjs).
  */
-export async function renderScanWav({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8, fullScale = ARC_FULL_SCALE, trim = 1, mapVoice = defaultVoice }) {
+export async function renderScan({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8, fullScale = ARC_FULL_SCALE, trim = 1, mapVoice = defaultVoice }) {
   const sampleRate = 44100;
   const tail = 2.6; // let the centre note and the reverb ring out
   const ctx = new OfflineAudioContext(2, Math.ceil((durationS + tail) * sampleRate), sampleRate);
@@ -237,6 +237,11 @@ export async function renderScanWav({ fields, landField, center, radiusKm, durat
   engine.silenceVoices(durationS);
   const c = centreOf(fields, center);
   engine.centreNote(c.level, durationS, c.kind);
-  const buffer = await ctx.startRendering();
-  return encodeWav([buffer.getChannelData(0), buffer.getChannelData(1)], sampleRate);
+  return ctx.startRendering();
+}
+
+/** The same render as a WAV file (ArrayBuffer). */
+export async function renderScanWav(opts) {
+  const buffer = await renderScan(opts);
+  return encodeWav([buffer.getChannelData(0), buffer.getChannelData(1)], buffer.sampleRate);
 }

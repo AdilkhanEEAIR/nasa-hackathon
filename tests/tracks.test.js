@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   dominant, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
-  oceanTemp, oceanVoice, describeTemp,
+  oceanTemp, oceanVoice, describeTemp, OCEAN_BANDS, OCEAN_LAYERS, oceanBandWeights, oceanBand,
+  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS,
 } from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
@@ -16,13 +17,60 @@ test('dominant picks the loudest class, or null for silence', () => {
 test('ocean: temperature from cover/temp means, land silent, warm is brighter', () => {
   assert.equal(oceanTemp(0, 0), null);
   assert.ok(Math.abs(oceanTemp(0.5, 0.5 * (24 / 32)) - 24) < 1e-9);
-  const land = oceanVoice({ levels: { cover: 0, temp: 0 } });
-  assert.equal(land.gains.sea, 0);
-  const cold = oceanVoice({ levels: { cover: 0.5, temp: 0.5 * (2 / 32) } });
-  const warm = oceanVoice({ levels: { cover: 0.5, temp: 0.5 * (29 / 32) } });
-  assert.equal(cold.gains.sea, warm.gains.sea, 'same amount of ocean, same loudness');
+  const land = oceanVoice({ levels: { cover: 0, temp: 0 }, land: 1 });
+  assert.equal(Math.max(...Object.values(land.gains)), 0, 'land is silent');
+  const sum = (g) => Object.values(g).reduce((x, y) => x + y, 0);
+  const cold = oceanVoice({ levels: { cover: 0.4, temp: 0.4 * (2 / 32) }, land: 0 });
+  const warm = oceanVoice({ levels: { cover: 0.4, temp: 0.4 * (29 / 32) }, land: 0 });
+  assert.ok(Math.abs(sum(cold.gains) - sum(warm.gains)) < 1e-9, 'same amount of sea, same loudness');
   assert.ok(warm.brightness > cold.brightness, 'warm water sounds brighter');
-  assert.match(describeTemp(24.4), /about 24 degrees/);
+  assert.match(describeTemp(24.4), /about 24 degrees Celsius, warm/);
+});
+
+test('ocean: five fixed temperature bands, blended between neighbours', () => {
+  assert.deepEqual(OCEAN_BANDS.map((b) => b.name), ['ice', 'cold', 'mild', 'warm', 'hot']);
+  for (const t of [-1, 0, 3, 6, 10, 14, 18, 22, 25.5, 29, 31]) {
+    const w = oceanBandWeights(t);
+    const total = Object.values(w).reduce((x, y) => x + y, 0);
+    assert.ok(Math.abs(total - 1) < 1e-9, `weights sum to 1 at ${t}`);
+    assert.ok(Object.values(w).filter((x) => x > 0).length <= 2, `at most two bands at ${t}`);
+  }
+  assert.equal(oceanBandWeights(0).ice, 1);
+  assert.equal(oceanBandWeights(31).hot, 1);
+  assert.equal(oceanBand(1).name, 'ice');
+  assert.equal(oceanBand(15).name, 'mild');
+  assert.equal(oceanBand(28).name, 'hot');
+});
+
+test('ocean: warmer bands have more harmonics and faster shimmer', () => {
+  const partials = { sine: 1, triangle: 2, square: 3, sawtooth: 4 };
+  const rank = OCEAN_LAYERS.map((l) => partials[l.type] + (l.octave > 0 ? 1 : 0));
+  const rate = OCEAN_LAYERS.map((l) => l.tremolo.rate);
+  for (let i = 1; i < OCEAN_LAYERS.length; i++) {
+    assert.ok(rank[i] >= rank[i - 1], `harmonics never decrease (${OCEAN_LAYERS[i].name})`);
+    assert.ok(rate[i] > rate[i - 1], `shimmer gets faster (${OCEAN_LAYERS[i].name})`);
+  }
+  assert.ok(rank[4] > rank[0] + 2, 'hot is far richer than ice');
+});
+
+test('ocean: dense current lines give more motion, calm water little', () => {
+  const at = (cover) => oceanVoice({ levels: { cover, temp: cover * (20 / 32) }, land: 0 }).motion;
+  assert.equal(at(OCEAN_CALM * 0.8), 0);
+  assert.ok(at(0.5) > 0 && at(0.5) < 1);
+  assert.equal(at(OCEAN_DENSE), 1);
+  assert.ok(at(0.6) > at(0.4));
+});
+
+test('every track has its own presets with keys 1..n', () => {
+  for (const [track, list] of Object.entries(TRACK_PRESETS)) {
+    assert.ok(list.length >= 4 && list.length <= 5, track);
+    assert.deepEqual(list.map((p) => p.key), list.map((_, i) => String(i + 1)), track);
+    for (const p of list) assert.ok(Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 && p.radiusKm >= 250, `${track} ${p.name}`);
+  }
+  const names = (t) => TRACK_PRESETS[t].map((p) => p.name).join();
+  assert.notEqual(names('ocean'), names('nightlights'), 'the ocean no longer reuses land presets');
+  assert.ok(['Gulf Stream', 'Kuroshio', 'Agulhas Current', 'Equatorial Pacific', 'Southern Ocean front']
+    .every((n) => TRACK_PRESETS.ocean.some((p) => p.name === n)));
 });
 
 test('lightning: yellow dots count, grey map and lines never do', () => {

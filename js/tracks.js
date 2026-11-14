@@ -1,7 +1,8 @@
 // Per-track rules: how a rendered pixel becomes values, and which instruments play them.
 // Pure functions only (no DOM, no audio), so they are unit-tested.
 
-import { LIGHT_FLOOR } from './fields.js';
+import { LIGHT_FLOOR, ARC_FULL_SCALE } from './fields.js';
+import { DEFAULT_LAYERS } from './audio.js';
 
 /** The dominant class of a set of levels, or null if all are zero. */
 export function dominant(levels) {
@@ -74,24 +75,92 @@ export function oceanTemp(coverMean, tempMean) {
   return coverMean > 0.02 ? (tempMean / coverMean) * OCEAN_RANGE_C : null;
 }
 
-export const OCEAN_LAYERS = [
-  // One instrument whose colour carries temperature: cold water is a dull, dark tone; warm
-  // water opens the filter into a bright, rich sawtooth. Land is silent.
-  { name: 'sea', type: 'sawtooth', octave: 0, cutoffLo: 220, cutoffHi: 4200, peak: 0.9 },
+/**
+ * Five fixed temperature bands, each with its own character. Moving up the scale adds
+ * harmonics (sine -> triangle -> sawtooth), opens the filter and speeds up the shimmer, so
+ * temperature is heard as a change of instrument, not only as brightness. Band centres in
+ * deg C; a voice between two centres blends the two neighbouring bands.
+ */
+export const OCEAN_BANDS = [
+  { name: 'ice', centre: 0, label: 'ice-cold' },
+  { name: 'cold', centre: 6, label: 'cold' },
+  { name: 'mild', centre: 14, label: 'mild' },
+  { name: 'warm', centre: 22, label: 'warm' },
+  { name: 'hot', centre: 29, label: 'hot' },
 ];
 
-/** Ring voice -> sound for the ocean track: loudness = share of ocean flow on the arc,
- * brightness = its mean temperature on a fixed 0..32 deg C scale. */
-export function oceanVoice(v, full = 0.5) {
+// Shared by every band: the voice glides (pitch and filter) at a depth set by how dense the
+// current lines are on the arc, so busy currents are heard as moving water.
+const OCEAN_GLIDE = { rate: 0.35, rateBoost: 2.5, cents: 28, filterCents: 900 };
+
+export const OCEAN_LAYERS = [
+  // Ice: a pure sine (one partial), the slowest shimmer.
+  { name: 'ice', type: 'sine', octave: 0, cutoffLo: 2000, cutoffHi: 2000, peak: 1.0, tremolo: { rate: 0.7, depth: 0.3 }, glide: OCEAN_GLIDE },
+  // Cold: a soft, hollow triangle with few harmonics, dark filter.
+  { name: 'cold', type: 'triangle', octave: 0, cutoffLo: 700, cutoffHi: 900, peak: 0.9, tremolo: { rate: 1.6, depth: 0.3 } },
+  // Mild: a square wave (odd harmonics), half-open filter, moderate shimmer.
+  { name: 'mild', type: 'square', octave: 0, cutoffLo: 1300, cutoffHi: 1800, peak: 0.75, tremolo: { rate: 3, depth: 0.4 } },
+  // Warm: a sawtooth (all harmonics), open filter, faster flicker.
+  { name: 'warm', type: 'sawtooth', octave: 0, cutoffLo: 3000, cutoffHi: 4000, peak: 1.3, tremolo: { rate: 5, depth: 0.5 } },
+  // Hot: a bright sawtooth an octave up, filter wide open, rapid flicker.
+  { name: 'hot', type: 'sawtooth', octave: 1, cutoffLo: 6000, cutoffHi: 8000, peak: 1.45, tremolo: { rate: 8.5, depth: 0.6 } },
+];
+
+/** Blend weights (0..1, summing to 1) of the five bands for a temperature in deg C. */
+export function oceanBandWeights(t) {
+  const out = Object.fromEntries(OCEAN_BANDS.map((b) => [b.name, 0]));
+  if (t === null || t === undefined) return out;
+  const c = OCEAN_BANDS.map((b) => b.centre);
+  if (t <= c[0]) { out.ice = 1; return out; }
+  if (t >= c[c.length - 1]) { out.hot = 1; return out; }
+  for (let i = 0; i < c.length - 1; i++) {
+    if (t <= c[i + 1]) {
+      const f = (t - c[i]) / (c[i + 1] - c[i]);
+      out[OCEAN_BANDS[i].name] = 1 - f;
+      out[OCEAN_BANDS[i + 1].name] = f;
+      break;
+    }
+  }
+  return out;
+}
+
+/** The band a temperature belongs to (nearest centre), for words and legends. */
+export function oceanBand(t) {
+  if (t === null || t === undefined) return null;
+  let best = OCEAN_BANDS[0];
+  for (const b of OCEAN_BANDS) if (Math.abs(t - b.centre) < Math.abs(t - best.centre)) best = b;
+  return best;
+}
+
+// Density of current lines over open water, mapped to motion 0..1 between these fixed limits
+// (measured on the frame: 16-px blocks range 0.05..0.8, median 0.39).
+export const OCEAN_CALM = 0.25;
+export const OCEAN_DENSE = 0.75;
+// Share of an arc that must be sea for full loudness.
+export const OCEAN_FULL_WATER = 0.6;
+
+/**
+ * Ring voice -> sound for the ocean track, all on fixed scales:
+ *   loudness   = share of sea on the arc (land is silent);
+ *   instrument = temperature band (0..32 deg C, read from the colorbar), blended between bands;
+ *   motion     = density of current lines on the sea part of the arc -> glide depth and speed.
+ */
+export function oceanVoice(v) {
   const cover = v.levels.cover || 0;
   const t = oceanTemp(cover, v.levels.temp || 0);
-  const gain = cover > 0 ? Math.min(1, cover / full) ** 0.7 : 0;
-  return { gains: { sea: t === null ? 0 : gain }, brightness: t === null ? 0 : t / OCEAN_RANGE_C, land: 0, temp: t };
+  if (t === null) return { gains: oceanBandWeights(null), brightness: 0, land: 0, temp: null, motion: 0 };
+  const water = Math.max(0, 1 - (v.land || 0));
+  const loud = Math.min(1, Math.max(water, cover) / OCEAN_FULL_WATER) ** 0.7;
+  const w = oceanBandWeights(t);
+  const gains = Object.fromEntries(Object.entries(w).map(([k, x]) => [k, x * loud]));
+  const density = cover / Math.max(0.1, water);
+  const motion = Math.max(0, Math.min(1, (density - OCEAN_CALM) / (OCEAN_DENSE - OCEAN_CALM)));
+  return { gains, brightness: t / OCEAN_RANGE_C, land: 0, temp: t, motion };
 }
 
 export function describeTemp(t) {
   if (t === null || t === undefined) return 'no ocean flow here';
-  return `sea surface about ${Math.round(t)} degrees Celsius`;
+  return `sea surface about ${Math.round(t)} degrees Celsius, ${oceanBand(t).label}`;
 }
 
 /**
@@ -120,3 +189,48 @@ export function strikeRate(newLevel, maxRate = 8) {
 }
 
 export { LIGHT_FLOOR };
+
+/**
+ * Centre presets per track (keys 1-5). Each set sits where its own data has contrast: lit
+ * cities for night lights, plumes for aerosols, storm hot spots for lightning and strong
+ * temperature fronts for the ocean (the shared land presets left half of an ocean ring silent).
+ */
+export const TRACK_PRESETS = {
+  nightlights: [
+    { key: '1', name: 'India', lat: 22.5, lon: 79.0, radiusKm: 1500 },
+    { key: '2', name: 'China', lat: 32.0, lon: 110.0, radiusKm: 2000 },
+    { key: '3', name: 'Bishkek', lat: 42.87, lon: 74.59, radiusKm: 1500 },
+    { key: '4', name: 'Europe', lat: 48.5, lon: 9.0, radiusKm: 1500 },
+  ],
+  aerosols: [
+    { key: '1', name: 'Sahara dust', lat: 18, lon: 2, radiusKm: 1500 },
+    { key: '2', name: 'Central Africa fires', lat: -9, lon: 22, radiusKm: 1500 },
+    { key: '3', name: 'East China', lat: 32, lon: 114, radiusKm: 1500 },
+    { key: '4', name: 'Indian Ocean sea salt', lat: -15, lon: 65, radiusKm: 1500 },
+  ],
+  lightning: [
+    { key: '1', name: 'Congo Basin', lat: 0, lon: 22, radiusKm: 2000 },
+    { key: '2', name: 'Lake Maracaibo', lat: 9.8, lon: -71.6, radiusKm: 1200 },
+    { key: '3', name: 'Florida', lat: 28, lon: -82, radiusKm: 1200 },
+    { key: '4', name: 'Bangladesh', lat: 24, lon: 90, radiusKm: 1500 },
+  ],
+  ocean: [
+    { key: '1', name: 'Gulf Stream', lat: 38, lon: -68, radiusKm: 1200 },
+    { key: '2', name: 'Kuroshio', lat: 35, lon: 145, radiusKm: 1200 },
+    { key: '3', name: 'Agulhas Current', lat: -38, lon: 24, radiusKm: 1200 },
+    { key: '4', name: 'Equatorial Pacific', lat: 0, lon: -120, radiusKm: 1500 },
+    { key: '5', name: 'Southern Ocean front', lat: -52, lon: 140, radiusKm: 1200 },
+  ],
+};
+
+/**
+ * Sound settings per track, shared by the player (js/app.js) and the offline sound report
+ * (tools/sound_report.mjs): instruments, the arc level heard at full loudness, the loudness
+ * trim and, where needed, how arc values become a voice.
+ */
+export const TRACK_SOUND = {
+  nightlights: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1 },
+  aerosols: { layers: AEROSOL_LAYERS, fullScale: 0.6, trim: 0.9 },
+  // Open ocean fills every voice at once: measured RMS 0.13-0.18 before trim, ~0.09 after.
+  ocean: { layers: OCEAN_LAYERS, fullScale: ARC_FULL_SCALE, trim: 0.55, mapVoice: (v) => oceanVoice(v) },
+};
