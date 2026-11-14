@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Sixth Sense — slides</title>
-<!-- Same design tokens as the site: every colour, radius and the typeface come from there. -->
+<title>Sixth Sense: Hear and feel Earth data</title>
 <link rel="stylesheet" href="../../css/tokens.css">
 <style>
   @page { size: 13.333in 7.5in; margin: 0; }
@@ -15,179 +14,183 @@
   }
   .slide:last-child { page-break-after: auto; break-after: auto; }
   .eyebrow { font-size: 13pt; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--ui-text-muted); font-weight: var(--weight-bold); margin: 0 0 8pt; }
-  h1 { font-size: 64pt; margin: 0 0 10pt; letter-spacing: -0.02em; font-weight: var(--weight-bold); }
-  h2 { font-size: 34pt; margin: 0 0 16pt; font-weight: var(--weight-bold); line-height: var(--leading-tight); }
-  p, li, td, th { font-size: 17pt; line-height: 1.4; }
-  .lede { font-size: 24pt; color: var(--ui-text); max-width: 9.5in; }
+  h1 { font-size: 60pt; margin: 0 0 6pt; letter-spacing: -0.02em; font-weight: var(--weight-bold); }
+  h2 { font-size: 34pt; margin: 0 0 18pt; font-weight: var(--weight-bold); line-height: var(--leading-tight); max-width: 11.5in; }
+  p, li { font-size: 19pt; line-height: 1.4; margin: 0 0 10pt; }
+  .lede { font-size: 24pt; max-width: 10in; }
+  .big { font-size: 54pt; font-weight: var(--weight-bold); line-height: 1.05; margin: 0 0 6pt; color: var(--ui-accent); }
   .muted { color: var(--ui-text-muted); }
+  .soft { color: var(--ui-text-soft); }
   .accent { color: var(--ui-accent); }
-  .link { color: var(--ui-text); text-decoration: underline; text-decoration-color: var(--ui-accent); text-underline-offset: 0.18em; }
-  .grid2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0.45in; align-items: start; }
-  img.shot { width: 100%; max-height: 3.3in; object-fit: cover; object-position: top; border-radius: var(--radius-lg); }
-  td { font-size: 15pt; color: var(--ui-text-soft); }
-  table.tight td, table.tight th { padding: 3pt 8pt; font-size: 13pt; }
-  table.compact td, table.compact th { padding: 2pt 6pt 2pt 0; font-size: 12pt; line-height: 1.25; }
+  .small, .small li, .small p { font-size: 13.5pt; line-height: 1.35; }
+  a { color: var(--ui-text); text-decoration: underline; text-decoration-color: var(--ui-accent); text-underline-offset: 0.18em; }
+  .grid2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0.5in; align-items: start; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4in; align-items: start; }
+  img.shot { width: 100%; object-fit: cover; object-position: top; border-radius: var(--radius-lg); border: var(--border-width) solid var(--ui-border); display: block; }
   ul { margin: 0; padding-left: 1.1em; }
   li { margin: 0 0 8pt; }
   table { border-collapse: collapse; width: 100%; }
-  th, td { text-align: left; padding: 6pt 10pt 6pt 0; border-bottom: var(--border-width) solid var(--ui-border); vertical-align: top; }
-  th { color: var(--ui-text-muted); font-weight: var(--weight-medium); font-size: 14pt; }
-  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35in; margin: 18pt 0 22pt; }
-  .rule { font-size: 15pt; line-height: 1.35; border-top: var(--border-width) solid var(--ui-border-strong); padding-top: 12pt; color: var(--ui-text-soft); }
-  .rule b { display: block; font-size: 20pt; color: var(--ui-text); margin-bottom: 4pt; }
-  .placeholder { border: 2px dashed var(--ui-border-strong); border-radius: var(--radius-md); padding: 16pt; color: var(--ui-text-soft); }
-  .foot { position: absolute; left: 0.7in; right: 0.7in; bottom: 0.35in; display: flex; justify-content: space-between; color: var(--ui-text-muted); font-size: 12pt; }
-  kbd { font-family: inherit; font-size: 0.8em; padding: 0 5pt; border: var(--border-width) solid var(--ui-border-strong); border-radius: var(--radius-sm); color: var(--ui-text-muted); }
+  th, td { text-align: left; padding: 3.5pt 10pt 3.5pt 0; border-bottom: var(--border-width) solid var(--ui-border); vertical-align: top; font-size: 13pt; line-height: 1.3; color: var(--ui-text-soft); }
+  th { color: var(--ui-text-muted); font-weight: var(--weight-medium); }
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35in; margin: 6pt 0 20pt; }
+  .rule { font-size: 15pt; line-height: 1.35; border-top: var(--border-width) solid var(--ui-border-strong); padding-top: 10pt; color: var(--ui-text-soft); }
+  .rule b { display: block; font-size: 21pt; color: var(--ui-text); margin-bottom: 3pt; }
+  .card { border-top: var(--border-width) solid var(--ui-border-strong); padding-top: 10pt; }
+  .card h3 { font-size: 24pt; margin: 0 0 8pt; }
+  .foot { position: absolute; left: 0.7in; right: 0.7in; bottom: 0.32in; display: flex; justify-content: space-between; color: var(--ui-text-muted); font-size: 12pt; }
 </style>
 </head>
 <body>
 
-<!-- 1. Title -->
 <section class="slide">
-  <p class="eyebrow">NASA Space Apps Challenge 2026 · The Earth Information Jukebox · Bishkek</p>
-  <h1 style="font-size:56pt">Sixth Sense</h1>
-  <p class="lede accent" style="font-size:26pt; margin:0 0 6pt">Hear and feel Earth data</p>
-  <p class="lede" style="font-size:20pt">A jukebox for NASA Earth visualizations: a ring of sound closes in on any place, so you can <span class="accent">hear</span> what the map shows. Built first for blind and low-vision people.</p>
-  <div class="grid2" style="margin-top:12pt">
-    <img class="shot" style="max-height:2.0in; object-position:top" src="../screenshots/home-desktop.jpg" alt="Sixth Sense home page: a live ring of sound over the night-lights map">
+  <p class="eyebrow">NASA Space Apps Challenge 2026 · Challenge: The Earth Information Jukebox</p>
+  <div class="grid2" style="grid-template-columns: 1fr 1.05fr; margin-top: 14pt">
     <div>
-      <p><b>Try it:</b> <span class="link">earthsonar.vercel.app</span></p>
-      <p><b>Code:</b> <span class="link">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
-      <p class="muted">Team: [names] · Software: Adilkhan Dzhanteliev · Hardware: [teammates]</p>
+      <h1>Sixth Sense</h1>
+      <p class="lede accent" style="font-size:28pt; margin-bottom:16pt">Hear and feel Earth data</p>
+      <p class="lede" style="font-size:21pt">A web jukebox that turns NASA Earth Information Center visualizations into live sound and vibration, so people who cannot see a map can explore it.</p>
+      <p style="margin-top:20pt; font-size:17pt"><b>Team Rococo</b><br>
+        <span class="soft">Dzhanteliev Adilkhan · Sakybaev Meder · Osmonbaev Aibek · Emilev Bektur</span></p>
+      <p class="muted" style="font-size:15pt">Ala-Too International University, Bishkek, Kyrgyzstan · 14–15 November 2026</p>
     </div>
+    <img class="shot" src="../screenshots/home-desktop.jpg" alt="Sixth Sense home page: a ring of sound over the night-lights map" style="max-height:4.6in">
   </div>
-  <div class="foot"><span>Sixth Sense</span><span>1 / 7</span></div>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>1 / 7</span></div>
 </section>
 
-<!-- 2. Problem -->
 <section class="slide">
-  <p class="eyebrow">The problem</p>
-  <h2>Earth science reaches people almost only through the eyes</h2>
-  <div class="grid2">
+  <p class="eyebrow">Problem</p>
+  <h2>Earth science reaches people almost only through the eyes.</h2>
+  <div class="grid2" style="margin-top: 20pt">
+    <div>
+      <p class="big">2.2 billion</p>
+      <p class="lede" style="font-size:22pt">people, at least, have a near or distance vision impairment.</p>
+      <p class="muted" style="font-size:14pt">Source: World Health Organization, fact sheet "Blindness and vision impairment", <a href="https://www.who.int/news-room/fact-sheets/detail/blindness-and-visual-impairment">who.int</a></p>
+    </div>
     <ul>
-      <li>NASA's Earth Information Center tells the story of a changing planet with stunning visualizations, and only visualizations.</li>
-      <li>Globally, <b>at least 2.2 billion people</b> have a near or distance vision impairment <span class="muted">(WHO, World report on vision, 2019)</span>. For many of them a map is silent.</li>
-      <li>Most sonification projects play a picture line by line. You hear a melody but not <b>where</b> things are.</li>
+      <li><b>Who it affects:</b> for them, a map of night lights, smoke or storms is silent.</li>
+      <li><b>Why now:</b> NASA's Earth Information Center tells the story of a changing planet in pictures, and the challenge asks for a second sense.</li>
+      <li><b>The gap:</b> playing a picture line by line gives a melody, not <i>where</i> things are.</li>
     </ul>
-    <div>
-      <p class="lede" style="font-size:22pt">Our question:</p>
-      <p class="lede" style="font-size:26pt">Can you <span class="accent">navigate</span> an Earth visualization by ear and by touch, and understand where the planet is bright, smoky, stormy, warm or cold?</p>
-    </div>
   </div>
-  <div class="foot"><span>Sixth Sense</span><span>2 / 7</span></div>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>2 / 7</span></div>
 </section>
 
-<!-- 3. Solution -->
 <section class="slide">
-  <p class="eyebrow">The solution</p>
-  <h2>A sonar for Earth data: the shrinking ring</h2>
+  <p class="eyebrow">Solution</p>
+  <h2>A ring of sound closes in on a place you choose: the map becomes a compass you can hear.</h2>
   <div class="rules">
-    <div class="rule"><b>↑ High notes</b>come from the north, low notes from the south</div>
-    <div class="rule"><b>→ Right ear</b>is east, left ear is west</div>
-    <div class="rule"><b>◉ Louder</b>means more (light, dust, storms…)</div>
-    <div class="rule"><b>♪ Timbre</b>says <i>what</i> it is: each phenomenon has its own voice</div>
+    <div class="rule"><b>High notes</b>come from the north, low notes from the south</div>
+    <div class="rule"><b>Right ear</b>is east, left ear is west</div>
+    <div class="rule"><b>Louder</b>means more</div>
+    <div class="rule"><b>Timbre</b>says what it is: one voice per phenomenon</div>
   </div>
   <div class="grid2">
     <ul>
-      <li>Pick a place. 16 voices on a ring close in on it; at the end they meet in one note, the value at the centre.</li>
-      <li>The ring is computed on the sphere (great-circle distance), so it is true on Earth at any zoom.</li>
-      <li><b>Explore mode</b>: walk a probe with the arrow keys; "Where am I" names the place.</li>
-      <li><b>All years</b>: 2012→2023 as a melody. <b>Save as WAV</b>: your own Earth playlist.</li>
+      <li><b>What is new:</b> direction and distance around <i>your</i> point, not a left-to-right line. The same values drive vibration.</li>
+      <li><b>Why it works:</b> one rule on all eight tracks, fixed scales, and a pentatonic scale so any data sounds musical.</li>
     </ul>
-    <img class="shot" src="../screenshots/jukebox-scan-desktop.jpg" alt="The jukebox during a ring scan over India">
+    <img class="shot" src="../screenshots/jukebox-ring-scan.jpg" alt="The jukebox during a ring scan over Europe" style="max-height:2.55in">
   </div>
-  <div class="foot"><span>Sixth Sense</span><span>3 / 7</span></div>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>3 / 7</span></div>
 </section>
 
-<!-- 4. How it sounds -->
 <section class="slide">
-  <p class="eyebrow">How it sounds</p>
-  <h2 style="font-size:28pt">Eight tracks, two honest classes, one voice per phenomenon</h2>
-  <div class="grid2">
-    <table class="compact">
-      <tr><th>Track</th><th>Class · scan</th><th>Voice</th></tr>
-      <tr><td>Night Lights 2012–2023</td><td>Data-true · ring</td><td>Warm twinkle</td></tr>
-      <tr><td>Aerosols</td><td>Data-true · ring</td><td>Crackle · rustle · surf · buzz</td></tr>
-      <tr><td>Lightning (ISS)</td><td>Data-true · ring on video</td><td>Crack · thunder</td></tr>
-      <tr><td>Ocean Temperature</td><td>Data-true · ring</td><td>5 bands, sine → bright saw</td></tr>
-      <tr><td>Near-Surface Wind</td><td>Data-true · ring</td><td>Rushing air, whistle</td></tr>
-      <tr><td>Forest Height (GEDI)</td><td>Visual · needle on globe</td><td>Dry marimba strikes</td></tr>
-      <tr><td>Carbon Dioxide</td><td>Visual · needle on globe</td><td>Thickening hum</td></tr>
-      <tr><td>Atmospheric River</td><td>Visual · needle sweep</td><td>Water drops</td></tr>
+  <p class="eyebrow">How it works</p>
+  <h2 style="font-size:30pt; margin-bottom:12pt">Pixels of NASA frames become sound, live in the browser, by fixed rules.</h2>
+  <div class="grid2" style="grid-template-columns: 1.25fr 1fr; gap: 0.45in">
+    <table>
+      <tr><th>NASA SVS visualization</th><th>We read</th></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights 2012–2023, EIC Version (5313)</a></td><td>brightness, 12 years</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/5669/">GEOS Aerosols (5669)</a></td><td>4 particle types by legend colour</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/5011/">Lightning Events Detected from the ISS (5011)</a></td><td>flashes in every video frame</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/3912/">Global Sea Surface Currents and Temperature (3912)</a></td><td>0–32 °C from the colour bar</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/5148/">GEOS-FP Near-Surface Wind Speed (5148)</a></td><td>3.6–34 m/s from the colour bar</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/4950/">GEDI Forest Height (4950)</a></td><td>green in the picture (Visual)</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/5196/">DYAMOND Global Carbon Dioxide (5196)</a></td><td>plume colour (Visual)</td></tr>
+      <tr><td><a href="https://svs.gsfc.nasa.gov/4960/">A 3D View of an Atmospheric River (4960)</a></td><td>vapour blue (Visual)</td></tr>
     </table>
-    <div>
-      <img class="shot" style="max-height:2.3in; object-position: 40% 90%" src="../screenshots/forest-needle-desktop.jpg" alt="Needle mode: a fixed line reads the turning GEDI forest globe">
-      <p class="muted" style="font-size:13pt"><b>Data-true</b>: values read back from the visualization's own colour scale. <b>Visual</b>: sonifies the picture, not calibrated measurements — said in every intro. Sound differences are measured offline (docs/SOUND_CHECK.md).</p>
+    <div class="small">
+      <p><b>Method.</b> 16 voices on a ring, laid on the sphere, read the frame 30 times a second. Direction → pitch and stereo, value → loudness, phenomenon → instrument. Globe videos use a 12-voice needle.</p>
+      <p><b>Honest classes.</b> 5 tracks are <i>Data-true</i> (values read from the colour scale); 3 are <i>Visual</i> and say so.</p>
+      <p><b>AI tools.</b> Claude (Anthropic) wrote code and drafted docs under the team's direction and review. No AI-generated images, video or audio.</p>
+      <p><b>Stack.</b> Static site: HTML, CSS, JavaScript, Web Audio, Canvas. Python, NumPy, Pillow, FFmpeg for media. No libraries, no server.</p>
     </div>
   </div>
-  <div class="foot"><span>Sixth Sense</span><span>4 / 7</span></div>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>4 / 7</span></div>
 </section>
 
-<!-- 5. NASA data -->
 <section class="slide">
-  <p class="eyebrow">NASA data, read honestly</p>
-  <h2 style="font-size:28pt">We sonify the rendered EIC visualizations, by fixed rules</h2>
-  <table class="tight">
-    <tr><th>NASA SVS visualization</th><th>ID</th><th>What we read</th></tr>
-    <tr><td>Change in Night Lights 2012–2023 (EIC version), Black Marble</td><td>5313</td><td>Brightness per year, 2012–2023, on one fixed scale</td></tr>
-    <tr><td>GEOS Aerosols, 19 Aug 2025</td><td>5669</td><td>Nearest legend colour → 4 types; no sea salt on land; city dots removed</td></tr>
-    <tr><td>Lightning Events Detected from the ISS 2017–2023</td><td>5011</td><td>Yellow dots per video frame; new dots = strikes; official dates (a "2003" typo fixed)</td></tr>
-    <tr><td>Global Sea Surface Currents and Temperature (ECCO2)</td><td>3912</td><td>Hue matched to the 0–32 °C colorbar (round-trip error ≤ 1.5 °C)</td></tr>
-    <tr><td>GEOS-FP Near-Surface Wind Speed</td><td>5148</td><td>Nearest colorbar colour, 4–34 m/s (error ≤ 0.41 m/s); logos painted over</td></tr>
-    <tr><td>GEDI Forest Height · DYAMOND CO₂ · Atmospheric River</td><td>4950 · 5196 · 4960</td><td>Visual: brightness, hue warmth, blue</td></tr>
-  </table>
-  <p style="margin-top:8pt; font-size:13pt">Fixed rules, never normalised per frame; every crop, colorbar and limit is measured and written up in <span class="link">docs/DATA_NOTES.md</span> with SHA-256 checksums.</p>
-  <div class="foot"><span>Sixth Sense</span><span>5 / 7</span></div>
-</section>
-
-<!-- 6. Accessibility & hardware -->
-<section class="slide">
-  <p class="eyebrow">Accessibility and hardware</p>
-  <h2>Keyboard, screen reader, and touch</h2>
-  <div class="grid2">
-    <ul>
-      <li><b>No mouse needed:</b> <kbd>Space</kbd> play · arrows move · <kbd>W</kbd> where am I · <kbd>E</kbd> explore.</li>
-      <li>An <b>Accessibility</b> switch comes first on every page (<kbd>Alt</kbd>+<kbd>A</kbd>): an optional voice guide, off by default and silent on tab changes, and a large-text, high-contrast mode.</li>
-      <li>Live status region for screen readers, sound tutorial (<kbd>T</kbd>), AA contrast, reduced motion respected, colour-blind-checked data colours.</li>
-      <li>Fast for everyone: the home page is 0.09 MB, the player 0.18 MB.</li>
-    </ul>
+  <p class="eyebrow">Demo</p>
+  <div class="grid2" style="grid-template-columns: 1.45fr 1fr; align-items: center">
+    <img class="shot" src="../screenshots/needle-forest.jpg" alt="The needle reading the turning GEDI forest globe" style="max-height:5.6in">
     <div>
-      <p><b>Feel it, with what people already have</b></p>
-      <ul>
-        <li><b>Android phone vibration</b>: pulses grow with the value under the scan.</li>
-        <li><b>Game controller rumble</b>: heavy motor = south (low notes), light motor = north (high notes); the left stick moves the centre.</li>
-        <li>A Haptics switch, shown only where vibration works (not on iPhone).</li>
-      </ul>
+      <h2 style="font-size:32pt">Open it and press Space.</h2>
+      <p class="lede" style="font-size:25pt"><a href="https://earthsonar.vercel.app">earthsonar.vercel.app</a></p>
+      <p><b>28-second demo:</b><br><a href="https://earthsonar.vercel.app/#demo">earthsonar.vercel.app/#demo</a></p>
+      <p><b>Code:</b><br><a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">github.com/AdilkhanEEAIR/nasa-hackathon</a></p>
+      <p class="muted" style="font-size:15pt">No install, no account. Headphones recommended.</p>
     </div>
   </div>
-  <div class="foot"><span>Sixth Sense</span><span>6 / 7</span></div>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>5 / 7</span></div>
 </section>
 
-<!-- 7. Validation & links -->
 <section class="slide">
-  <p class="eyebrow">Validation and links</p>
-  <h2>What we checked, and what we are still testing</h2>
-  <div class="grid2">
+  <p class="eyebrow">Impact and next steps</p>
+  <h2>A map anyone can listen to, on the device they already have.</h2>
+  <div class="grid3" style="margin-top: 18pt">
+    <div class="card">
+      <h3>Who benefits</h3>
+      <p class="soft" style="font-size:20pt">Blind and low-vision people first. Science centres, schools, and every listener who wants a new way to notice patterns.</p>
+    </div>
+    <div class="card">
+      <h3>Reach</h3>
+      <p class="soft" style="font-size:20pt">One web page, phone or laptop. Keyboard and screen reader, voice guide, large text, phone vibration, controller rumble.</p>
+    </div>
+    <div class="card">
+      <h3>Next</h3>
+      <p class="soft" style="font-size:20pt">Listening tests with blind and low-vision users. Haptics on real devices. More EIC visualizations. Translations.</p>
+    </div>
+  </div>
+  <p class="muted" style="font-size:17pt; margin-top: 30pt; max-width: 11in">Stated openly: we sonify the rendered visualizations, not raw measurements. No tests with blind users have been run yet, so we quote no results.</p>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>6 / 7</span></div>
+</section>
+
+<section class="slide">
+  <p class="eyebrow">Team and references</p>
+  <h2 style="font-size:28pt; margin-bottom:12pt">Team Rococo</h2>
+  <div class="grid2" style="grid-template-columns: 1fr 1.25fr; gap: 0.5in">
     <div>
-      <ul>
-        <li>89 automated tests: ring geometry, georeferencing, sound mapping, the haptics rule, colour contrast and colour blindness, the 28-second demo, and a silent voice guide on tab changes.</li>
-        <li>Byte-exact sound data: browser-decoded grids match the prepared values.</li>
-        <li>Values cross-checked against the frames, e.g. ocean: equatorial Pacific 27 °C, Southern Ocean 1 °C.</li>
+      <ul style="list-style:none; padding:0">
+        <li>Dzhanteliev Adilkhan</li>
+        <li>Sakybaev Meder</li>
+        <li>Osmonbaev Aibek</li>
+        <li>Emilev Bektur</li>
       </ul>
-      <div class="placeholder" style="margin-top:14pt">
-        <b>Blindfold test with volunteers</b><br>
-        [RESULTS TO BE ADDED AFTER THE TEST — no numbers yet]<br>
-        Tasks: which year is brighter (region) · where is more light · where is dust vs smoke.
+      <p class="muted" style="font-size:14pt; margin-top:10pt">Ala-Too International University, Bishkek, Kyrgyzstan</p>
+      <div class="small" style="margin-top:14pt">
+        <p><b>Use of AI.</b> Code and documentation were written with Claude (Anthropic, Claude Code) under the team's direction and review. No AI-generated images, video or audio: every sound is synthesised live from pixel values.</p>
+        <p class="muted">Not affiliated with or endorsed by NASA. No NASA logos are used.</p>
       </div>
     </div>
-    <div>
-      <p class="lede" style="font-size:22pt"><b>Try it:</b> <span class="link">earthsonar.vercel.app</span></p>
-      <p><b>Demo (28 s):</b> <span class="link">earthsonar.vercel.app/#demo</span></p>
-      <p><b>Code and data notes:</b> <span class="link">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
-      <p class="muted" style="font-size:14pt">AI use: code written with Claude (Anthropic) under the team's direction and review. No AI-generated images, video or audio; all sound is synthesised live by documented rules. Data: NASA Scientific Visualization Studio. Not endorsed by NASA.</p>
+    <div class="small">
+      <p><b>NASA data.</b> Frames from the NASA Scientific Visualization Studio, read pixel by pixel:
+        <a href="https://svs.gsfc.nasa.gov/5313/">5313</a> Night Lights (Black Marble) ·
+        <a href="https://svs.gsfc.nasa.gov/5669/">5669</a> GEOS Aerosols ·
+        <a href="https://svs.gsfc.nasa.gov/5011/">5011</a> ISS Lightning (LIS) ·
+        <a href="https://svs.gsfc.nasa.gov/3912/">3912</a> Sea Surface Currents and Temperature (ECCO2) ·
+        <a href="https://svs.gsfc.nasa.gov/5148/">5148</a> GEOS-FP Wind ·
+        <a href="https://svs.gsfc.nasa.gov/4950/">4950</a> GEDI Forest Height ·
+        <a href="https://svs.gsfc.nasa.gov/5196/">5196</a> DYAMOND CO₂ ·
+        <a href="https://svs.gsfc.nasa.gov/4960/">4960</a> Atmospheric River (MERRA-2).
+        Collection: <a href="https://svs.gsfc.nasa.gov/gallery/earth-information-center/">Earth Information Center</a>.</p>
+      <p><b>Method references.</b> Data Sonification: Caldwell 73 (<a href="https://svs.gsfc.nasa.gov/13786/">SVS 13786</a>); Sonification of RS Puppis (<a href="https://svs.gsfc.nasa.gov/14260/">SVS 14260</a>), principle only.</p>
+      <p><b>Other sources.</b> WHO fact sheet "Blindness and vision impairment". Natural Earth (public domain) for optional map labels, never sonified.</p>
+      <p><b>Tools.</b> Web Audio, Canvas, Web Speech, Gamepad and Vibration APIs · Python, NumPy, Pillow, FFmpeg · Node.js test runner · Vercel.</p>
+      <p><b>Full credits, checksums and every rule:</b> <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">README, docs/DATA_NOTES.md, docs/SOUND_DESIGN.md</a></p>
     </div>
   </div>
-  <div class="foot"><span>Sixth Sense</span><span>7 / 7</span></div>
+  <div class="foot"><span>Sixth Sense · Team Rococo</span><span>7 / 7</span></div>
 </section>
 
 </body>
