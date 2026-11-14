@@ -6,8 +6,11 @@
 import { ringArcs } from './geo.js';
 import { sampleField, gainForLevel, ARC_FULL_SCALE } from './fields.js';
 import { panForBearing } from './music.js';
+import { SonicEngine } from './audio.js';
+import { encodeWav } from './wav.js';
 
 export const VOICES = 16;
+export const STEP_HZ = 30;
 
 /** Pure part of a scan step: values for every voice at one radius. */
 export function readRing(field, landField, center, radiusKm) {
@@ -23,6 +26,36 @@ export function readRing(field, landField, center, radiusKm) {
     land /= arc.points.length;
     return { bearing: arc.bearing, points: arc.points, level, land, gain: gainForLevel(level) };
   });
+}
+
+/**
+ * Four tactile directions (N, E, S, W) from the 16 voices: each motor follows the strongest
+ * voice on its side of the ring, weighted by how squarely it faces that direction. A maximum
+ * (not a mean) keeps a single bright city to the east clearly felt instead of diluted.
+ * These are the values the controller's vibration motors will receive.
+ */
+export function motorLevels(ring) {
+  const dirs = { n: 0, e: 90, s: 180, w: 270 };
+  const out = {};
+  for (const [name, deg] of Object.entries(dirs)) {
+    let m = 0;
+    for (const v of ring) {
+      const w = Math.max(0, Math.cos(((v.bearing - deg) * Math.PI) / 180));
+      m = Math.max(m, w * v.gain);
+    }
+    out[name] = m;
+  }
+  return out;
+}
+
+/** Feeds one ring reading to an engine at time `when`; returns the land state for clicks. */
+function applyRing(engine, ring, prevLand, coastClicks, when) {
+  const landNow = ring.map((v) => v.land >= 0.5);
+  ring.forEach((v, k) => {
+    engine.setVoice(k, { gain: v.gain, brightness: Math.min(1, v.level / ARC_FULL_SCALE), land: v.land }, when);
+    if (coastClicks && prevLand && prevLand[k] !== landNow[k]) engine.click(panForBearing(v.bearing), when);
+  });
+  return landNow;
 }
 
 export class RingScan {
@@ -50,18 +83,10 @@ export class RingScan {
     // not visible (screen-reader users often have no reason to keep the window in front).
     const tick = () => {
       if (!this.running) return;
-      const now = performance.now();
-      const t = Math.min(1, (now - this.t0) / (this.durationS * 1000));
+      const t = Math.min(1, (performance.now() - this.t0) / (this.durationS * 1000));
       const r = this.radiusKm * (1 - t);
       const ring = readRing(this.field, this.landField, this.center, r);
-      ring.forEach((v, k) => {
-        this.engine.setVoice(k, { gain: v.gain, brightness: Math.min(1, v.level / ARC_FULL_SCALE), land: v.land });
-        const onLand = v.land >= 0.5;
-        if (this.coastClicks && this.prevLand && this.prevLand[k] !== onLand) {
-          this.engine.click(panForBearing(v.bearing));
-        }
-      });
-      this.prevLand = ring.map((v) => v.land >= 0.5);
+      this.prevLand = applyRing(this.engine, ring, this.prevLand, this.coastClicks, this.engine.now);
       if (this.onStep) this.onStep({ t, radiusKm: r, ring });
       if (t >= 1) {
         this.running = false;
@@ -72,7 +97,7 @@ export class RingScan {
         if (this.onEnd) this.onEnd({ centreLevel: centre, completed: true });
       }
     };
-    this._timer = setInterval(tick, 33);
+    this._timer = setInterval(tick, 1000 / STEP_HZ);
     tick();
   }
 
@@ -83,4 +108,28 @@ export class RingScan {
     this.engine.silenceVoices();
     if (was && notify && this.onEnd) this.onEnd({ completed: false });
   }
+}
+
+/**
+ * Renders a complete scan offline with the same engine and the same step rate as the live
+ * scan, and returns a WAV file as an ArrayBuffer.
+ */
+export async function renderScanWav({ field, landField, center, radiusKm, durationS, coastClicks = true, volume = 0.8 }) {
+  const sampleRate = 44100;
+  const tail = 2.4; // let the centre note and the reverb ring out
+  const ctx = new OfflineAudioContext(2, Math.ceil((durationS + tail) * sampleRate), sampleRate);
+  const engine = new SonicEngine(VOICES);
+  engine.volume = volume;
+  engine.attach(ctx, { offline: true });
+  const steps = Math.ceil(durationS * STEP_HZ);
+  let prevLand = null;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const ring = readRing(field, landField, center, radiusKm * (1 - t));
+    prevLand = applyRing(engine, ring, prevLand, coastClicks, t * durationS);
+  }
+  engine.silenceVoices(durationS);
+  engine.centreNote(sampleField(field, center.lat, center.lon, 1), durationS);
+  const buffer = await ctx.startRendering();
+  return encodeWav([buffer.getChannelData(0), buffer.getChannelData(1)], sampleRate);
 }
