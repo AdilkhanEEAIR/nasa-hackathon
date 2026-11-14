@@ -464,7 +464,9 @@ async function toggleLightningVideo() {
 
 async function startLightning(mode) {
   const v = $('map-video');
+  const token = scanToken;
   await currentFields();
+  if (token !== scanToken) return;
   if (mode === 'video' && v.duration && v.currentTime >= v.duration - 0.5) v.currentTime = 0;
   lightningMode = mode;
   if (mode === 'scan') setScanButton(true);
@@ -619,10 +621,48 @@ async function ensureSound() {
   return ok;
 }
 
-function setScanButton(running) {
+// One source of truth for "a scan is playing": the scanners' own running flags, plus the short
+// moment while a scan is starting (loading frames, waiting for the video). The button is always
+// drawn from it; nothing stores "pressed" separately. Every stop path ends in setScanButton().
+let scanStarting = false;
+let scanToken = 0;            // bumped by stopScans(): an async start that was overtaken gives up
+let sweepTimers = [];         // the year sweep's scheduled steps, so it can be cancelled
+
+function scanActive() {
+  return scanStarting || scan.running || (liveScan.running && lightningMode === 'scan') || needle.running;
+}
+
+/** `starting` true marks a scan that is about to start; anything else just redraws. */
+function setScanButton(starting = false) {
+  scanStarting = starting === true;
+  const running = scanActive();
   const b = $('btn-scan');
   b.setAttribute('aria-pressed', String(running));
   b.querySelector('.btn-label').textContent = running ? 'Stop scan' : 'Play scan';
+}
+
+/**
+ * Stops every kind of scan completely: ring, lightning (scan and whole video), needle and
+ * still-frame sweep, the year sweep, vibration. Used on track change, on leaving the Jukebox,
+ * on Esc and by stopAll(). Quiet: the caller says what happens next.
+ */
+function stopScans() {
+  scanToken++;
+  scanStarting = false;
+  if (scan.running) scan.stop(false);
+  if (liveScan.running || lightningMode) stopLightning();
+  if (needle.running) stopNeedle();
+  if (sweepTimers.length) {
+    for (const t of sweepTimers) clearTimeout(t);
+    sweepTimers = [];
+    engine.stopAll();
+    state.busy = false;
+    showFrame();
+  }
+  hapticsOff();
+  view.setRing(null);
+  dial.clear();
+  setScanButton();
 }
 
 function requireReadyTrack() {
@@ -648,7 +688,9 @@ async function toggleScan() {
     return;
   }
   if (state.track === 'lightning') { toggleLightning(); return; }
+  const token = scanToken;
   const fields = await currentFields();
+  if (token !== scanToken) return;
   setScanButton(true);
   const what = classTrack() ? classTrack().when : state.track === 'ocean' ? '19 June 2007' : state.track === 'wind' ? '29 October 2026' : String(state.year);
   announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
@@ -806,9 +848,8 @@ async function selectTrack(id, { fade = false } = {}) {
     announce(`${t.title} is coming next.`);
     return;
   }
-  if (state.busy) return;
-  if (scan.running) scan.stop(false);
-  if (liveScan.running) stopLightning();
+  if (state.busy && !sweepTimers.length) return;   // a tutorial or probe is speaking
+  stopScans();
   state.track = id;
   const isLt = id === 'lightning';
   engine.trim = isLt ? LIGHTNING_TRIM : TRACK_SOUND[id].trim;
@@ -984,17 +1025,19 @@ async function yearSweep() {
   announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`);
   const lead = 0.8;
   const step = 0.55; // under 2 notes per second, so the visual pings stay far below 3 flashes/s
+  sweepTimers = [];
   values.forEach((v, i) => {
     engine.note(degreeToFreq(degreeForIndex(v)), { when: lead + i * step, duration: 0.5, level: 0.32, bright: Math.min(1, v / 0.02), type: 'triangle' });
-    setTimeout(() => {
+    sweepTimers.push(setTimeout(() => {
       // While music plays, the picture follows it with a short cross-fade.
       view.setImage(yearUrl(YEARS[i]), { fade: true });
       $('year-readout').textContent = String(YEARS[i]);
       markTimeline(YEARS[i]);
       pingYear(YEARS[i]);
-    }, (lead + i * step) * 1000);
+    }, (lead + i * step) * 1000));
   });
-  setTimeout(() => {
+  sweepTimers.push(setTimeout(() => {
+    sweepTimers = [];
     showFrame({ fade: true });
     updateDescription();
     const max = Math.max(...values);
@@ -1006,7 +1049,7 @@ async function yearSweep() {
     announce(`Brightest year ${YEARS[values.indexOf(max)]}, dimmest ${YEARS[values.indexOf(min)]}. `
       + `Rendered brightness from 2012 to 2023: ${dir} percent.`, { say: 'result' });
     state.busy = false;
-  }, (lead + YEARS.length * step + 0.3) * 1000);
+  }, (lead + YEARS.length * step + 0.3) * 1000));
 }
 
 /**
@@ -1210,6 +1253,13 @@ function pollPad() {
 window.addEventListener('gamepadconnected', () => { if (!padLoop) padLoop = requestAnimationFrame(pollPad); announce('Game controller connected: left stick moves the centre, A starts the scan, X says where you are.'); });
 // A controller connected before the player loaded (on Home) has already fired its event.
 if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padLoop = requestAnimationFrame(pollPad);
+new MutationObserver(() => {
+  const tab = document.body.dataset.tab;
+  if (tab !== lastTab && lastTab === 'jukebox' && !document.body.classList.contains('demo-mode')) stopScans();
+  lastTab = tab;
+}).observe(document.body, { attributes: true, attributeFilter: ['data-tab'] });
+let lastTab = document.body.dataset.tab;
+
 window.addEventListener('earthsonar:haptics', () => dial.setHaptics({ strong: 0, weak: 0 }, hapticsModule.available));
 
 async function saveWav() {
@@ -1300,9 +1350,7 @@ function toggleCoast(force) {
 }
 
 function stopAll() {
-  if (scan.running) scan.stop(false);
-  if (liveScan.running) stopLightning();
-  if (needle.running) stopNeedle();
+  stopScans();
   state.busy = false; // cancels a running tutorial
   voice.cancel();
   if (state.explore) toggleExplore(false);
@@ -1685,11 +1733,13 @@ async function toggleNeedle() {
   const v = needleVideo();
   if (needle.running) { stopNeedle(); announce('Paused.'); return; }
   const entry = state.manifest[state.track];
+  const token = scanToken;
   if (entry.mode === 'sweep') {
     if (!sweepFields[state.track]) {
       const img = await loadGrid(entry.sound);
       sweepFields[state.track] = channelField(img, 0);
     }
+    if (token !== scanToken) return;
     setScanButton(true);
     sweepSums = [0, 0, 0];
     needle.start({
@@ -1707,10 +1757,12 @@ async function toggleNeedle() {
     announce('Sweeping the picture from left to right.');
     return;
   }
-  if (v.readyState < 2) await new Promise((r) => v.addEventListener('loadeddata', r, { once: true }));
   setScanButton(true);
+  if (v.readyState < 2) await new Promise((r) => v.addEventListener('loadeddata', r, { once: true }));
+  if (token !== scanToken) return;
   v.loop = true;
   try { await v.play(); } catch (err) { console.error(err); }
+  if (token !== scanToken) { v.pause(); return; }
   bandSums = [0, 0, 0];
   needle.start({
     video: v, geom: entry.needle, durationS: state.durationS, ...NEEDLE_READ[state.track],
@@ -1755,7 +1807,7 @@ function needleSummary() {
 }
 
 // Exposed for manual debugging in the browser console only.
-window.earthsonar = { engine, scan, state, view, haptics: hapticsModule, get needle() { return needle; } };
+window.earthsonar = { engine, scan, state, view, haptics: hapticsModule, scanActive, liveScan, get needle() { return needle; } };
 
 // The site shell (js/site.js) imports this module only when the Jukebox or Demo tab opens,
 // so the landing page never downloads player code or map data.
