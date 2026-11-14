@@ -26,7 +26,7 @@ which opens the full list of sources with SVS IDs and credits, plus the Natural 
 notes. The former *How it works*, *Data & Credits* and *Hardware* tabs were folded into this
 README: [the rule](#value--sound-rule), [the palette](#sound-palette),
 [limitations](#limitations-please-read), [credits](#credits-and-references) and
-[the controller](#tactile-controller). Old links to `#how`, `#data` and `#hardware` open Home.
+[haptics](#haptics-phone-and-game-controller). Old links to `#how`, `#data` and `#hardware` open Home.
 
 **Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
 before sound) and plays a 28 s cinema cut, full-screen with large English subtitles: the title
@@ -56,7 +56,7 @@ slides: [`docs/SixthSense-slides.pdf`](docs/SixthSense-slides.pdf).
 | Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
 | Explore mode | ✅ available (E explores point by point, W names the place) |
 | Home: live ring over 2023 night lights | ✅ silent until "Hear this ring", which opens the jukebox there |
-| Tactile controller (Arduino, 4 vibration motors) | ✅ site link ready (tested against an emulated board; real hardware test pending) |
+| Haptics: Android phone vibration, game-controller rumble | ✅ in the Accessibility menu where the device supports it (checked in emulation; real devices still to test) |
 
 ---
 
@@ -133,7 +133,7 @@ Each item below is from the challenge's Objectives and Potential Considerations.
 | Extract individual frames from the animations | [`tools/prepare_media.py`](tools/prepare_media.py) extracts the exact frame for each year, measured frame by frame. | ✅ |
 | UX: intuitively select a visualization and start the audio | One key or button to scan; presets for four regions; a "turn sound on" banner. | ✅ |
 | Screen-reader compatibility | Labelled controls, live status region, map description that updates with every change, keyboard-only operation, visible focus. | ✅ |
-| Tactile feedback | Arduino controller: joystick, year knob, button, **four vibration motors as a tactile compass** ([protocol](docs/PROTOCOL.md)). | firmware ✅; site link in progress |
+| Tactile feedback | Android phone vibration and game-controller rumble that follow the value under the scan ([haptics](#haptics-phone-and-game-controller)). | ✅ in emulation; real devices still to test |
 | Rich descriptive text accompanying the audio | On-screen and live-region summaries ("brightest year…", "at the centre: …"), track intros and an optional voice guide. | ✅ |
 | Map color, brightness, shapes, density to pitch, rhythm, tempo, volume, instrumentation | See *Value → sound rule*. | ✅ / in progress per mode |
 | Strict translation vs musicality | Strict, fixed mapping from value to loudness; musicality comes only from the scale and the timbre. | ✅ |
@@ -270,7 +270,9 @@ the first five tracks are Data-true.
 globe while the planet turns under it; it reads its pixels from top (north, high notes) to
 bottom (south, low notes) in 16 segments. Where it crosses the phenomenon a short note sounds
 at that height and a point on the needle flashes; ocean and space are silent. Forest Height
-uses wooden knocks: brighter vegetation in the picture knocks louder and quicker. Carbon
+finds vegetation by colour (green hue and saturation), not brightness, so dark green at the
+globe's edge and in shadow sounds too; desert, ice, ocean and no-data stripes stay silent. It
+plays dry marimba strikes with a short decay: brighter vegetation strikes louder and faster. Carbon
 Dioxide uses a low hum that thickens as the plume colour warms. Details: DATA_NOTES sections
 10 and 11. Atmospheric River is a single still frame: the needle sweeps across
 the picture from left to right (water drops); DATA_NOTES section 13 explains why only stills were light enough.
@@ -340,6 +342,9 @@ Loudness is matched in two steps, both measured from offline renders:
 - **Lightning coverage is about ±52° latitude** (the ISS orbit). Silence further north or
   south means "no data", not "no lightning". Each dot is shown for a 10-day window, so dots
   are accumulated detections, not individual real-time strikes.
+- **Vibration** works on Android phones (Chrome) and on computers with a rumble-capable game
+  controller (Chrome or Edge). It does not work on iPhone or iPad, or on a computer without
+  such a controller.
 
 ## Zoom and pan (visual only)
 
@@ -436,7 +441,7 @@ dial are drawn on canvas and read the same tokens through [`js/theme.js`](js/the
   - the shrinking ring, with loud arcs drawn thicker and a soft trail of earlier rings;
   - a note flash that blooms and fades where a voice turns loud (at most one per voice every
     0.4 s);
-  - 16 voice bars around a compass, and four N/E/S/W bars for the vibration motors;
+  - 16 voice bars around a compass and, where vibration is available, two haptic-intensity bars;
   - a year chip that lights up as its note plays;
   - one ripple at the centre when the final note sounds.
 - Changes you make from the keyboard are instant, never animated. A track or tab chosen with
@@ -448,33 +453,35 @@ dial are drawn on canvas and read the same tokens through [`js/theme.js`](js/the
 - Designed for blind and low-vision users. Our user tests are blindfolded tests with sighted
   volunteers; results will be added here only as measured.
 
-## Tactile controller
+## Haptics (phone and game controller)
 
-Optional. The site works fully without it. An Arduino with a joystick (move the centre), a
-knob (year), a button (scan) and **four vibration motors (N, E, S, W)** connects by USB through
-Web Serial (Chrome or Edge).
+Optional, and only shown where it works. Switch **Haptics** on in the Accessibility menu
+(Alt+A). The switch appears only when the device can vibrate; elsewhere one line says why.
+Vibration starts only after you switch it on, and stops on Esc, when a scan stops and when
+you leave the tab.
 
-What each part does:
-- **Joystick:** moves the ring centre, about 6° per second at full tilt (half that in explore
-  mode). The place is spoken when the stick returns to rest.
-- **Knob:** chooses the year on track 1, the moment in the video on track 3, and the ring size
-  on tracks 2 and 4.
-- **Button 1** plays or stops; **joystick press** says where you are.
-- **Motors N/E/S/W** follow the ring: each motor takes the strongest voice on its side.
-  Lightning strikes give a full-strength jolt on their side. In explore mode all four motors
-  carry the value under the point.
-- **Phone fallback:** on Android Chrome, "Phone vibration" pulses the phone with the strongest
-  direction. iPhone browsers have no vibration API.
-- The link was tested in the browser against an emulated board that sends and checks every
-  protocol message, including garbled lines. A test on the real board is pending.
+- **Android phone** (Chrome): `navigator.vibrate`. Each pulse lasts 10 to 60 ms, longer for a
+  higher value under the scan; values at or below 0.15 never vibrate; at most four pulses a
+  second.
+- **Game controller on a computer** (Chrome or Edge, Gamepad API): the left stick moves the
+  centre like the arrow keys, **A / Cross** starts or stops the scan, **X / Square** says where
+  you are. Rumble uses both motors: low notes come from the south, so the heavy low-frequency
+  motor carries the south side of the ring; high notes come from the north, so the light
+  high-frequency motor carries the north; east and west add half their value to both. Below
+  0.15 a motor stays still.
+- **Not available:** iPhone and iPad browsers (no vibration API), and computers without a
+  rumble controller.
+- In the Jukebox, two bars under the dial ("heavy", "light") show the haptic intensity. They
+  are hidden where vibration is not available.
 
-Connect it:
-1. Flash the firmware below to an Arduino Uno or Nano.
-2. Plug it in by USB and open the site in Chrome or Edge on a computer.
-3. In the Jukebox tab, choose **Connect controller** and pick the port.
+## Future work
 
-- Protocol and wiring: [`docs/PROTOCOL.md`](docs/PROTOCOL.md)
-- Firmware: [`firmware/earthsonar_controller`](firmware/earthsonar_controller/earthsonar_controller.ino)
+- **A tactile controller.** We designed an Arduino controller (joystick, year knob, button,
+  four vibration motors N/E/S/W) with a text protocol over Web Serial. The protocol and the
+  firmware are in the repository: [`docs/PROTOCOL.md`](docs/PROTOCOL.md) and
+  [`firmware/earthsonar_controller`](firmware/earthsonar_controller/earthsonar_controller.ino),
+  with `js/serial.js` and its tests. It was designed and checked against an emulated board
+  only; it was never tested on a physical device, and the site does not use it.
 
 ## Run locally
 
@@ -494,7 +501,7 @@ not work.
 
 - **Code and documentation:** written with Claude (Anthropic, Claude Code) under the team's
   direction. The team reviewed, ran and tested everything. This includes the web app, tests,
-  the media preparation script, the Arduino firmware, and the drafts of this README,
+  the media preparation script, the firmware for a future controller (not used by the site), and the drafts of this README,
   `docs/DATA_NOTES.md` and `docs/PROTOCOL.md`.
 - **Data analysis:** frame measurements were made by scripts written with Claude and checked by
   looking at the frames.
@@ -566,7 +573,7 @@ not work.
 
 **Software and tools**
 
-- Browser APIs: Web Audio, Web Serial, Web Speech, Canvas 2D. No third-party JavaScript
+- Browser APIs: Web Audio, Web Speech, Canvas 2D, Gamepad, Vibration. No third-party JavaScript
   libraries.
 - Media preparation: FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU).
 - Tests: the Node.js built-in test runner.

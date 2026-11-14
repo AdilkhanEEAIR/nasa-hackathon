@@ -111,7 +111,7 @@
       <tr><td>Lightning (ISS)</td><td>Data-true · ring on video</td><td>Crack · thunder</td></tr>
       <tr><td>Ocean Temperature</td><td>Data-true · ring</td><td>5 bands, sine → bright saw</td></tr>
       <tr><td>Near-Surface Wind</td><td>Data-true · ring</td><td>Rushing air, whistle</td></tr>
-      <tr><td>Forest Height (GEDI)</td><td>Visual · needle on globe</td><td>Wooden knocks</td></tr>
+      <tr><td>Forest Height (GEDI)</td><td>Visual · needle on globe</td><td>Dry marimba strikes</td></tr>
       <tr><td>Carbon Dioxide</td><td>Visual · needle on globe</td><td>Thickening hum</td></tr>
       <tr><td>Atmospheric River</td><td>Visual · needle sweep</td><td>Water drops</td></tr>
     </table>
@@ -152,11 +152,11 @@
       <li>Fast for everyone: the home page is 0.09 MB, the player 0.18 MB.</li>
     </ul>
     <div>
-      <p><b>Tactile controller (Arduino, USB, Web Serial)</b></p>
+      <p><b>Feel it, with what people already have</b></p>
       <ul>
-        <li>Joystick moves the centre · knob picks the year · button plays.</li>
-        <li><b>4 vibration motors N / E / S / W</b>: a tactile compass driven by the same ring. Lightning strikes are jolts on their side.</li>
-        <li>Open protocol and firmware. Android phones can vibrate instead.</li>
+        <li><b>Android phone vibration</b>: pulses grow with the value under the scan.</li>
+        <li><b>Game controller rumble</b>: heavy motor = south (low notes), light motor = north (high notes); the left stick moves the centre.</li>
+        <li>A Haptics switch, shown only where vibration works (not on iPhone).</li>
       </ul>
     </div>
   </div>
@@ -170,7 +170,7 @@
   <div class="grid2">
     <div>
       <ul>
-        <li>81 automated tests: ring geometry, georeferencing, sound mapping, the controller protocol, colour contrast and colour blindness, the 28-second demo, and a silent voice guide on tab changes.</li>
+        <li>89 automated tests: ring geometry, georeferencing, sound mapping, the haptics rule, colour contrast and colour blindness, the 28-second demo, and a silent voice guide on tab changes.</li>
         <li>Byte-exact sound data: browser-decoded grids match the prepared values.</li>
         <li>Values cross-checked against the frames, e.g. ocean: equatorial Pacific 27 °C, Southern Ocean 1 °C.</li>
       </ul>

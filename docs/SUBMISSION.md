@@ -28,8 +28,8 @@ height, carbon dioxide, an atmospheric river) and a place. A
 
 Each phenomenon has its own recognisable voice. Lightning cracks, dust rustles, smoke
 crackles, warm water flickers bright and fast, cold water shimmers slow. Sixth Sense works with
-the keyboard alone and with screen readers, and it can drive an Arduino controller with four vibration motors as a tactile
-compass. It matters because Earth science is shown almost only as pictures. Sixth Sense gives
+the keyboard alone and with screen readers, and you can feel it: phone vibration on Android,
+rumble on a game controller. It matters because Earth science is shown almost only as pictures. Sixth Sense gives
 blind and low-vision people, and everyone else, a new way to hear where our planet is
 changing.
 
@@ -61,7 +61,7 @@ as live, data-driven sound:
    that gets louder and brighter, with a whistle in strong wind.
 6. **Forest Height (GEDI)**, 7. **Carbon Dioxide (DYAMOND)**: rotating globes played with a
    **needle**, a fixed line down the middle of the globe read north (high) to south (low):
-   wooden knocks for forest, a thickening hum for CO2.
+   dry marimba strikes for forest, a thickening hum for CO2.
 8. **Atmospheric River**: a single still frame swept by the needle: water drops.
 
 **Two honest classes.** Tracks 1–5 are *Data-true*: values are read back from the
@@ -73,7 +73,7 @@ and said in every intro.
 
 - You choose a centre: one of the track's presets, placed where its data has contrast (cities,
   plumes, storm hot spots, ocean fronts such as the Gulf Stream and the Agulhas Current), the
-  arrow keys, a click, or the controller's joystick.
+  arrow keys, a click, or a game controller's left stick.
 - A ring of 16 voices starts up to thousands of kilometres away and shrinks onto the centre.
 - **Each voice reads one arc of the ring.** Its pitch follows north–south, its stereo position
   follows west–east, its loudness follows the value on the map, and its timbre tells *what*
@@ -117,19 +117,21 @@ Other modes:
   keyboard hints always on screen.
 - `prefers-reduced-motion` support. Animations only show what is sounding.
 
-**Hardware.**
+**Touch.** Feel it: phone vibration on Android, rumble on a game controller.
 
-- An optional Arduino controller: a joystick moves the centre, a knob picks the year, a button
-  plays.
-- Four vibration motors (N/E/S/W) form a tactile compass driven by the same ring.
-- It connects over USB with Web Serial, no drivers needed. The protocol and firmware are open.
+- A Haptics switch in the Accessibility menu, shown only where vibration really works.
+- Android phones pulse for 10 to 60 ms, longer for a higher value under the scan.
+- A game controller moves the centre with its left stick; its heavy motor carries the south
+  (low notes) and its light motor the north (high notes).
+- Vibration does not work on iPhone or iPad, or on a computer without a rumble controller.
+- Future work: an Arduino controller with four motors was designed and checked only in
+  emulation; it has never been tested on a physical device and the site does not use it.
 
 **Tools.**
 
-- A plain static website: HTML, CSS and JavaScript (Web Audio, Web Speech, Web Serial,
-  Canvas), with no third-party JavaScript libraries.
+- A plain static website: HTML, CSS and JavaScript (Web Audio, Web Speech, Gamepad,
+  Vibration, Canvas), with no third-party JavaScript libraries.
 - Media preparation in Python with NumPy, Pillow and FFmpeg.
-- Arduino C++ firmware.
 - Hosted on Vercel. Automated tests use the Node.js test runner.
 - The home page loads 0.09 MB and the player 0.18 MB.
 - 81 automated tests (Node.js test runner), including colour contrast, the 28-second demo and a
@@ -211,8 +213,7 @@ Information Center collection listed in the challenge resources.
   say so. Details and checksums: docs/DATA_NOTES.md sections 8–13.
 - **Software (all open):**
   - FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU), Node.js test runner;
-  - browser APIs: Web Audio, Web Speech, Web Serial, Canvas;
-  - Arduino core.
+  - browser APIs: Web Audio, Web Speech, Gamepad, Vibration, Canvas.
 - No NASA logos or insignia are used.
 
 ## Use of Artificial Intelligence
@@ -220,8 +221,8 @@ Information Center collection listed in the challenge resources.
 - **Code and documentation:** written with Claude (Anthropic's Claude Code), under the team's
   direction and with the team's review. The team chose the idea, the design, the datasets and
   the sound rules, and ran and checked everything. Automated tests cover the geometry, the
-  sound mapping and the hardware protocol. AI assistance covered the web app, the tests, the
-  media preparation scripts, the Arduino firmware, and drafts of the README, data notes and
+  sound mapping and the haptics rule. AI assistance covered the web app, the tests, the
+  media preparation scripts, the firmware for a future controller (not used by the site), and drafts of the README, data notes and
   these texts.
 - **No AI-generated images, video or audio.** Every image is an original NASA SVS frame
   (resized or cropped). Every sound is synthesised live in the browser by fixed,
