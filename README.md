@@ -42,6 +42,7 @@ slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 | 02 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
 | 03 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
 | 04 Ocean Temperature, 19 June 2007 | ✅ available |
+| 05 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
 | ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
 | Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
 | Explore mode | ✅ available (E explores point by point, W names the place) |
@@ -241,6 +242,19 @@ The frame shows surface current streaks, coloured by sea surface temperature on 
 - **What this track is:** one frame of a model simulation, a snapshot of where water is warm
   or cold on one day. **What it is not:** a measurement series or a warming trend, and not
   data below the surface. Values come from rendered colours and are approximate (about ±1.5 °C).
+
+**Near-Surface Wind (GEOS-FP, 29 October 2026, 09:00 UTC) — Data-true**
+
+Speed is read from the official colorbar (0–40 m/s) by nearest colour; calm air under
+3.6 m/s is uncoloured on the map and is silent; the grey hurricane-force end cannot be told
+from the calm ocean base, so readings stop at 34 m/s. Sound: band-passed noise on the compass
+pitch that gets louder and brighter with speed, plus a whistle above about 12 m/s. Agency logos
+printed on the frame are painted over. Details and checksums: DATA_NOTES section 9.
+
+**Two classes of track.** Every track is labelled in the list and in its spoken intro:
+*Data-true* tracks read values back from the visualization's own colour scale; *Visual* tracks
+sonify the picture itself (brightness, hue, motion) and are marked "sonifies the picture, not
+calibrated measurements". All five tracks above are Data-true.
 
 ### Sound palette
 

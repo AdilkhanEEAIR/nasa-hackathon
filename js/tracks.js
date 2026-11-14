@@ -164,6 +164,46 @@ export function describeTemp(t) {
 }
 
 /**
+ * Near-surface wind (SVS 5148, GEOS-FP, 29 Oct 2026 09:00 UTC). The lossless grid written by
+ * tools/prepare_media.py holds R = speed 0..40 m/s (read from the colorbar by nearest colour),
+ * G = 255 where a speed was read, B = 255 where the frame has no data (logos, date box).
+ * Calm air below 3.6 m/s is left uncoloured on the map, so it reads as 0; the grey
+ * hurricane-force end of the scale cannot be told from the base map, so readings stop at 34.
+ */
+export const WIND_RANGE_MS = 40;
+
+export function windFields(img, lon0 = -180) {
+  const { width, height, data } = img;
+  const speed = new Uint8Array(width * height);
+  for (let i = 0, p = 0; i < speed.length; i++, p += 4) if (data[p + 1] > 127) speed[i] = data[p];
+  return { speed: { width, height, lon0, values: speed } };
+}
+
+export const WIND_LAYERS = [
+  // Rushing air: band-passed noise on the compass pitch; stronger wind opens it up and lifts it.
+  { name: 'gust', source: 'noise', filter: 'bandpass', octave: 0, q: 1.1, pitchFilter: true, brightMul: 5, peak: 3.0 },
+  // A narrow whistle that only appears in strong wind (above about 12 m/s).
+  { name: 'whistle', source: 'noise', filter: 'bandpass', octave: 2, q: 14, pitchFilter: true, brightMul: 1.5, peak: 7 },
+];
+
+// Mean wind on an arc heard at full loudness (calm parts of the arc count as 0 m/s).
+export const WIND_FULL_MS = 18;
+
+/** Ring voice -> sound for the wind track: loudness, brightness and whistle all follow speed. */
+export function windVoice(v) {
+  const ms = (v.levels.speed || 0) * WIND_RANGE_MS;
+  const gain = ms > 0 ? Math.min(1, ms / WIND_FULL_MS) ** 0.7 : 0;
+  const whistle = Math.max(0, Math.min(1, (ms - 12) / 10));
+  return { gains: { gust: gain, whistle: gain * whistle }, brightness: Math.min(1, ms / 25), land: 0, windMs: ms };
+}
+
+export function describeWind(ms) {
+  if (!(ms > 0.5)) return 'calm, or below 4 metres per second';
+  const word = ms < 8 ? 'light' : ms < 14 ? 'fresh' : ms < 20 ? 'strong' : 'gale-force';
+  return `${word} wind, about ${Math.round(ms)} metres per second`;
+}
+
+/**
  * Lightning (SVS 5011). Dots are yellow (median RGB 138,130,21); the base map, lines and
  * coverage shading are neutral grey (R = G = B), so "yellowness" separates them cleanly
  * (DATA_NOTES 3.3): R > 90, G > 70, B < G - 40.
@@ -214,6 +254,12 @@ export const TRACK_PRESETS = {
     { key: '3', name: 'Florida', lat: 28, lon: -82, radiusKm: 1200 },
     { key: '4', name: 'Bangladesh', lat: 24, lon: 90, radiusKm: 1500 },
   ],
+  wind: [
+    { key: '1', name: 'North Atlantic storm', lat: 60, lon: -36, radiusKm: 1200 },
+    { key: '2', name: 'West Pacific typhoon', lat: 17, lon: 152, radiusKm: 1000 },
+    { key: '3', name: 'Southern Ocean westerlies', lat: -52, lon: 22, radiusKm: 1500 },
+    { key: '4', name: 'Equatorial calm', lat: 2, lon: -25, radiusKm: 1500 },
+  ],
   ocean: [
     { key: '1', name: 'Gulf Stream', lat: 38, lon: -68, radiusKm: 1200 },
     { key: '2', name: 'Kuroshio', lat: 35, lon: 145, radiusKm: 1200 },
@@ -233,4 +279,13 @@ export const TRACK_SOUND = {
   aerosols: { layers: AEROSOL_LAYERS, fullScale: 0.6, trim: 0.9 },
   // Open ocean fills every voice at once: measured RMS 0.13-0.18 before trim, ~0.09 after.
   ocean: { layers: OCEAN_LAYERS, fullScale: ARC_FULL_SCALE, trim: 0.55, mapVoice: (v) => oceanVoice(v) },
+  wind: { layers: WIND_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0, mapVoice: (v) => windVoice(v) },
 };
+
+/**
+ * Two classes of track, shown in the list and said in each intro:
+ *   data   - values are read back from the visualization's own colour scale (Data-true);
+ *   visual - the picture itself is sonified (brightness, hue, motion), not calibrated
+ *            measurements.
+ */
+export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data' };

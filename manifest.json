@@ -249,5 +249,23 @@
     "source": "Natural Earth 1:110m (public domain), naturalearthdata.com",
     "borders": "media/ne/borders-110m.ae61c3ba20.json",
     "cities": "media/ne/cities-110m.6965524a36.json"
+  },
+  "wind": {
+    "source": "NASA SVS 5148",
+    "lon0": -180,
+    "width": 2048,
+    "height": 1024,
+    "view": {
+      "webp": "media/wind/view-geosfp-wind.ebb2ea180d.webp",
+      "jpg": "media/wind/view-geosfp-wind.768d2681d3.jpg"
+    },
+    "sound": "media/wind/sound-geosfp-wind.cb0c0d414f.png",
+    "legend": "media/wind/legend.47c0ffa11a.png",
+    "validTime": "2026-10-29T09:00Z",
+    "rangeMs": [
+      0,
+      40
+    ],
+    "readableFromMs": 3.6
   }
 }

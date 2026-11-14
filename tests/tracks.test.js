@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   dominant, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
   oceanTemp, oceanVoice, describeTemp, OCEAN_BANDS, OCEAN_LAYERS, oceanBandWeights, oceanBand,
-  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS,
+  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS, TRACK_CLASS, windVoice, windFields, describeWind, WIND_RANGE_MS,
 } from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
@@ -107,4 +107,26 @@ test('readRing with layers: a "less light" spot to the west plays only the less 
   assert.ok(west.gains.less > 0 && west.gains.more === 0 && west.gains.same === 0);
   assert.equal(west.gain, west.gains.less);
   assert.equal(ring[4].gain, 0, 'east is silent');
+});
+
+test('wind: calm is silent, stronger wind is louder and brighter, the whistle starts near 12 m/s', () => {
+  const at = (ms) => windVoice({ levels: { speed: ms / WIND_RANGE_MS } });
+  assert.equal(at(0).gains.gust, 0);
+  assert.equal(at(8).gains.whistle, 0, 'no whistle in a light wind');
+  assert.ok(at(20).gains.whistle > 0, 'whistle in a strong wind');
+  assert.ok(at(16).gains.gust > at(8).gains.gust && at(16).brightness > at(8).brightness);
+  assert.equal(at(30).gains.gust, 1);
+  assert.match(describeWind(0), /calm/);
+  assert.match(describeWind(21), /gale-force wind, about 21 metres per second/);
+});
+
+test('wind: the grid decodes speed only where a colour was read', () => {
+  const data = new Uint8ClampedArray([128, 255, 0, 255, 200, 0, 0, 255, 0, 0, 255, 255]);
+  const f = windFields({ width: 3, height: 1, data }).speed.values;
+  assert.deepEqual([...f], [128, 0, 0]);
+});
+
+test('every track has a class, and the class is Data-true or Visual', () => {
+  for (const t of Object.keys(TRACK_PRESETS)) assert.ok(['data', 'visual'].includes(TRACK_CLASS[t]), t);
+  assert.equal(TRACK_CLASS.wind, 'data');
 });

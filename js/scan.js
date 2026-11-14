@@ -86,6 +86,7 @@ function applyRing(engine, ring, prevLand, coastClicks, when, mapVoice = default
     v.gains = m.gains;
     v.gain = Math.max(0, ...Object.values(m.gains));
     if (m.temp !== undefined) v.temp = m.temp;
+    if (m.windMs !== undefined) v.windMs = m.windMs;
     engine.setVoice(k, m, when);
     if (coastClicks && prevLand && prevLand[k] !== landNow[k]) engine.click(panForBearing(v.bearing), when);
   });

@@ -33,6 +33,6 @@ test('each scan finishes before the next scene starts', () => {
 test('the demo plays all four tracks', () => {
   const scenes = DEMO_STEPS.map((s) => s.scene).join();
   for (const t of ['india2012', 'india2023', 'aerosols', 'ocean', 'lightning']) assert.ok(scenes.includes(t), t);
-  assert.ok(Object.keys(TRACK_PRESETS).every((t) => ['nightlights', 'aerosols', 'lightning', 'ocean'].includes(t)));
+  for (const t of ['nightlights', 'aerosols', 'lightning', 'ocean']) assert.ok(TRACK_PRESETS[t], t);
   assert.ok(Object.values(DEMO_CENTRES).every((c) => c.radiusKm >= 250 && c.zoom >= 1));
 });

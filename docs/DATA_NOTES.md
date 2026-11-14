@@ -399,6 +399,46 @@ Credits for the reviewed (not used) SVS pages:
 Natural Earth: public domain, https://www.naturalearthdata.com. The files come from the
 project's official repository, `nvkelso/natural-earth-vector`.
 
+## 9. Near-surface wind (SVS 5148, GEOS-FP) — Data-true track
+
+**Source.** GEOS-FP Near-Surface Wind Speed, https://svs.gsfc.nasa.gov/5148/. Credit: NASA's
+Global Modeling and Assimilation Office; visualizer Joseph V. Ardizzone (NASA/GSFC); data
+GEOS-FP (Lucchesi 2018, GMAO Office Note 4). The SVS page is tagged *Earth Information
+Center*, but on 14 Nov 2026 it was not in the EIC gallery list (3912 and 5669 were not listed
+there either, although both are in the challenge resources).
+
+| File | URL | Size | Downloaded (UTC) | SHA-256 |
+|---|---|---|---|---|
+| `00000001.png` (2048×1024 frame) | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005148/frames/2048x1024_2x1_12p/MC02_stage3_GMAO_near_surface_wind_2048x1024_en-hwtool/00000001.png | 6,311,956 B | 2026-11-14 16:08 | `4c919f56eaf077907094142d1a337827596a48cbea4635bc599d75f8afbd0b7d` |
+| `NearSurfaceWindSpeed_colorbar_plain.png` | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005148/NearSurfaceWindSpeed_colorbar_plain.png | 7,861 B | 2026-11-14 16:08 | `47c0ffa11a85fc42f98b81e44693c32f184e2782943760a829c6f8c333e833b5` |
+| `NearSurfaceWindSpeed_colorbar.png` | https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005148/NearSurfaceWindSpeed_colorbar.png | 14,205 B | 2026-11-14 16:08 | `335cf63fb882c9c7c1a1daa194e68c02d5831b14c95201ec0d7d2fd4f43f1043` |
+
+All three: PNG signature checked; Windows Defender scan of `datasets/svs-5148`: no threats.
+
+**The frame.** Equirectangular, 180° W at x = 0, full ±90°. Printed on it: the date
+"29 Oct 2026 05:00:00 EDT" (09:00 UTC) in a translucent box at bottom left (x 0–515,
+y 920–1024) and agency logos at top left (x 0–360, y 0–80). Both areas are "no data" in the
+sound grid; the logos are painted over in our view, so no agency insignia appears on the site.
+
+**Reading the colours (Data-true).** The colorbar file is 528×165; major ticks every 5 m/s sit
+at x = 71.5, 120.5 … 463.5 (9.8 px per m/s). Below 3.6 m/s the bar is transparent: calm air is
+not coloured on the map, so it reads as 0 and is silent. Each map pixel takes the speed of the
+nearest bar colour (RGB distance ≤ 34, channel spread ≥ 28 so white/grey land and labels never
+match). Round trip on the bar itself: every colour from 5 to 34 m/s reads back, max error
+0.41 m/s.
+
+**Stated limits.**
+- The palest start (3.6–5 m/s) is too close to white land to be read reliably.
+- The grey hurricane-force end (34–40 m/s) cannot be told from the dark-purple calm ocean base,
+  so it is left out: such winds read as 34 m/s at most. Leaving it in made 3.9 % of calm ocean
+  read as hurricane-force, so the cap errs on the safe side.
+- 49.6 % of the frame carries a reading; median 8.5 m/s, maximum 33.9 m/s.
+
+**Sound.** Band-passed noise on the compass pitch (rushing air); stronger wind is louder and
+opens the band upward; above about 12 m/s a narrow whistle joins in. Measured offline
+(`tools/sound_report.mjs`): North Atlantic storm centroid 3094 Hz, Southern Ocean westerlies
+2865 Hz, Atlantic trade winds 1886 Hz, equatorial calm 988 Hz (and nearly silent).
+
 ## 8. Datasets reviewed and rejected (honesty check)
 
 The rule for every track: a pixel colour must translate into a value honestly. Where it

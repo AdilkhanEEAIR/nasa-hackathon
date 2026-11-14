@@ -251,6 +251,8 @@ output { color: var(--ui-text); font-weight: var(--weight-medium); margin-left: 
 .track[aria-pressed="true"] .num { color: var(--ui-text); }
 .track[aria-disabled="true"] { cursor: default; opacity: 0.6; }
 .badge { justify-self: start; font-size: var(--text-xs); color: var(--ui-text-muted); }
+.badge--data, .badge--visual { padding: 0 var(--space-2); border-radius: var(--radius-sm); border: var(--border-width) solid var(--ui-border-strong); }
+.badge--visual { border-style: dashed; }
 
 .now__title { margin: 0 0 var(--space-2); font-size: var(--text-xl); line-height: var(--leading-tight); font-weight: var(--weight-bold); }
 .readouts { max-width: none; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); margin: 0 0 var(--space-2); color: var(--ui-text-muted); font-size: var(--text-sm); }

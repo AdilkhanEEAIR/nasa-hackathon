@@ -35,6 +35,7 @@ const PAGE_CODE = String.raw`
     nightlights2012: channelField(await grid(manifest.nightlights.years['2012'].sound), 0),
     aerosols: T.aerosolFields(await grid(manifest.aerosols.sound)),
     ocean: T.oceanFields(await grid(manifest.ocean.sound)),
+    wind: T.windFields(await grid(manifest.wind.sound)),
   };
 
   // ---- analysis helpers

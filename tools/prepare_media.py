@@ -345,6 +345,104 @@ def ocean(manifest: dict) -> None:
     }
 
 
+# ---------------------------------------------------------------- near-surface wind (SVS 5148)
+
+WD_DIR = SRC / "svs-5148"
+WD_FRAME = WD_DIR / "00000001.png"            # 2048x1024 equirectangular, 180 W at x = 0
+WD_CBAR = WD_DIR / "NearSurfaceWindSpeed_colorbar_plain.png"
+WD_DATE = "2026-10-29T09:00Z"                  # "29 Oct 2026 05:00:00 EDT" printed on the frame
+# Colorbar geometry, measured on the 528x165 file: major ticks every 5 m/s at x = 71.5, 120.5,
+# 169.5 ... 463.5 (9.8 px per m/s); colour starts at x = 107 (3.6 m/s, calmer air is left
+# transparent so the base map shows through) and ends at x = 462; the bar spans rows 80..108.
+WD_X0, WD_PX_PER_MS = 71.5, 9.8
+WD_COL0, WD_COL1, WD_ROWS = 107, 462, (80, 109)
+WD_TOP = 34.0           # highest speed matched (m/s), see wind_lut
+WD_MAX_DIST = 34        # RGB distance to the nearest bar colour that still counts as a reading
+WD_MIN_SAT = 28         # max-min channel spread: white/grey land and grey labels are not wind
+# Overlays on the frame that are not data. The agency logos are also never shown on our site:
+# their area is painted over in the view and marked "no data" in the sound grid.
+WD_LOGOS = (0, 0, 360, 80)          # x0, y0, x1, y1
+WD_DATEBOX = (0, 920, 515, 1024)
+WD_NODATA_FILL = (8, 24, 58)
+
+
+def wind_lut() -> tuple[np.ndarray, np.ndarray]:
+    bar = np.asarray(Image.open(WD_CBAR).convert("RGB")).astype(np.float64)
+    cols = bar[WD_ROWS[0]:WD_ROWS[1], WD_COL0:WD_COL1 + 1].mean(axis=0)
+    speeds = (np.arange(WD_COL0, WD_COL1 + 1) - WD_X0) / WD_PX_PER_MS
+    # The grey hurricane-force end (above 34 m/s) is too close to the dark-purple calm ocean
+    # base to tell apart, so it is left out: such winds read as 34 m/s at most (the cap is
+    # stated in the README), never the other way round.
+    keep = speeds <= WD_TOP
+    return cols[keep], speeds[keep]
+
+
+def wind_speed(rgb: np.ndarray, lut: tuple[np.ndarray, np.ndarray]) -> np.ndarray:
+    """Wind speed in m/s per pixel from the nearest colorbar colour; NaN where unreadable."""
+    cols, speeds = lut
+    flat = rgb.reshape(-1, 3).astype(np.int32)
+    packed = (flat[:, 0] << 16) | (flat[:, 1] << 8) | flat[:, 2]
+    uniq, inv = np.unique(packed, return_inverse=True)
+    u = np.stack([(uniq >> 16) & 255, (uniq >> 8) & 255, uniq & 255], axis=1).astype(np.float64)
+    out = np.full(len(uniq), np.nan)
+    for i in range(0, len(u), 20000):
+        d = np.linalg.norm(u[i:i + 20000, None, :] - cols[None, :, :], axis=2)
+        k = d.argmin(axis=1)
+        ok = (d[np.arange(len(k)), k] <= WD_MAX_DIST) & ((u[i:i + 20000].max(1) - u[i:i + 20000].min(1)) >= WD_MIN_SAT)
+        out[i:i + 20000] = np.where(ok, speeds[k], np.nan)
+    return out[inv].reshape(rgb.shape[:2])
+
+
+def wind_grid(rgb: np.ndarray, lut) -> np.ndarray:
+    """R = speed 0..255 over 0..40 m/s (0 = calm or unreadable), G = 255 where a speed was read,
+    B = 255 where the frame carries no data (logos, date box)."""
+    sp = wind_speed(rgb, lut)
+    out = np.zeros(rgb.shape, np.uint8)
+    read = ~np.isnan(sp)
+    out[..., 0] = np.where(read, np.round(np.clip(np.nan_to_num(sp), 0, 40) / 40 * 255), 0).astype(np.uint8)
+    out[..., 1] = np.where(read, 255, 0)
+    for x0, y0, x1, y1 in (WD_LOGOS, WD_DATEBOX):
+        out[y0:y1, x0:x1] = (0, 0, 255)
+    return out
+
+
+def wind_self_check(lut) -> None:
+    cols, speeds = lut
+    bar = np.round(cols).astype(np.uint8)[None, :, :]
+    got = wind_speed(bar, lut)[0]
+    ok = ~np.isnan(got)
+    err = np.abs(got - speeds)[ok]
+    # The palest start (3.6-5 m/s, lavender) and the grey hurricane-force end (35-40 m/s) are
+    # too colourless to tell from land and labels; everything between must read back.
+    mid = speeds >= 5
+    assert ok[mid].all() and err.max() <= 1.0, f"colorbar round trip: {ok[mid].mean():.0%} of 5-34 m/s read, max error {err.max():.2f} m/s"
+    print(f"  colorbar round trip: 5-34 m/s all read, max error {err.max():.2f} m/s")
+    probe = np.array([[[235, 235, 235], [120, 120, 120], [20, 15, 40], [3, 3, 8], [52, 29, 60]]], np.uint8)
+    assert np.isnan(wind_speed(probe, lut)).all(), "land greys and the dark ocean base must not read as wind"
+
+
+def wind(manifest: dict) -> None:
+    print("Near-surface wind (SVS 5148)")
+    lut = wind_lut()
+    wind_self_check(lut)
+    img = Image.open(WD_FRAME).convert("RGB")
+    rgb = np.asarray(img)
+    grid = wind_grid(rgb, lut)
+    read = (grid[..., 1] > 0).mean()
+    print(f"  pixels with a wind reading: {read:.1%}; max {grid[..., 0].max() / 255 * 40:.1f} m/s")
+    view = rgb.copy()
+    x0, y0, x1, y1 = WD_LOGOS
+    view[y0:y1, x0:x1] = WD_NODATA_FILL
+    manifest["wind"] = {
+        "source": "NASA SVS 5148", "lon0": -180, "width": img.width, "height": img.height,
+        "view": publish_view(Image.fromarray(view), "wind", "geosfp-wind"),
+        "sound": publish_image(Image.fromarray(grid), "wind", "sound-geosfp-wind", format="PNG", optimize=True),
+        "legend": publish(WD_CBAR, "wind", "legend"),
+        "validTime": WD_DATE, "rangeMs": [0, 40], "readableFromMs": round((WD_COL0 - WD_X0) / WD_PX_PER_MS, 1),
+    }
+
+
+
 NE_DIR = SRC / "naturalearth"
 
 
@@ -418,7 +516,18 @@ def lightning(manifest: dict) -> None:
     }
 
 
+
+
 def main() -> None:
+    # --only <step> rebuilds one dataset into the existing manifest (adding a track must not
+    # re-encode everything else, and unchanged files keep their hashed names).
+    if "--only" in sys.argv:
+        step = sys.argv[sys.argv.index("--only") + 1]
+        manifest = json.loads(MANIFEST.read_text())
+        globals()[step](manifest)
+        MANIFEST.write_text(json.dumps(manifest, indent=2))
+        shutil.rmtree(BUILD / "tmp", ignore_errors=True)
+        return
     self_check()
     if OUT.exists():
         shutil.rmtree(OUT)  # media/ only ever holds generated, hashed files
@@ -427,6 +536,7 @@ def main() -> None:
     aerosols(manifest)
     lightning(manifest)
     ocean(manifest)
+    wind(manifest)
     natural_earth(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)
