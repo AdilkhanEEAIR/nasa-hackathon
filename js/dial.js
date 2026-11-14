@@ -14,13 +14,16 @@ export class VoiceDial {
     this.draw();
   }
 
-  update(levels, motors) {
+  /** `colors` (optional) gives each voice the colour of its loudest instrument. */
+  update(levels, motors, colors = null) {
     this.levels.set(levels);
     this.motors = motors;
+    this.colors = colors;
     this.draw();
   }
 
   clear() {
+    this.colors = null;
     this.levels.fill(0);
     this.motors = { n: 0, e: 0, s: 0, w: 0 };
     this.draw();
@@ -55,13 +58,15 @@ export class VoiceDial {
       const g = this.levels[k];
       const len = r0 + 6 + (r1 - r0 - 6) * Math.max(0.04, g);
       const hot = this.highlight !== null && Math.abs(((k * 22.5 - this.highlight + 540) % 360) - 180) < 12;
-      ctx.strokeStyle = hot ? '#7cd8ff' : `rgba(255, 213, 106, ${0.25 + 0.75 * g})`;
+      ctx.strokeStyle = hot ? '#7cd8ff' : (this.colors && this.colors[k]) || '#ffd56a';
+      ctx.globalAlpha = hot ? 1 : 0.25 + 0.75 * g;
       ctx.lineWidth = 9;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(cx + Math.cos(a) * (r0 + 6), cy + Math.sin(a) * (r0 + 6));
       ctx.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
       ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
     // Compass letters.

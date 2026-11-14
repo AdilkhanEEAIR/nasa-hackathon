@@ -16,7 +16,7 @@ The site is a jukebox: pick a track, press Space.
 | Track | Status |
 |---|---|
 | 01 Night Lights 2012–2023 | ✅ available |
-| 02 What Changed, 2012 → 2023 | coming next |
+| 02 What Changed, 2012 → 2023 | ✅ available |
 | 03 Aerosols (dust, black carbon, sea salt, sulfate) | coming next |
 | 04 Lightning from the ISS, 2017–2023 | coming next |
 | Voice guide and explore mode | coming next |
@@ -80,8 +80,8 @@ Each item below is from the challenge's Objectives and Potential Considerations.
 | Select or experience a specific EIC visualization alongside its soundscape | The map is shown with the moving ring; you choose the year, place and ring size. More visualizations are being added as modes. | ✅ night lights; others in progress |
 | An interactive tool that actively translates the visual data into sound | The whole site is interactive: move, scan, compare years. | ✅ |
 | …or a curated collection of original, generated audio files | **Save scan as WAV** renders any scan (track, year, place, ring size) offline with the same synthesis engine and downloads it, so listeners can build their own playlist of Earth sounds. | ✅ |
-| Use computer vision on color palettes, shapes and pixel densities | Brightness thresholds, light-pixel density along each arc of the ring, hue classes for the change map and aerosol types, dot detection for lightning ([DATA_NOTES](docs/DATA_NOTES.md)). | ✅ brightness and density; color classes in progress |
-| Map them to pitch, tempo, instrumentation | Pitch = direction (or value in year sweeps), loudness and filter brightness = value, one instrument per aerosol type, tempo = lightning activity. | ✅ pitch, loudness; instruments and tempo in progress |
+| Use computer vision on color palettes, shapes and pixel densities | Brightness thresholds, light-pixel density along each arc of the ring, hue classes for the change map and aerosol types, dot detection for lightning ([DATA_NOTES](docs/DATA_NOTES.md)). | ✅ brightness, density, change-map hues; aerosols and lightning coming next |
+| Map them to pitch, tempo, instrumentation | Pitch = direction (or value in year sweeps), loudness and filter brightness = value, one instrument per colour class (3 for the change map, 4 for aerosols), tempo = lightning activity. | ✅ pitch, loudness, change-map instruments; aerosols and tempo coming next |
 | ML, open-source synthesis frameworks, or custom data-driven rulesets | A **custom, documented ruleset** (below). We chose transparent rules over ML, so every sound can be traced to a pixel value. | ✅ (no ML, by choice) |
 | Balance data interpretation with artistic, musically pleasing output | Major pentatonic scale (no clashing notes), smooth gain glides, a light synthetic room reverb. The data mapping is fixed and never "improved" per frame. | ✅ |
 | A web-based jukebox | A static website on GitHub Pages: no install, no account. | ✅ |
@@ -119,6 +119,26 @@ so equal pixel values always give equal sounds.
 | Land / water | More than half the arc on land and no lights: quiet hum (320 Hz low-pass). Water: silence. Crossing a coast: a click panned to that direction. |
 | Centre note | Light level at the centre → loudness and brightness of the final chord. Zero gives a low thud. |
 | Year sweep | Mean light level inside the ring disk → 15 pentatonic degrees on a log scale from 0.001 to 0.03, the same for every region and year. |
+
+**What Changed (2012 → 2023)**
+
+The change map colours each lit pixel by the direction of change. EarthSonar gives each
+direction its own instrument. The compass rule (pitch and stereo) and the loudness rule are
+the same as for night lights.
+
+| Pixel class (measured thresholds) | Instrument |
+|---|---|
+| More light, purple: `B > R+10` and `B > G+20` | Triangle wave one octave **up**, bright filter: a high sparkle |
+| Less light, orange: `R > B+30` and `G > B+10` | Sawtooth one octave **down**, dark filter: a low muffled buzz |
+| Little change, any other lit pixel (near-white) | Soft sine at the compass pitch, at 45% loudness, so change stands out |
+| Base map (`max ≤ 45`) | Silent, or a land hum as above |
+
+- **Centre note:** two rising notes for "more light", two falling notes for "less light", one
+  chord for "little change", a low thud for darkness.
+- **Ring summary (Y):** how the lit area inside the ring divides between the three classes,
+  played as three notes whose loudness is each share, and read out as percentages.
+- The direction of change is reliable. Its magnitude is approximate, because on-map
+  brightness also carries the underlying light level ([DATA_NOTES](docs/DATA_NOTES.md) 1.4).
 
 ---
 

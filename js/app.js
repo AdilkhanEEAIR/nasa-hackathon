@@ -1,19 +1,21 @@
 // EarthSonar application: tracks, state, keyboard control, announcements.
 // Everything is reachable from the keyboard; every button shows its shortcut.
 
-import { SonicEngine } from './audio.js';
-import { RingScan, motorLevels, renderScanWav } from './scan.js';
+import { SonicEngine, DEFAULT_LAYERS } from './audio.js';
+import { RingScan, motorLevels, renderScanWav, readPoint } from './scan.js';
 import { MapView, reducedMotion } from './view.js';
 import { VoiceDial } from './dial.js';
 import { buildField, buildMask, lightLevel, meanOver, sampleField } from './fields.js';
 import { clampLat, normalizeLon, formatLatLon, diskPoints } from './geo.js';
 import { degreeToFreq, degreeForIndex } from './music.js';
+import { changeClass, CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange } from './tracks.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
+const AMBER = '#ffd56a';
 
 export const TRACKS = [
   { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true },
-  { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: false },
+  { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: true },
   { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: false },
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: false },
 ];
@@ -35,6 +37,7 @@ const state = {
   durationS: 8,
   manifest: null,
   fields: new Map(),   // year -> value field
+  change: null,        // {more, less, same} value fields from the change map
   land: null,
   busy: false,
 };
@@ -42,18 +45,27 @@ const state = {
 const engine = new SonicEngine();
 const view = new MapView({ imgA: $('map-a'), imgB: $('map-b'), overlay: $('overlay') });
 const dial = new VoiceDial($('dial'));
+
+/** Colour of a voice in the visuals: the instrument that is loudest on its arc. */
+function voiceColor(v) {
+  if (state.track === 'change') return CHANGE_COLORS[dominant(v.gains)] || AMBER;
+  return AMBER;
+}
+
 const scan = new RingScan(engine, {
   onStep: ({ ring }) => {
+    for (const v of ring) v.color = voiceColor(v);
     view.setRing(ring);
-    dial.update(ring.map((v) => v.gain), motorLevels(ring));
+    dial.update(ring.map((v) => v.gain), motorLevels(ring), ring.map((v) => v.color));
   },
-  onEnd: ({ completed, centreLevel }) => {
+  onEnd: ({ completed, centreLevel, centreKind }) => {
     setScanButton(false);
     view.setRing(null);
     dial.clear();
     if (completed) {
       view.pulseCentre(centreLevel);
-      announce(`Scan finished. At the centre: ${describeLevel(centreLevel)}.`);
+      const what = state.track === 'change' ? describeChange(centreLevel > 0.001 ? centreKind : null) : describeLevel(centreLevel);
+      announce(`Scan finished. At the centre: ${what}.`);
     }
   },
 });
@@ -82,18 +94,55 @@ function centreLabel() {
 }
 
 function updateDescription() {
-  const txt = `Night lights map for ${state.year}. Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`;
-  $('overlay').setAttribute('aria-label', txt);
+  const map = state.track === 'change'
+    ? 'Map of change in night lights between 2012 and 2023: purple more light, orange less light, white little change.'
+    : `Night lights map for ${state.year}.`;
+  $('overlay').setAttribute('aria-label', `${map} Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`);
   $('centre-readout').textContent = state.center.name || formatLatLon(state.center.lat, state.center.lon);
-  $('year-readout').textContent = String(state.year);
+  $('year-readout').textContent = state.track === 'change' ? '2012 → 2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
-  markTimeline(state.year);
+  markTimeline(state.track === 'change' ? null : state.year);
 }
 
 // ---------------------------------------------------------------- data loading
 
 function yearUrl(year) {
   return state.manifest.nightlights.years[String(year)].file;
+}
+
+function trackImageUrl() {
+  return state.track === 'change' ? state.manifest.nightlights.change.file : yearUrl(state.year);
+}
+
+async function loadChange() {
+  if (state.change) return;
+  const data = await loadImagePixels(state.manifest.nightlights.change.file);
+  const { width, height } = data;
+  const px = data.data;
+  // One pass over the pixels, three fields out.
+  const f = { more: new Uint8Array(width * height), less: new Uint8Array(width * height), same: new Uint8Array(width * height) };
+  for (let i = 0, p = 0; i < width * height; i++, p += 4) {
+    const c = changeClass(px[p], px[p + 1], px[p + 2]);
+    f.more[i] = Math.round(255 * c.more);
+    f.less[i] = Math.round(255 * c.less);
+    f.same[i] = Math.round(255 * c.same);
+  }
+  const wrap = (values) => ({ width, height, lon0: -180, values });
+  state.change = { more: wrap(f.more), less: wrap(f.less), same: wrap(f.same) };
+}
+
+/** Value fields for the current track (and year). */
+async function currentFields() {
+  if (state.track === 'change') {
+    await loadChange();
+    return state.change;
+  }
+  await loadYear(state.year);
+  return state.fields.get(state.year);
+}
+
+function currentLayers() {
+  return state.track === 'change' ? CHANGE_LAYERS : DEFAULT_LAYERS;
 }
 
 async function loadImagePixels(url) {
@@ -121,8 +170,9 @@ async function init() {
   const mask = await loadImagePixels(state.manifest.landMask.file);
   state.land = buildMask(mask.data, mask.width, mask.height);
   await loadYear(state.year);
-  view.setImage(yearUrl(state.year));
+  view.setImage(trackImageUrl());
   view.setCenter(state.center);
+  renderLegend();
   updateDescription();
   document.body.dataset.ready = 'true';
   announce('Ready. Press Space to play a scan, or T for a 10-second tutorial.');
@@ -162,11 +212,12 @@ async function toggleScan() {
   }
   if (!requireReadyTrack()) return;
   await ensureSound();
-  await loadYear(state.year);
+  const fields = await currentFields();
   setScanButton(true);
-  announce(`Scanning ${state.year} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
+  const what = state.track === 'change' ? 'changes 2012 to 2023' : String(state.year);
+  announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
   scan.start({
-    field: state.fields.get(state.year),
+    fields,
     landField: state.land,
     center: state.center,
     radiusKm: state.radiusKm,
@@ -175,6 +226,10 @@ async function toggleScan() {
 }
 
 async function setYear(year, { speak = true } = {}) {
+  if (state.track !== 'nightlights') {
+    announce('This track compares 2012 with 2023; years are on track 1.');
+    return;
+  }
   const y = Math.max(YEARS[0], Math.min(YEARS[YEARS.length - 1], year));
   state.year = y;
   $('year').value = String(y);
@@ -216,17 +271,81 @@ function setRadius(km) {
   announce(`Ring ${state.radiusKm} kilometres.`);
 }
 
-function selectTrack(id) {
+const LEGENDS = {
+  nightlights: [
+    [AMBER, 'Louder and brighter: more light'],
+    ['#8b95a8', 'Soft hum: unlit land · silence: water'],
+  ],
+  change: [
+    [CHANGE_COLORS.more, 'Purple, more light: high bright sparkle'],
+    [CHANGE_COLORS.less, 'Orange, less light: low muffled buzz'],
+    [CHANGE_COLORS.same, 'White, little change: soft quiet tone'],
+  ],
+};
+
+function renderLegend() {
+  const el = $('track-legend');
+  el.textContent = '';
+  for (const [color, text] of LEGENDS[state.track] || []) {
+    const li = document.createElement('li');
+    const sw = document.createElement('span');
+    sw.className = 'swatch';
+    sw.style.background = color;
+    sw.setAttribute('aria-hidden', 'true');
+    li.append(sw, text);
+    el.appendChild(li);
+  }
+}
+
+async function selectTrack(id) {
   const t = TRACKS.find((x) => x.id === id);
   if (!t) return;
   if (!t.ready) {
     announce(`${t.title} is coming next.`);
     return;
   }
+  if (state.busy) return;
+  if (scan.running) scan.stop(false);
   state.track = id;
+  engine.setLayers(currentLayers());
   renderTracks();
+  renderLegend();
   $('track-title').textContent = t.title;
-  announce(`Track: ${t.title}.`);
+  document.body.dataset.track = id;
+  const yearsOnly = id === 'nightlights';
+  for (const b of ['btn-prev-year', 'btn-next-year', 'year']) $(b).disabled = !yearsOnly;
+  $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
+  await currentFields();
+  view.setImage(trackImageUrl());
+  updateDescription();
+  announce(`Track ${TRACKS.indexOf(t) + 1}: ${t.title}. ${t.blurb} Press Space to scan.`);
+}
+
+/**
+ * Track 2's "Y": how the lit area inside the ring divides between more light, less light and
+ * little change, as three notes (one per instrument, loudness = share) and a sentence.
+ */
+async function changeSummary() {
+  if (state.busy) return;
+  await ensureSound();
+  if (scan.running) scan.stop(false);
+  const f = await currentFields();
+  const pts = diskPoints(state.center, state.radiusKm, 8, 60);
+  const m = { more: meanOver(f.more, pts, 1), less: meanOver(f.less, pts, 1), same: meanOver(f.same, pts, 1) };
+  const total = m.more + m.less + m.same;
+  if (total < 1e-4) {
+    engine.centreNote(0);
+    announce(`Inside the ring around ${centreLabel()}: no lights on the map.`);
+    return;
+  }
+  const pct = (x) => Math.round((100 * x) / total);
+  const notes = [['more', 10, 'triangle', 1], ['less', 2, 'sawtooth', 0.15], ['same', 6, 'sine', 0.5]];
+  notes.forEach(([k, deg, type, bright], i) => {
+    const share = m[k] / total;
+    if (share > 0.01) engine.note(degreeToFreq(deg), { when: 0.2 + i * 0.6, duration: 0.55, level: 0.08 + 0.4 * share, type, bright });
+  });
+  announce(`Inside the ring around ${centreLabel()}, of the lit area: ${pct(m.more)} percent more light, `
+    + `${pct(m.less)} percent less light, ${pct(m.same)} percent little change.`);
 }
 
 /** Pings one year chip in the visual timeline when its note sounds. */
@@ -242,6 +361,7 @@ function pingYear(year) {
  * on a fixed logarithmic pentatonic scale shared by all regions and years.
  */
 async function yearSweep() {
+  if (state.track === 'change') { changeSummary(); return; }
   if (state.busy || !requireReadyTrack()) return;
   await ensureSound();
   if (scan.running) scan.stop(false);
@@ -302,11 +422,21 @@ async function tutorial() {
   }, 10000);
 }
 
-function whereAmI() {
+async function whereAmI() {
   if (!requireReadyTrack()) return;
-  const v = sampleField(state.fields.get(state.year), state.center.lat, state.center.lon, 1);
+  const fields = await currentFields();
   const onLand = sampleField(state.land, state.center.lat, state.center.lon, 0) >= 0.5;
-  announce(`${state.year}. Centre ${centreLabel()}, ${onLand ? 'land' : 'water'}, ${describeLevel(v)}. Ring ${state.radiusKm} kilometres.`);
+  const c = state.center;
+  let what;
+  let when;
+  if (state.track === 'change') {
+    what = describeChange(dominant(readPoint(fields, c.lat, c.lon)));
+    when = 'Changes 2012 to 2023';
+  } else {
+    what = describeLevel(sampleField(fields, c.lat, c.lon, 1));
+    when = String(state.year);
+  }
+  announce(`${when}. Centre ${centreLabel()}, ${onLand ? 'land' : 'water'}, ${what}. Ring ${state.radiusKm} kilometres.`);
 }
 
 async function saveWav() {
@@ -316,9 +446,9 @@ async function saveWav() {
   btn.setAttribute('aria-busy', 'true');
   announce('Rendering the scan to a WAV file…');
   try {
-    await loadYear(state.year);
     const wav = await renderScanWav({
-      field: state.fields.get(state.year),
+      fields: await currentFields(),
+      layers: currentLayers(),
       landField: state.land,
       center: state.center,
       radiusKm: state.radiusKm,
@@ -328,7 +458,8 @@ async function saveWav() {
     });
     const place = (state.center.name || formatLatLon(state.center.lat, state.center.lon))
       .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const name = `earthsonar-nightlights-${state.year}-${place}.wav`;
+    const what = state.track === 'change' ? 'change-2012-2023' : `nightlights-${state.year}`;
+    const name = `earthsonar-${what}-${place}.wav`;
     const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
     const a = document.createElement('a');
     a.href = url;

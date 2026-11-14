@@ -108,9 +108,11 @@ export class MapView {
       for (const v of this.ring) {
         if (v.gain <= 0.05) continue;
         ctx.lineWidth = 2 + 7 * v.gain;
-        ctx.strokeStyle = `rgba(255, 213, 106, ${0.35 + 0.65 * v.gain})`;
+        ctx.strokeStyle = v.color || '#ffd56a';
+        ctx.globalAlpha = 0.35 + 0.65 * v.gain;
         this._polyline(v.points, false);
       }
+      ctx.globalAlpha = 1;
     }
 
     if (this.center) {
