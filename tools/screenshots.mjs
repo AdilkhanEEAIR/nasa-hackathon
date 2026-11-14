@@ -56,7 +56,7 @@ try {
       width: d.width, height: d.height, deviceScaleFactor: d.scale, mobile: d.mobile,
     });
 
-    await open(c, '#home', "document.body.dataset.shell === 'ready' && document.querySelector('.hero__figure img').complete");
+    await open(c, '#home', "document.body.dataset.shell === 'ready' && document.querySelector('.hero__figure img').complete && document.querySelector('.hero__figure img').naturalWidth > 0");
     await shot(c, `home-${d.name}.jpg`);
 
     // Jukebox mid-scan: the ring is about halfway in, so the voice arcs and dial are lit.
