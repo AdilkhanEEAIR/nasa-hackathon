@@ -34,3 +34,6 @@ desktop.ini
 
 # Intermediate encodes (tools/prepare_media.py cache)
 build/
+
+# Team-only notes (Russian copies for pitch preparation)
+team-notes/
