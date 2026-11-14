@@ -13,6 +13,11 @@ NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · 
 
 The site is a jukebox: pick a track, press Space.
 
+**Demo:** https://earthsonar.vercel.app/?demo runs a fixed 28-second scenario with English
+subtitles on screen, after one click (browsers need a gesture before sound): what it is → India
+2012 vs 2023 → aerosols → lightning → address. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
+slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
+
 | Track | Status |
 |---|---|
 | 01 Night Lights 2012–2023 | ✅ available |
