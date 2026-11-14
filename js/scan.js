@@ -145,6 +145,66 @@ export class RingScan {
 }
 
 /**
+ * Ring scan over a moving picture (lightning video). The ring keeps cycling from the outside
+ * in while the video plays. Every tick it reads the current frame twice:
+ *   - dot density on each arc  -> the voice's sustained "rumble" (thunder) layer;
+ *   - dots that just appeared  -> sharp strikes in that direction, at a rate set by how many.
+ * Arcs that lie wholly outside the sensor's coverage stay silent: no data, not no lightning.
+ */
+export class LiveRingScan {
+  constructor(engine, { onStep } = {}) {
+    this.engine = engine;
+    this.onStep = onStep;
+    this.running = false;
+    this._timer = 0;
+  }
+
+  start({ getFrame, center, radiusKm, durationS = 8, fullScale = 0.05, coverageLat = 90, strikeRate }) {
+    this.stop();
+    Object.assign(this, { getFrame, center, radiusKm, durationS, fullScale, coverageLat, strikeRate });
+    this.t0 = performance.now();
+    this.running = true;
+    this._strikesThisSecond = 0;
+    this._secondStart = performance.now();
+    const tick = () => {
+      if (!this.running) return;
+      const now = performance.now();
+      const t = ((now - this.t0) / (this.durationS * 1000)) % 1;
+      const r = Math.max(1, this.radiusKm * (1 - t));
+      const frame = this.getFrame();
+      if (!frame) return;
+      const ring = readRing({ rumble: frame.field }, null, this.center, r, this.fullScale);
+      const fresh = frame.fresh ? readRing({ hit: frame.fresh }, null, this.center, r, this.fullScale) : null;
+      if (now - this._secondStart > 1000) { this._secondStart = now; this._strikesThisSecond = 0; }
+      ring.forEach((v, k) => {
+        const covered = v.points.some((p) => Math.abs(p.lat) <= this.coverageLat);
+        v.noData = !covered;
+        if (!covered) { v.gains = { rumble: 0 }; v.gain = 0; }
+        this.engine.setVoice(k, { gains: v.gains, brightness: Math.min(1, v.level / this.fullScale), land: 0 });
+        if (!covered || !fresh) return;
+        const rate = this.strikeRate(fresh[k].levels.hit);
+        // Poisson-like triggering at the voice's rate, with a global cap so storms stay legible.
+        if (rate > 0 && Math.random() < rate / STEP_HZ && this._strikesThisSecond < 30) {
+          this._strikesThisSecond++;
+          v.struck = true;
+          const base = this.engine.voices[k].base;
+          this.engine.strike(panForBearing(v.bearing), base, Math.min(1, 0.4 + rate / 10));
+        }
+      });
+      if (this.onStep) this.onStep({ t, radiusKm: r, ring });
+    };
+    this._timer = setInterval(tick, 1000 / STEP_HZ);
+    tick();
+  }
+
+  stop() {
+    this.running = false;
+    clearInterval(this._timer);
+    this.engine.silenceVoices();
+  }
+}
+
+/**
  * Renders a complete scan offline with the same engine, instruments and step rate as the
  * live scan, and returns a WAV file as an ArrayBuffer.
  */

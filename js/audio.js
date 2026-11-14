@@ -273,6 +273,40 @@ export class SonicEngine {
     src.start(when);
   }
 
+  /**
+   * One lightning strike: a sharp noise crack plus a short thump at the compass pitch of its
+   * direction, so a strike to the north-east is a high crack in the right ear.
+   */
+  strike(pan, freq, level = 0.6, when = this.now) {
+    if (!this.ready) return;
+    const ctx = this.ctx;
+    const out = ctx.createStereoPanner();
+    out.pan.value = pan;
+    out.connect(this.bus);
+    const src = ctx.createBufferSource();
+    src.buffer = this._texture('noise');
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 1800;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(0.5 * level * this.trim, when + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0005, when + 0.06);
+    src.connect(hp).connect(g).connect(out);
+    src.start(when, Math.random() * 1.5, 0.08);
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, when);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, when + 0.12);
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0, when);
+    og.gain.linearRampToValueAtTime(0.35 * level * this.trim, when + 0.004);
+    og.gain.exponentialRampToValueAtTime(0.0005, when + 0.14);
+    osc.connect(og).connect(out);
+    osc.start(when);
+    osc.stop(when + 0.16);
+  }
+
   /** A plucked note. `when` is seconds from now (live); `at` is an absolute context time. */
   note(freq, { when = 0, at = null, duration = 0.6, level = 0.3, pan = 0, type = 'sine', bright = 0.5 } = {}) {
     if (!this.ready) return;

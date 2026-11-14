@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { changeClass, dominant, describeChange, CHANGE_LAYERS } from '../js/tracks.js';
+import {
+  changeClass, dominant, describeChange, CHANGE_LAYERS, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
+} from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
 import { destination } from '../js/geo.js';
@@ -37,6 +39,21 @@ test('change layers are three distinct instruments', () => {
   assert.deepEqual(names, ['more', 'less', 'same']);
   const sig = new Set(CHANGE_LAYERS.map((l) => `${l.type}/${l.octave}`));
   assert.equal(sig.size, 3);
+});
+
+test('lightning: yellow dots count, grey map and lines never do', () => {
+  assert.ok(lightningLevel(138, 130, 21) > 0, 'median dot');
+  assert.ok(lightningLevel(99, 91, 0) > 0, 'dim dot');
+  assert.ok(lightningLevel(209, 203, 57) > 0, 'bright dot');
+  for (const g of [6, 20, 40, 72, 120, 200]) assert.equal(lightningLevel(g, g, g), 0, `grey ${g}`);
+  assert.ok(lightningLevel(209, 203, 57) >= lightningLevel(99, 91, 0));
+});
+
+test('strike rate: silent at zero, rises, capped', () => {
+  assert.equal(strikeRate(0), 0);
+  assert.ok(strikeRate(0.005) > 0 && strikeRate(0.005) < strikeRate(0.02));
+  assert.equal(strikeRate(1), 8);
+  assert.equal(LIGHTNING_COVERAGE_LAT, 52);
 });
 
 test('readRing with layers: a "less light" spot to the west plays only the less layer', () => {

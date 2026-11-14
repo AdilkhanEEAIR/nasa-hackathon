@@ -89,4 +89,29 @@ export function describeAerosol(kind) {
   return kind ? `mostly ${AEROSOL_NAMES[kind]}` : 'clear of the four aerosol types';
 }
 
+/**
+ * Lightning (SVS 5011). Dots are yellow (median RGB 138,130,21); the base map, lines and
+ * coverage shading are neutral grey (R = G = B), so "yellowness" separates them cleanly
+ * (DATA_NOTES 3.3): R > 90, G > 70, B < G - 40.
+ */
+export function lightningLevel(r, g, b) {
+  if (r <= 90 || g <= 70 || b >= g - 40) return 0;
+  return Math.min(1, (Math.min(r, g) - b - 40) / 120);
+}
+
+/** ISS LIS coverage edge (DATA_NOTES 3.1): beyond this there is no data, not "no lightning". */
+export const LIGHTNING_COVERAGE_LAT = 52;
+
+export const LIGHTNING_LAYERS = [
+  // Storm density on the arc: a low thunder rumble. Individual new flashes are separate,
+  // sharp strikes (see SonicEngine.strike).
+  { name: 'rumble', source: 'noise', filter: 'lowpass', octave: -1, q: 0.9, pitchFilter: true, brightMul: 1, peak: 3.2 },
+];
+
+/** Strikes per second for one voice from the share of new dots on its arc (fixed curve). */
+export function strikeRate(newLevel, maxRate = 8) {
+  if (!(newLevel > 0)) return 0;
+  return Math.min(maxRate, maxRate * Math.sqrt(newLevel / 0.02));
+}
+
 export { LIGHT_FLOOR };
