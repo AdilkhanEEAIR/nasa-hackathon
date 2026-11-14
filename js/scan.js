@@ -171,9 +171,15 @@ export class LiveRingScan {
     this._timer = 0;
   }
 
-  start({ getFrame, center, radiusKm, durationS = 8, fullScale = 0.05, coverageLat = 90, strikeRate }) {
+  /**
+   * `once` (the normal scan): the ring shrinks smoothly from the full radius to the centre a
+   * single time over `durationS`, then the scan stops and `onEnd` gets a summary. Without
+   * `once` (Play whole video) the ring keeps cycling until stopped.
+   */
+  start({ getFrame, center, radiusKm, durationS = 8, fullScale = 0.05, coverageLat = 90, strikeRate, once = false, onEnd = null }) {
     this.stop();
-    Object.assign(this, { getFrame, center, radiusKm, durationS, fullScale, coverageLat, strikeRate });
+    Object.assign(this, { getFrame, center, radiusKm, durationS, fullScale, coverageLat, strikeRate, once, onEnd });
+    this.strikes = new Float32Array(16);
     this.t0 = performance.now();
     this.running = true;
     this._strikesThisSecond = 0;
@@ -181,8 +187,17 @@ export class LiveRingScan {
     const tick = () => {
       if (!this.running) return;
       const now = performance.now();
-      const t = ((now - this.t0) / (this.durationS * 1000)) % 1;
-      const r = Math.max(1, this.radiusKm * (1 - t));
+      const raw = (now - this.t0) / (this.durationS * 1000);
+      const t = this.once ? Math.min(1, raw) : raw % 1;
+      // Smoothstep: the ring eases in and out instead of starting and stopping abruptly.
+      const eased = this.once ? t * t * (3 - 2 * t) : t;
+      const r = Math.max(1, this.radiusKm * (1 - eased));
+      if (this.once && t >= 1) {
+        const strikes = this.strikes;
+        this.stop();
+        if (this.onEnd) this.onEnd({ strikes });
+        return;
+      }
       const frame = this.getFrame();
       if (!frame) return;
       const ring = readRing({ rumble: frame.field }, null, this.center, r, this.fullScale);
@@ -199,6 +214,7 @@ export class LiveRingScan {
         if (rate > 0 && Math.random() < rate / STEP_HZ && this._strikesThisSecond < 30) {
           this._strikesThisSecond++;
           v.struck = true;
+          this.strikes[k] += 1;
           const base = this.engine.voices[k].base;
           this.engine.strike(panForBearing(v.bearing), base, Math.min(1, 0.4 + rate / 10));
         }

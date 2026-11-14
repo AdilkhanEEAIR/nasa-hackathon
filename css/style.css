@@ -296,6 +296,10 @@ body[data-mode="sweep"] .map-video { display: none; }
   transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 .chip.on { color: var(--ui-text); border-bottom-color: var(--ui-accent); }
+/* Lightning: a date scale 2017-2023 with the current position of the video. */
+.timeline--dates { display: block; position: relative; height: var(--chip-height); border-bottom: 2px solid var(--ui-border); }
+.date-tick { position: absolute; top: 0; font-size: var(--text-xs); color: var(--ui-text-muted); font-variant-numeric: tabular-nums; padding-left: var(--space-1); border-left: var(--border-width) solid var(--ui-border-strong); }
+.date-mark { position: absolute; left: 0; bottom: -2px; width: 2px; height: 100%; background: var(--ui-accent); }
 .chip.ping { transform: translateY(-2px); color: var(--ui-text); }
 
 .instruments { display: grid; gap: var(--space-1); }

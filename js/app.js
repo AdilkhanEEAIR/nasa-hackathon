@@ -195,7 +195,7 @@ const liveScan = new LiveRingScan(engine, {
       m[side] = 1;
     }
     haptics(m);
-    if (lightning) $('year-readout').textContent = lightning.date;
+    if (lightning) { $('year-readout').textContent = lightning.date; markDate(); }
   },
 });
 
@@ -413,21 +413,51 @@ function currentLayers() {
 
 // ---------------------------------------------------------------- lightning playback
 
-async function toggleLightning() {
+const COMPASS16 = ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east',
+  'south', 'south-south-west', 'south-west', 'west-south-west', 'west', 'west-north-west', 'north-west', 'north-north-west'];
+let lightningMode = null; // 'scan' (one timed shrink) or 'video' (Play whole video)
+
+function stopLightning(words) {
   const v = $('map-video');
-  if (liveScan.running) {
-    liveScan.stop();
-    v.pause();
-    setScanButton(false);
-    view.setRing(null);
-    dial.clear();
-    hapticsOff();
-    announce(`Paused at ${lightning.date}.`);
-    return;
-  }
+  liveScan.stop();
+  v.pause();
+  lightningMode = null;
+  setScanButton(false);
+  $('btn-video').setAttribute('aria-pressed', 'false');
+  view.setRing(null);
+  dial.clear();
+  hapticsOff();
+  if (words) announce(words);
+}
+
+/**
+ * Lightning scan: the video plays while the ring shrinks once, slowly and smoothly, from the
+ * full radius to the centre over the scan length; then it stops and says what it heard.
+ */
+async function toggleLightning() {
+  if (liveScan.running) { stopLightning(`Stopped at ${lightning.date}.`); return; }
+  await startLightning('scan');
+}
+
+/** Play whole video: the ring keeps cycling while the whole video plays to its end. */
+async function toggleLightningVideo() {
+  if (state.track !== 'lightning') { announce('Play whole video is for the lightning track.'); return; }
+  await ensureSound();
+  if (liveScan.running) { stopLightning(`Stopped at ${lightning.date}.`); return; }
+  await startLightning('video');
+}
+
+async function startLightning(mode) {
+  const v = $('map-video');
   await currentFields();
-  setScanButton(true);
-  announce(`Playing lightning from ${lightning.date}, ring around ${centreLabel()}.`);
+  if (mode === 'video' && v.duration && v.currentTime >= v.duration - 0.5) v.currentTime = 0;
+  lightningMode = mode;
+  if (mode === 'scan') setScanButton(true);
+  else $('btn-video').setAttribute('aria-pressed', 'true');
+  const from = lightning.date;
+  announce(mode === 'scan'
+    ? `Scanning lightning from ${from}, ring around ${centreLabel()}, ${state.durationS} seconds.`
+    : `Playing the whole lightning video from ${from}.`);
   try { await v.play(); } catch (err) { console.error(err); }
   liveScan.start({
     getFrame: () => lightning.frame(),
@@ -437,8 +467,49 @@ async function toggleLightning() {
     fullScale: LIGHTNING_FULL,
     coverageLat: LIGHTNING_COVERAGE_LAT,
     strikeRate: (lvl) => strikeRate(lvl),
+    once: mode === 'scan',
+    onEnd: ({ strikes }) => {
+      const total = strikes.reduce((a, b) => a + b, 0);
+      const most = strikes.indexOf(Math.max(...strikes));
+      stopLightning();
+      view.pulseCentre(total > 0 ? 0.6 : 0);
+      engine.centreNote(total > 0 ? 0.6 : 0);
+      announce(total > 0
+        ? `Scan finished: ${total} flashes heard around ${centreLabel()} from ${from} to ${lightning.date}, most of them to the ${COMPASS16[most]}.`
+        : `Scan finished: no new flashes around ${centreLabel()} from ${from} to ${lightning.date}.`, { say: 'result' });
+    },
   });
-  v.onended = () => { if (liveScan.running) toggleLightning(); };
+  v.onended = () => { if (liveScan.running) stopLightning(`End of the video, ${lightning.date}.`); };
+}
+
+/** Date scale 2017-2023 under the map on the lightning track, with the current position. */
+function renderDateScale() {
+  const tl = $('timeline');
+  tl.textContent = '';
+  tl.classList.add('timeline--dates');
+  const dates = lightning && lightning.dates;
+  if (!dates) return;
+  for (let y = 2017; y <= 2023; y++) {
+    const i = dates.findIndex((d) => d.startsWith(String(y)));
+    if (i < 0) continue;
+    const tick = document.createElement('span');
+    tick.className = 'date-tick';
+    tick.textContent = String(y);
+    tick.style.left = `${(100 * i) / dates.length}%`;
+    tl.appendChild(tick);
+  }
+  const mark = document.createElement('span');
+  mark.className = 'date-mark';
+  mark.id = 'date-mark';
+  tl.appendChild(mark);
+  markDate();
+}
+
+function markDate() {
+  const mark = $('date-mark');
+  const v = $('map-video');
+  if (!mark || !v.duration) return;
+  mark.style.transform = `translateX(${(v.currentTime / v.duration) * $('timeline').clientWidth}px)`;
 }
 
 /** Page Up / Page Down move about one month (the video runs ~1 s per month). */
@@ -447,6 +518,7 @@ function seekLightning(deltaSeconds, absolute = null) {
   if (absolute === null) lightning.seekBy(deltaSeconds);
   else lightning.seekTo(absolute);
   $('map-video').addEventListener('seeked', () => {
+    markDate();
     lightning.refresh();
     updateDescription();
     announce(lightning.date);
@@ -719,7 +791,7 @@ async function selectTrack(id, { fade = false } = {}) {
   }
   if (state.busy) return;
   if (scan.running) scan.stop(false);
-  if (liveScan.running) { liveScan.stop(); $('map-video').pause(); setScanButton(false); }
+  if (liveScan.running) stopLightning();
   state.track = id;
   const isLt = id === 'lightning';
   engine.trim = isLt ? LIGHTNING_TRIM : TRACK_SOUND[id].trim;
@@ -744,7 +816,13 @@ async function selectTrack(id, { fade = false } = {}) {
   else { wav.removeAttribute('aria-disabled'); wav.removeAttribute('aria-describedby'); }
   $('wav-note').hidden = !videoTrack;
   $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
+  $('btn-video').hidden = !isLt;
+  $('year').closest('.field').hidden = !yearsOnly;
   await currentFields();
+  // The record starts in March 2017 with few flashes; open on a stormy northern summer.
+  if (isLt && $('map-video').currentTime < 1) seekLightning(0, DEMO_LIGHTNING_AT);
+  if (isLt) renderDateScale();
+  else if ($('timeline').classList.contains('timeline--dates')) renderTimeline();
   showFrame({ fade });
   updateDescription();
   // Short spoken introduction: what the data is and how each state sounds.
@@ -1227,7 +1305,7 @@ function toggleCoast(force) {
 
 function stopAll() {
   if (scan.running) scan.stop(false);
-  if (liveScan.running) { liveScan.stop(); $('map-video').pause(); }
+  if (liveScan.running) stopLightning();
   if (needle.running) stopNeedle();
   state.busy = false; // cancels a running tutorial
   voice.cancel();
@@ -1267,6 +1345,8 @@ function renderTracks() {
 
 function renderTimeline() {
   const tl = $('timeline');
+  tl.textContent = '';
+  tl.classList.remove('timeline--dates');
   for (const y of YEARS) {
     const c = document.createElement('button');
     c.type = 'button';
@@ -1356,6 +1436,7 @@ function wire() {
   window.addEventListener('keydown', onKey);
 
   $('btn-scan').addEventListener('click', toggleScan);
+  $('btn-video').addEventListener('click', toggleLightningVideo);
   $('btn-stop').addEventListener('click', stopAll);
   $('btn-sweep').addEventListener('click', yearSweep);
   $('btn-where').addEventListener('click', whereAmI);
