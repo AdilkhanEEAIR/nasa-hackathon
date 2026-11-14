@@ -3,40 +3,40 @@
 <head>
 <meta charset="utf-8">
 <title>EarthSonar — slides</title>
+<!-- Same design tokens as the site: every colour, radius and the typeface come from there. -->
+<link rel="stylesheet" href="../../css/tokens.css">
 <style>
   @page { size: 13.333in 7.5in; margin: 0; }
-  :root { --bg: #06080d; --panel: #111824; --line: #233044; --text: #f4f6fb; --muted: #b9c3d3; --amber: #ffd56a; --cyan: #7cd8ff; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+  html, body { margin: 0; background: var(--ui-bg); color: var(--ui-text); font-family: var(--font-sans); }
   .slide {
     width: 13.333in; height: 7.5in; padding: 0.55in 0.7in; page-break-after: always; break-after: page;
-    position: relative; overflow: hidden;
-    background: radial-gradient(900px 400px at 85% -10%, #142036 0%, transparent 60%), var(--bg);
+    position: relative; overflow: hidden; background: var(--ui-bg);
   }
   .slide:last-child { page-break-after: auto; break-after: auto; }
-  .eyebrow { font-size: 14pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin: 0 0 8pt; }
-  h1 { font-size: 64pt; margin: 0 0 10pt; letter-spacing: -0.02em; }
-  h2 { font-size: 34pt; margin: 0 0 16pt; }
-  p, li, td, th { font-size: 17pt; line-height: 1.35; }
-  .lede { font-size: 24pt; color: var(--text); max-width: 9.5in; }
-  .muted { color: var(--muted); }
-  .amber { color: var(--amber); }
-  .cyan { color: var(--cyan); }
+  .eyebrow { font-size: 13pt; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--ui-text-muted); font-weight: var(--weight-bold); margin: 0 0 8pt; }
+  h1 { font-size: 64pt; margin: 0 0 10pt; letter-spacing: -0.02em; font-weight: var(--weight-bold); }
+  h2 { font-size: 34pt; margin: 0 0 16pt; font-weight: var(--weight-bold); line-height: var(--leading-tight); }
+  p, li, td, th { font-size: 17pt; line-height: 1.4; }
+  .lede { font-size: 24pt; color: var(--ui-text); max-width: 9.5in; }
+  .muted { color: var(--ui-text-muted); }
+  .accent { color: var(--ui-accent); }
+  .link { color: var(--ui-text); text-decoration: underline; text-decoration-color: var(--ui-accent); text-underline-offset: 0.18em; }
   .grid2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0.45in; align-items: start; }
-  img.shot { width: 100%; max-height: 3.3in; object-fit: cover; object-position: top; border-radius: 12px; border: 1px solid var(--line); }
-  td { font-size: 15pt; }
+  img.shot { width: 100%; max-height: 3.3in; object-fit: cover; object-position: top; border-radius: var(--radius-lg); }
+  td { font-size: 15pt; color: var(--ui-text-soft); }
   table.tight td, table.tight th { padding: 4pt 8pt; font-size: 14pt; }
   ul { margin: 0; padding-left: 1.1em; }
   li { margin: 0 0 8pt; }
   table { border-collapse: collapse; width: 100%; }
-  th, td { text-align: left; padding: 6pt 10pt; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; font-size: 14pt; }
-  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14pt; margin: 18pt 0; }
-  .rule { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14pt; }
-  .rule b { display: block; font-size: 20pt; color: var(--amber); margin-bottom: 4pt; }
-  .placeholder { border: 2px dashed var(--cyan); border-radius: 14px; padding: 16pt; color: var(--cyan); }
-  .foot { position: absolute; left: 0.7in; right: 0.7in; bottom: 0.35in; display: flex; justify-content: space-between; color: var(--muted); font-size: 12pt; }
-  kbd { font-family: Consolas, monospace; font-size: 0.85em; padding: 1pt 6pt; border: 1px solid #556; border-radius: 5px; }
+  th, td { text-align: left; padding: 6pt 10pt 6pt 0; border-bottom: var(--border-width) solid var(--ui-border); vertical-align: top; }
+  th { color: var(--ui-text-muted); font-weight: var(--weight-medium); font-size: 14pt; }
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35in; margin: 18pt 0 22pt; }
+  .rule { font-size: 15pt; line-height: 1.35; border-top: var(--border-width) solid var(--ui-border-strong); padding-top: 12pt; color: var(--ui-text-soft); }
+  .rule b { display: block; font-size: 20pt; color: var(--ui-text); margin-bottom: 4pt; }
+  .placeholder { border: 2px dashed var(--ui-border-strong); border-radius: var(--radius-md); padding: 16pt; color: var(--ui-text-soft); }
+  .foot { position: absolute; left: 0.7in; right: 0.7in; bottom: 0.35in; display: flex; justify-content: space-between; color: var(--ui-text-muted); font-size: 12pt; }
+  kbd { font-family: inherit; font-size: 0.8em; padding: 0 5pt; border: var(--border-width) solid var(--ui-border-strong); border-radius: var(--radius-sm); color: var(--ui-text-muted); }
 </style>
 </head>
 <body>
@@ -45,12 +45,12 @@
 <section class="slide">
   <p class="eyebrow">NASA Space Apps Challenge 2026 · The Earth Information Jukebox · Bishkek</p>
   <h1>EarthSonar</h1>
-  <p class="lede">A jukebox for NASA Earth visualizations. A ring of sound closes in on any place on Earth, so you can <span class="amber">hear</span> what the map shows. Built first for blind and low-vision people.</p>
+  <p class="lede">A jukebox for NASA Earth visualizations. A ring of sound closes in on any place on Earth, so you can <span class="accent">hear</span> what the map shows. Built first for blind and low-vision people.</p>
   <div class="grid2" style="margin-top:22pt">
-    <img class="shot" style="max-height:2.6in" src="../screenshots/desktop-scan.jpg" alt="EarthSonar scanning night lights around China">
+    <img class="shot" style="max-height:2.6in; object-position:center" src="../screenshots/demo-desktop.jpg" alt="EarthSonar demo: a ring of sound over India, 2023">
     <div>
-      <p><b>Try it:</b> <span class="cyan">earthsonar.vercel.app</span></p>
-      <p><b>Code:</b> <span class="cyan">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
+      <p><b>Try it:</b> <span class="link">earthsonar.vercel.app</span></p>
+      <p><b>Code:</b> <span class="link">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
       <p class="muted">Team: [names] · Software: Adilkhan Dzhanteliev · Hardware: [teammates]</p>
     </div>
   </div>
@@ -69,7 +69,7 @@
     </ul>
     <div>
       <p class="lede" style="font-size:22pt">Our question:</p>
-      <p class="lede" style="font-size:26pt">Can you <span class="amber">navigate</span> an Earth visualization by ear and by touch, and understand where the planet is bright, smoky, stormy, warm or cold?</p>
+      <p class="lede" style="font-size:26pt">Can you <span class="accent">navigate</span> an Earth visualization by ear and by touch, and understand where the planet is bright, smoky, stormy, warm or cold?</p>
     </div>
   </div>
   <div class="foot"><span>EarthSonar</span><span>2 / 7</span></div>
@@ -130,7 +130,7 @@
     <tr><td>Global Sea Surface Currents and Temperature (ECCO2)</td><td>3912</td><td>Hue matched to the 0–32 °C colorbar (round-trip error ≤ 1.5 °C)</td></tr>
   </table>
   <ul style="margin-top:10pt; font-size:15pt">
-    <li>Fixed rules, never normalised per frame. Frame indices, crops and georeferencing are measured from the pixels (<span class="cyan">docs/DATA_NOTES.md</span>).</li>
+    <li>Fixed rules, never normalised per frame. Frame indices, crops and georeferencing are measured from the pixels (<span class="link">docs/DATA_NOTES.md</span>).</li>
     <li>Stated limits: the aerosol legend has no amounts · lightning only within ±52° (silence = no data) · the ocean frame is one day, not a trend.</li>
   </ul>
   <div class="foot"><span>EarthSonar</span><span>5 / 7</span></div>
@@ -144,7 +144,7 @@
     <ul>
       <li><b>No mouse needed:</b> <kbd>Space</kbd> play · arrows move · <kbd>PgUp</kbd>/<kbd>PgDn</kbd> year · <kbd>W</kbd> where am I · <kbd>E</kbd> explore · <kbd>T</kbd> tutorial.</li>
       <li>Labelled controls, a live status region, a spoken guide (can be turned off for screen readers), a 10-second sound tutorial.</li>
-      <li>High contrast, large targets, keyboard hints always on screen, <i>prefers-reduced-motion</i> respected.</li>
+      <li>Calm dark theme with AA contrast, a visible focus ring, large targets, keyboard hints always on screen, <i>prefers-reduced-motion</i> respected. Data colours checked for colour blindness.</li>
       <li>Fast for everyone: first screen 0.14 MB, ready in under 1.5 s on slow 4G.</li>
     </ul>
     <div>
@@ -177,9 +177,9 @@
       </div>
     </div>
     <div>
-      <p class="lede" style="font-size:22pt"><b>Try it:</b> <span class="cyan">earthsonar.vercel.app</span></p>
-      <p><b>Demo mode:</b> <span class="cyan">earthsonar.vercel.app/?demo</span></p>
-      <p><b>Code and data notes:</b> <span class="cyan">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
+      <p class="lede" style="font-size:22pt"><b>Try it:</b> <span class="link">earthsonar.vercel.app</span></p>
+      <p><b>Demo mode:</b> <span class="link">earthsonar.vercel.app/#demo</span></p>
+      <p><b>Code and data notes:</b> <span class="link">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
       <p class="muted" style="font-size:14pt">AI use: code written with Claude (Anthropic) under the team's direction and review. No AI-generated images, video or audio; all sound is synthesised live by documented rules. Data: NASA Scientific Visualization Studio. Not endorsed by NASA.</p>
     </div>
   </div>
