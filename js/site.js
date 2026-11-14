@@ -21,7 +21,7 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 // avoids an import waterfall: one round trip instead of four. tests/assets.test.js keeps this
 // list equal to the real import graph.
 export const PLAYER_MODULES = [
-  'app.js', 'audio.js', 'camera.js', 'dial.js', 'fields.js', 'geo.js', 'lightning.js', 'loader.js',
+  'app.js', 'audio.js', 'camera.js', 'demo-plan.js', 'dial.js', 'fields.js', 'geo.js', 'lightning.js', 'loader.js',
   'music.js', 'places.js', 'prefs.js', 'scan.js', 'serial.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
 ];
 

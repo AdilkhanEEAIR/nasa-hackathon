@@ -23,6 +23,7 @@ import { LiveRingScan } from './scan.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
 import { describePlace } from './places.js';
+import { DEMO_LENGTH_MS, DEMO_STEPS, DEMO_CENTRES } from './demo-plan.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
 const AMBER = '--data-lights'; // design-token name (css/tokens.css), resolved at draw time
@@ -1295,13 +1296,7 @@ function wire() {
 // Browsers only allow sound after a user gesture, so the page waits for one click or key,
 // then everything is timed from that moment. All data is preloaded before the click.
 
-const DEMO_LENGTH_MS = 28000;
 const DEMO_LIGHTNING_AT = 41; // seconds into the video: July 2019, northern summer storms
-const DEMO_CENTRES = {
-  india: { ...PRESETS[0], zoom: 2.6 },
-  sahara: { name: 'West Africa', lat: 14, lon: 0, radiusKm: 2500, zoom: 2 },
-  storms: { name: 'Central Africa', lat: 6, lon: 20, radiusKm: 2000, zoom: 2.2 },
-};
 
 function caption(text) {
   const el = $('demo-caption');
@@ -1350,7 +1345,7 @@ async function prepareDemo() {
   await loadYear(2012);
   await loadYear(2023);
   const keep = state.track;
-  for (const id of ['aerosols', 'lightning']) { state.track = id; await currentFields(); }
+  for (const id of ['aerosols', 'ocean', 'lightning']) { state.track = id; await currentFields(); }
   state.track = keep;
   const vid = $('map-video');
   const seeked = new Promise((r) => {
@@ -1383,53 +1378,50 @@ async function runDemo() {
   voice.enabled = false; // subtitles carry the words; speech would fight the timing
   const t0 = performance.now();
   const at = (ms, fn) => setTimeout(fn, Math.max(0, ms - (performance.now() - t0)));
-  const steps = [
-    [0, async () => {
+  // What each scene does; timing and subtitles live in js/demo-plan.js.
+  const scenes = {
+    intro: async () => {
       await selectTrack('nightlights');
       demoCentre(DEMO_CENTRES.india);
       await setYear(2012, { speak: false });
-      caption('EarthSonar turns NASA Earth visualizations into sound — built for blind and low-vision listeners.');
-    }],
-    [2200, () => {
-      caption('A ring of sound closes in on a place. High notes = north. Right ear = east. Louder = brighter.');
+    },
+    rule: () => {
       engine.note(degreeToFreq(8), { duration: 0.6, level: 0.3, type: 'triangle' });
       engine.note(degreeToFreq(4), { when: 0.7, duration: 0.6, level: 0.3, pan: 0.9, type: 'triangle' });
-    }],
-    [4300, async () => { caption('India, 2012: sparse, quiet lights.'); await demoScan(3.0); }],
-    [8000, async () => {
-      await setYear(2023, { speak: false });
-      caption('India, 2023: louder and brighter — the lights on the map grew about 2.5 times.');
-      await demoScan(3.0);
-    }],
-    [11800, async () => {
-      await selectTrack('aerosols');
-      demoCentre(DEMO_CENTRES.sahara);
-      caption('Aerosols, 19 Aug 2025: dust rustles, smoke crackles, sea salt sounds like surf, sulfate buzzes.');
-      await demoScan(4.6);
-    }],
-    [17600, async () => {
+    },
+    india2012: (st) => demoScan(st.scanS),
+    india2023: async (st) => { await setYear(2023, { speak: false }); await demoScan(st.scanS); },
+    aerosols: async (st) => { await selectTrack('aerosols'); demoCentre(DEMO_CENTRES.sahara); await demoScan(st.scanS); },
+    ocean: async (st) => {
+      if (scan.running) scan.stop(false);
+      await selectTrack('ocean');
+      demoCentre(DEMO_CENTRES.gulf);
+      await demoScan(st.scanS);
+    },
+    lightning: async () => {
       if (scan.running) scan.stop(false);
       await selectTrack('lightning');
       demoCentre(DEMO_CENTRES.storms);
-      caption('Lightning seen from the space station: every new flash cracks in its direction.');
       state.durationS = 3;
       await toggleLightning();
-    }],
-    [23800, () => {
+    },
+    end: () => {
       if (liveScan.running) toggleLightning();
       view.resetCamera();
-      caption('earthsonar.vercel.app — keyboard-only, screen-reader friendly, open source. Data: NASA SVS.');
       engine.centreNote(0.6);
-    }],
-    [DEMO_LENGTH_MS, () => {
+    },
+    stop: () => {
       stopAll();
       view.resetCamera();
       voice.enabled = voiceWas;
       endDemoMode();
       document.body.dataset.demoDone = 'true';
-    }],
-  ];
-  demoTimers = steps.map(([ms, fn]) => at(ms, fn));
+    },
+  };
+  demoTimers = DEMO_STEPS.map((st) => at(st.at, async () => {
+    if (st.caption) caption(st.caption);
+    await scenes[st.scene](st);
+  }));
 }
 
 // Exposed for manual debugging in the browser console only.
