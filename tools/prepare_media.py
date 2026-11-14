@@ -345,6 +345,34 @@ def ocean(manifest: dict) -> None:
     }
 
 
+NE_DIR = SRC / "naturalearth"
+
+
+def natural_earth(manifest: dict) -> None:
+    """Country borders and large cities for an optional visual layer (never sonified)."""
+    print("Natural Earth")
+    rnd = lambda c: [round(c[0], 2), round(c[1], 2)]  # noqa: E731 - ~1 km, plenty at 1:110m
+    lines = []
+    for f in json.loads((NE_DIR / "ne_110m_admin_0_boundary_lines_land.geojson").read_text(encoding="utf-8"))["features"]:
+        g = f["geometry"]
+        parts = g["coordinates"] if g["type"] == "MultiLineString" else [g["coordinates"]]
+        lines += [[rnd(c) for c in part] for part in parts]
+    cities = []
+    for f in json.loads((NE_DIR / "ne_110m_populated_places_simple.geojson").read_text(encoding="utf-8"))["features"]:
+        p = f["properties"]
+        lon, lat = f["geometry"]["coordinates"][:2]
+        cities.append({"name": p.get("name"), "lat": round(lat, 2), "lon": round(lon, 2), "pop": int(p.get("pop_max") or 0)})
+    cities.sort(key=lambda c: -c["pop"])
+    bpath, cpath = tmp("borders.json"), tmp("cities.json")
+    bpath.write_text(json.dumps(lines, separators=(",", ":")))
+    cpath.write_text(json.dumps(cities, separators=(",", ":")))
+    manifest["naturalEarth"] = {
+        "source": "Natural Earth 1:110m (public domain), naturalearthdata.com",
+        "borders": publish(bpath, "ne", "borders-110m"),
+        "cities": publish(cpath, "ne", "cities-110m"),
+    }
+
+
 def lightning_dates() -> list[str]:
     out = []
     for line in LT_LABELS.read_text().splitlines():
@@ -399,6 +427,7 @@ def main() -> None:
     aerosols(manifest)
     lightning(manifest)
     ocean(manifest)
+    natural_earth(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)
 

@@ -244,5 +244,10 @@
       0,
       32
     ]
+  },
+  "naturalEarth": {
+    "source": "Natural Earth 1:110m (public domain), naturalearthdata.com",
+    "borders": "media/ne/borders-110m.ae61c3ba20.json",
+    "cities": "media/ne/cities-110m.6965524a36.json"
   }
 }
