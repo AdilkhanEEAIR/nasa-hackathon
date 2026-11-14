@@ -1,4 +1,4 @@
-// EarthSonar controller link over Web Serial (Chrome / Edge on a computer).
+// Sixth Sense controller link over Web Serial (Chrome / Edge on a computer).
 // Protocol: docs/PROTOCOL.md - 115200 baud, ASCII lines, full-state messages, garbage ignored.
 
 /** Parses one line from the board; returns null for anything malformed (protocol rule 3). */

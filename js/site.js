@@ -7,6 +7,7 @@
 // This file never speaks: changing tabs is silent by design (see js/prefs.js).
 
 import { prefs, setPref, applyPrefs } from './prefs.js';
+import { BRAND } from './brand.js';
 
 const TABS = ['home', 'jukebox', 'demo'];
 const HEAVY = new Set(['jukebox', 'demo']);
@@ -106,8 +107,8 @@ function show(id, { focusTab = false, push = false, animate = false } = {}) {
   document.body.dataset.tab = id;
   if (push && location.hash !== `#${id}`) history.pushState(null, '', `#${id}`);
   if (focusTab) tabEl(id).focus();
-  document.title = id === 'home' ? 'EarthSonar — hear NASA Earth visualizations'
-    : `${tabEl(id).textContent.trim()} · EarthSonar`;
+  document.title = id === 'home' ? `${BRAND.name} — ${BRAND.tagline}`
+    : `${tabEl(id).textContent.trim()} · ${BRAND.name}`;
   if (id === 'home') startHome();
   else if (home) home.then((h) => h.setActive(false)).catch(() => {});
   if (HEAVY.has(id)) {
@@ -212,6 +213,8 @@ function wireAccessibility() {
 // The old demo address (/?demo) opens the Demo tab; retired tabs open Home.
 if (new URLSearchParams(location.search).has('demo')) history.replaceState(null, '', `${location.pathname}#demo`);
 if (RETIRED.has(location.hash.slice(1))) history.replaceState(null, '', `${location.pathname}#home`);
+// The name lives in js/brand.js; the HTML carries the same text for no-script readers.
+for (const el of document.querySelectorAll('[data-brand]')) el.textContent = BRAND[el.dataset.brand];
 wireAccessibility();
 wireTabs();
 wireReveal();

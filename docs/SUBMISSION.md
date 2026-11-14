@@ -1,4 +1,4 @@
-# EarthSonar — NASA Space Apps Challenge 2026 submission texts
+# Sixth Sense — NASA Space Apps Challenge 2026 submission texts
 
 Ready-to-paste text for each field of the submission form. Challenge: **The Earth Information
 Jukebox**. Local event: Bishkek.
@@ -13,11 +13,11 @@ Jukebox**. Local event: Bishkek.
 
 ## Project Name
 
-EarthSonar
+Sixth Sense — Hear and feel Earth data
 
 ## High-Level Project Summary
 
-EarthSonar is a web jukebox that turns NASA Earth Information Center visualizations into live
+Sixth Sense is a web jukebox that turns NASA Earth Information Center visualizations into live
 sound, so people who cannot see a map can still explore it. You pick one of nine tracks (night
 lights 2012–2023, aerosols, lightning from the ISS, ocean temperature, near-surface wind, forest
 height, carbon dioxide, an atmospheric river, ocean currents) and a place. A
@@ -27,9 +27,9 @@ height, carbon dioxide, an atmospheric river, ocean currents) and a place. A
 - louder means more.
 
 Each phenomenon has its own recognisable voice. Lightning cracks, dust rustles, smoke
-crackles, warm water flickers bright and fast, cold water shimmers slow. EarthSonar works with
+crackles, warm water flickers bright and fast, cold water shimmers slow. Sixth Sense works with
 the keyboard alone and with screen readers, and it can drive an Arduino controller with four vibration motors as a tactile
-compass. It matters because Earth science is shown almost only as pictures. EarthSonar gives
+compass. It matters because Earth science is shown almost only as pictures. Sixth Sense gives
 blind and low-vision people, and everyone else, a new way to hear where our planet is
 changing.
 
@@ -45,7 +45,7 @@ https://earthsonar.vercel.app (the player itself: https://earthsonar.vercel.app/
 
 **What it does.**
 
-EarthSonar is a "jukebox" of NASA Earth Information Center (EIC) visualizations, each played
+Sixth Sense is a "jukebox" of NASA Earth Information Center (EIC) visualizations, each played
 as live, data-driven sound:
 
 1. **Night Lights 2012–2023.** A decade of city lights. One key plays all twelve years as a
@@ -247,7 +247,7 @@ original.
 
 | Rule | Status |
 |---|---|
-| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ the Demo tab (/#demo) runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/EarthSonar-slides.pdf` |
+| Demo ≤ 30 s with English subtitles, or ≤ 7 slides | ✅ the Demo tab (/#demo) runs exactly 28 s with on-screen English subtitles. ✅ slides: 7 pages, PDF in `docs/Sixth Sense-slides.pdf` |
 | Demo hosted externally, open link, no login | ⏳ **you** upload the recording (YouTube unlisted/public, or Drive "anyone with the link") |
 | Final project link open without login | ✅ https://earthsonar.vercel.app (checked without cookies) |
 | Everything in English | ✅ site, README, DATA_NOTES, PROTOCOL, these texts, slides |

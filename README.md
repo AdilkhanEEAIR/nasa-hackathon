@@ -1,6 +1,8 @@
-# EarthSonar
+# Sixth Sense — Hear and feel Earth data
 
-**Hear the planet change.** EarthSonar turns NASA Earth Information Center (EIC) visualizations
+*(Formerly EarthSonar; the site address stays https://earthsonar.vercel.app.)*
+
+**Hear the planet change.** Sixth Sense turns NASA Earth Information Center (EIC) visualizations
 into live sound. A ring of sound sweeps in from far away toward any place you choose, so you
 can *hear* where the lights, dust, smoke or lightning are around it. It is built first for
 blind and low-vision people and works with the keyboard alone.
@@ -9,7 +11,7 @@ blind and low-vision people and works with the keyboard alone.
 
 NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · Bishkek
 
-![The EarthSonar jukebox during a ring scan around India, 2012](docs/screenshots/jukebox-scan-desktop.jpg)
+![The Sixth Sense jukebox during a ring scan around India, 2012](docs/screenshots/jukebox-scan-desktop.jpg)
 
 The site has three tabs, each with its own address:
 
@@ -31,7 +33,7 @@ before sound): what it is → the rule → India 2012 vs 2023 → aerosols → t
 ocean track → a North Atlantic storm on the wind track → the Visual forest needle → address,
 exactly 28 s ([`js/demo-plan.js`](js/demo-plan.js)). The old
 address `/?demo` still opens it. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
-slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
+slides: [`docs/Sixth Sense-slides.pdf`](docs/Sixth Sense-slides.pdf).
 
 | Home | Jukebox on a phone | Demo |
 |---|---|---|
@@ -112,7 +114,7 @@ Every action is also a labelled button, so screen-reader users can work by Tab a
 
 Each item below is from the challenge's Objectives and Potential Considerations.
 
-| Challenge item | EarthSonar feature | Status |
+| Challenge item | Sixth Sense feature | Status |
 |---|---|---|
 | **Objectives** | | |
 | Generate dynamic sonifications from NASA's EIC visual frames | Sound is synthesized live (Web Audio) from the pixels of EIC frames as the ring moves. There are no pre-recorded tracks. | ✅ |
@@ -161,7 +163,7 @@ so equal pixel values always give equal sounds.
 
 **What Changed (2012 → 2023)** — *removed from the site; kept here for the record*
 
-The change map colours each lit pixel by the direction of change. EarthSonar gives each
+The change map colours each lit pixel by the direction of change. Sixth Sense gives each
 direction its own instrument. The compass rule (pitch and stereo) and the loudness rule are
 the same as for night lights.
 
@@ -184,7 +186,7 @@ the same as for night lights.
 **Aerosols (19 August 2025, 20:00 UTC)**
 
 The GEOS aerosol frame colours four particle types, and the legend gives no amounts.
-EarthSonar classifies each pixel and plays each class on its own instrument.
+Sixth Sense classifies each pixel and plays each class on its own instrument.
 
 | Pixel class | Rule | Instrument |
 |---|---|---|
@@ -207,7 +209,7 @@ EarthSonar classifies each pixel and plays each class on its own instrument.
 **Lightning (ISS LIS, March 2017 – July 2023)**
 
 This track is a video. Space plays it while the ring keeps cycling from the outside in.
-EarthSonar reads every frame at 1024 × 512 as it plays.
+Sixth Sense reads every frame at 1024 × 512 as it plays.
 
 | What is read | Rule | Sound |
 |---|---|---|
@@ -481,7 +483,7 @@ python -m http.server 8000      # then open http://localhost:8000
 node --test "tests/*.test.js"   # ring geometry, georeferencing, sound mapping
 python tools/prepare_media.py   # rebuild media/ from datasets/ (needs ffmpeg, numpy, Pillow)
 node tools/screenshots.mjs http://localhost:8000/    # docs/screenshots (headless Chrome)
-node tools/build_slides.mjs http://localhost:8000/   # docs/EarthSonar-slides.pdf
+node tools/build_slides.mjs http://localhost:8000/   # docs/Sixth Sense-slides.pdf
 node tools/measure_load.mjs https://earthsonar.vercel.app/
 ```
 
@@ -573,4 +575,4 @@ not work.
 
 Adilkhan Dzhanteliev (software, data, deployment) and teammates (hardware).
 
-EarthSonar is an independent Space Apps project and is not endorsed by NASA.
+Sixth Sense is an independent Space Apps project and is not endorsed by NASA.

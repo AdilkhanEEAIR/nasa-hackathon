@@ -1,4 +1,4 @@
-// EarthSonar application: tracks, state, keyboard control, announcements.
+// Sixth Sense application: tracks, state, keyboard control, announcements.
 // Everything is reachable from the keyboard; every button shows its shortcut.
 
 import { SonicEngine, DEFAULT_LAYERS } from './audio.js';

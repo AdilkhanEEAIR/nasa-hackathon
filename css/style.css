@@ -1,4 +1,4 @@
-/* EarthSonar styles. Every colour, size, radius, shadow and timing comes from css/tokens.css.
+/* Sixth Sense styles. Every colour, size, radius, shadow and timing comes from css/tokens.css.
    Look: a night-sky blue base, one yellow accent, red only for stop, recording and warnings.
    Motion follows the restraint lens: only what is sounding moves; pointer-driven changes may
    fade, keyboard-driven changes are instant; only transform and opacity are animated (the
@@ -110,6 +110,8 @@ p { max-width: var(--measure); }
   color: var(--ui-text); white-space: nowrap;
 }
 /* The mark is the product's own idea, a ring closing on a point: no borrowed emblem. */
+.brand__tag { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ui-text-muted); margin-left: var(--space-2); }
+@media (max-width: 1000px) { .brand__tag { display: none; } }
 .brand__mark {
   width: 1.15rem; height: 1.15rem; border-radius: 50%; flex: none; position: relative;
   border: 2px solid var(--ui-accent);
@@ -358,9 +360,15 @@ body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right:
 
 /* ==================================================================== footer */
 
-.site-footer { max-width: var(--container); margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-9); font-size: var(--text-xs); color: var(--ui-text-muted); border-top: var(--border-width) solid var(--ui-border); }
+.site-footer {
+  max-width: var(--container); margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-9);
+  font-size: var(--text-xs); color: var(--ui-text-muted); text-align: center;
+  border-top: var(--border-width) solid var(--ui-border);
+}
 .site-footer a { color: var(--ui-text-muted); }
-.site-footer p { margin: var(--space-2) 0; }
+.site-footer p { margin: var(--space-2) auto; max-width: 60rem; }
+.site-footer .sources summary { justify-content: center; }
+.site-footer .sources__list { margin: 0 auto var(--space-3); max-width: 60rem; text-align: left; }
 .sources summary { cursor: pointer; min-height: var(--target-min); display: flex; align-items: center; gap: var(--space-2); color: var(--ui-text-soft); }
 .sources__hint { color: var(--ui-text-muted); text-decoration: underline; text-underline-offset: 0.2em; }
 .sources__list { margin: 0 0 var(--space-3); padding-left: var(--space-5); max-width: var(--measure); }
