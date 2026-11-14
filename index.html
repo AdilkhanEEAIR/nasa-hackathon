@@ -7,6 +7,20 @@
   <meta name="description" content="EarthSonar turns NASA Earth Information Center visualizations into live sound with a shrinking-ring sonar, for blind and low-vision listeners and everyone else.">
   <meta name="theme-color" content="#06080d">
   <link rel="stylesheet" href="css/style.css">
+  <!-- Start every request the first screen needs at once, instead of a module-by-module chain. -->
+  <link rel="preload" href="manifest.json" as="fetch" crossorigin="anonymous">
+  <link rel="modulepreload" href="js/app.js">
+  <link rel="modulepreload" href="js/audio.js">
+  <link rel="modulepreload" href="js/scan.js">
+  <link rel="modulepreload" href="js/view.js">
+  <link rel="modulepreload" href="js/dial.js">
+  <link rel="modulepreload" href="js/fields.js">
+  <link rel="modulepreload" href="js/geo.js">
+  <link rel="modulepreload" href="js/music.js">
+  <link rel="modulepreload" href="js/tracks.js">
+  <link rel="modulepreload" href="js/loader.js">
+  <link rel="modulepreload" href="js/speech.js">
+  <link rel="modulepreload" href="js/wav.js">
 </head>
 <body>
   <a class="skip" href="#player">Skip to the player</a>
@@ -59,6 +73,7 @@
       <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
 
       <div class="stage" role="application" aria-roledescription="sound map" aria-describedby="keybar-title">
+        <div id="loadbar" class="loadbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span class="fill"></span></div>
         <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
         <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
         <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
@@ -105,6 +120,11 @@
         <input id="coast" type="checkbox" checked aria-keyshortcuts="C">
         <label for="coast">Click at coastlines <kbd>C</kbd></label>
       </div>
+      <div class="field check">
+        <input id="voice" type="checkbox" checked aria-keyshortcuts="V" aria-describedby="voice-hint">
+        <label for="voice">Voice guide <kbd>V</kbd></label>
+      </div>
+      <p id="voice-hint" class="caption">Speaks places, years and summaries. Screen-reader users may prefer it off.</p>
     </aside>
   </main>
 
@@ -131,6 +151,7 @@
     <span><kbd>W</kbd> where</span>
     <span><kbd>+</kbd><kbd>−</kbd> ring</span>
     <span><kbd>T</kbd> tutorial</span>
+    <span><kbd>V</kbd> voice</span>
     <span><kbd>Esc</kbd> stop</span>
   </div>
 

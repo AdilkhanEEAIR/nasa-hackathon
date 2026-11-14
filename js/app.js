@@ -5,10 +5,12 @@ import { SonicEngine, DEFAULT_LAYERS } from './audio.js';
 import { RingScan, motorLevels, renderScanWav, readPoint } from './scan.js';
 import { MapView, reducedMotion } from './view.js';
 import { VoiceDial } from './dial.js';
-import { buildField, buildMask, lightLevel, meanOver, sampleField } from './fields.js';
+import { buildMask, meanOver, sampleField } from './fields.js';
 import { clampLat, normalizeLon, formatLatLon, diskPoints } from './geo.js';
 import { degreeToFreq, degreeForIndex } from './music.js';
-import { changeClass, CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange } from './tracks.js';
+import { CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange } from './tracks.js';
+import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
+import { Voice } from './speech.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
 const AMBER = '#ffd56a';
@@ -43,6 +45,8 @@ const state = {
 };
 
 const engine = new SonicEngine();
+const voice = new Voice();
+let pendingScan = false; // Space pressed before the first data arrived: start when ready
 const view = new MapView({ imgA: $('map-a'), imgB: $('map-b'), overlay: $('overlay') });
 const dial = new VoiceDial($('dial'));
 
@@ -73,12 +77,16 @@ const scan = new RingScan(engine, {
 // ---------------------------------------------------------------- announcements
 
 let announceTimer = 0;
-/** Polite live region; cleared first so repeating the same sentence is still read out. */
-function announce(text) {
+/**
+ * Polite live region (cleared first so repeating the same sentence is still read out), and
+ * optionally the spoken guide for listeners without a screen reader.
+ */
+function announce(text, { speak = true } = {}) {
   const el = $('status');
   el.textContent = '';
   clearTimeout(announceTimer);
   announceTimer = setTimeout(() => { el.textContent = text; }, 60);
+  if (speak) voice.say(text);
 }
 
 function describeLevel(level) {
@@ -106,35 +114,67 @@ function updateDescription() {
 
 // ---------------------------------------------------------------- data loading
 
+// Sound and sight are separate files: lossless PNG grids hold the exact values the sound
+// uses; lossy WebP/JPEG views are only for the eyes. Only the first year loads before the
+// player is ready; everything else loads on demand or in the background afterwards.
+
+let viewExt = 'jpg';
+const inflight = new Map(); // url -> Promise, so a file is never fetched twice
+
+function viewUrl(entry) {
+  return entry.view[viewExt];
+}
+
 function yearUrl(year) {
-  return state.manifest.nightlights.years[String(year)].file;
+  return viewUrl(state.manifest.nightlights.years[String(year)]);
 }
 
 function trackImageUrl() {
-  return state.track === 'change' ? state.manifest.nightlights.change.file : yearUrl(state.year);
+  return state.track === 'change' ? viewUrl(state.manifest.nightlights.change) : yearUrl(state.year);
 }
 
-async function loadChange() {
+function once(url, fn) {
+  if (!inflight.has(url)) inflight.set(url, fn().catch((e) => { inflight.delete(url); throw e; }));
+  return inflight.get(url);
+}
+
+async function loadGrid(url, onProgress) {
+  return once(url, async () => blobToPixels(await fetchBlob(url, onProgress)));
+}
+
+/** Warms the HTTP cache and decodes a view image, so showing it later is instant. */
+function prefetchView(url) {
+  return once(url, async () => {
+    const img = new Image();
+    img.src = url;
+    await img.decode().catch(() => {});
+  });
+}
+
+async function loadYear(year, progress) {
+  if (state.fields.has(year)) return;
+  const entry = state.manifest.nightlights.years[String(year)];
+  const img = await loadGrid(entry.sound, progress && progress.part(`sound-${year}`));
+  if (progress) progress.finish(`sound-${year}`);
+  state.fields.set(year, channelField(img, 0));
+}
+
+async function loadChange(progress) {
   if (state.change) return;
-  const data = await loadImagePixels(state.manifest.nightlights.change.file);
-  const { width, height } = data;
-  const px = data.data;
-  // One pass over the pixels, three fields out.
-  const f = { more: new Uint8Array(width * height), less: new Uint8Array(width * height), same: new Uint8Array(width * height) };
-  for (let i = 0, p = 0; i < width * height; i++, p += 4) {
-    const c = changeClass(px[p], px[p + 1], px[p + 2]);
-    f.more[i] = Math.round(255 * c.more);
-    f.less[i] = Math.round(255 * c.less);
-    f.same[i] = Math.round(255 * c.same);
-  }
-  const wrap = (values) => ({ width, height, lon0: -180, values });
-  state.change = { more: wrap(f.more), less: wrap(f.less), same: wrap(f.same) };
+  const entry = state.manifest.nightlights.change;
+  const [img] = await Promise.all([
+    loadGrid(entry.sound, progress && progress.part('sound-change')),
+    prefetchView(viewUrl(entry)),
+  ]);
+  if (progress) progress.finish('sound-change');
+  // R, G, B channels = more, less, same (see tools/prepare_media.py).
+  state.change = { more: channelField(img, 0), less: channelField(img, 1), same: channelField(img, 2) };
 }
 
 /** Value fields for the current track (and year). */
 async function currentFields() {
   if (state.track === 'change') {
-    await loadChange();
+    if (!state.change) await withProgress('What Changed', (p) => loadChange(p));
     return state.change;
   }
   await loadYear(state.year);
@@ -145,39 +185,69 @@ function currentLayers() {
   return state.track === 'change' ? CHANGE_LAYERS : DEFAULT_LAYERS;
 }
 
-async function loadImagePixels(url) {
-  const img = new Image();
-  img.decoding = 'async';
-  img.src = url;
-  await img.decode();
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth;
-  c.height = img.naturalHeight;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(img, 0, 0);
-  return ctx.getImageData(0, 0, c.width, c.height);
+/**
+ * Runs a load job with a visible progress bar, a live-region message and (if the job takes
+ * a while) spoken progress. Short jobs only say "ready", to avoid chatter.
+ */
+async function withProgress(label, job) {
+  const bar = $('loadbar');
+  const fill = bar.querySelector('.fill');
+  const t0 = performance.now();
+  let lastSpoken = 0;
+  bar.hidden = false;
+  bar.setAttribute('aria-label', `Loading ${label}`);
+  announce(`Loading ${label}…`, { speak: true });
+  const progress = new Progress((f) => {
+    const pct = Math.round(f * 100);
+    bar.setAttribute('aria-valuenow', String(pct));
+    fill.style.transform = `scaleX(${f})`;
+    const slow = performance.now() - t0 > 1500;
+    if (slow && pct - lastSpoken >= 25 && pct < 100) {
+      lastSpoken = pct;
+      announce(`Loading ${label}: ${pct} percent.`, { speak: true });
+    }
+  });
+  try {
+    await job(progress);
+    announce(`${label} ready.`, { speak: performance.now() - t0 > 600 });
+  } finally {
+    bar.hidden = true;
+    fill.style.transform = 'scaleX(0)';
+  }
 }
 
-async function loadYear(year) {
-  if (state.fields.has(year)) return;
-  const data = await loadImagePixels(yearUrl(year));
-  state.fields.set(year, buildField(data.data, data.width, data.height, lightLevel));
+/** Background loading after the first screen is ready: other years, then the next track. */
+async function prefetchRest() {
+  const idle = () => new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(() => r(), { timeout: 800 }) : setTimeout(r, 50)));
+  for (const y of YEARS) {
+    await idle();
+    await Promise.all([loadYear(y), prefetchView(yearUrl(y))]).catch(() => {});
+  }
+  await idle();
+  await loadChange().catch(() => {});
 }
 
 async function init() {
-  announce('Loading night-lights maps…');
-  state.manifest = await (await fetch('media/manifest.json')).json();
-  const mask = await loadImagePixels(state.manifest.landMask.file);
+  announce('Loading Night Lights…');
+  const [manifest, webp] = await Promise.all([fetch('manifest.json').then((r) => r.json()), supportsWebp()]);
+  state.manifest = manifest;
+  viewExt = webp ? 'webp' : 'jpg';
+  // Everything the first screen needs, in parallel: one view, one sound grid, the land mask.
+  const first = state.manifest.nightlights.years[String(state.year)];
+  const [mask] = await Promise.all([
+    loadGrid(state.manifest.landMask.file),
+    loadYear(state.year),
+    prefetchView(viewUrl(first)),
+  ]);
   state.land = buildMask(mask.data, mask.width, mask.height);
-  await loadYear(state.year);
   view.setImage(trackImageUrl());
   view.setCenter(state.center);
   renderLegend();
   updateDescription();
   document.body.dataset.ready = 'true';
   announce('Ready. Press Space to play a scan, or T for a 10-second tutorial.');
-  // Remaining years load in the background so year changes are instant.
-  for (const y of YEARS) await loadYear(y);
+  if (pendingScan) { pendingScan = false; toggleScan(); }
+  prefetchRest();
 }
 
 // ---------------------------------------------------------------- actions
@@ -212,10 +282,15 @@ async function toggleScan() {
   }
   if (!requireReadyTrack()) return;
   await ensureSound();
+  if (document.body.dataset.ready !== 'true') {
+    pendingScan = true;
+    announce('Still loading. The scan starts as soon as the map is ready.', { speak: true });
+    return;
+  }
   const fields = await currentFields();
   setScanButton(true);
   const what = state.track === 'change' ? 'changes 2012 to 2023' : String(state.year);
-  announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
+  announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`, { speak: false });
   scan.start({
     fields,
     landField: state.land,
@@ -369,7 +444,7 @@ async function yearSweep() {
   for (const y of YEARS) await loadYear(y);
   const pts = diskPoints(state.center, state.radiusKm, 8, 60);
   const values = YEARS.map((y) => meanOver(state.fields.get(y), pts, 1));
-  announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`);
+  announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`, { speak: false });
   const lead = 0.8;
   const step = 0.55; // under 2 notes per second, so the visual pings stay far below 3 flashes/s
   values.forEach((v, i) => {
@@ -444,7 +519,7 @@ async function saveWav() {
   state.busy = true;
   const btn = $('btn-wav');
   btn.setAttribute('aria-busy', 'true');
-  announce('Rendering the scan to a WAV file…');
+  announce('Rendering the scan to a WAV file…', { speak: false });
   try {
     const wav = await renderScanWav({
       fields: await currentFields(),
@@ -476,6 +551,13 @@ async function saveWav() {
     btn.removeAttribute('aria-busy');
     state.busy = false;
   }
+}
+
+function toggleVoice(force) {
+  const on = typeof force === 'boolean' ? force : !voice.enabled;
+  voice.setEnabled(on);
+  $('voice').checked = on;
+  announce(`Voice guide ${on ? 'on' : 'off'}.`, { speak: on });
 }
 
 function toggleCoast(force) {
@@ -573,6 +655,7 @@ function onKey(e) {
     case '-': case '_': setRadius(state.radiusKm - 250); break;
     case 'y': case 'Y': yearSweep(); break;
     case 'c': case 'C': toggleCoast(); break;
+    case 'v': case 'V': toggleVoice(); break;
     case 'w': case 'W': whereAmI(); break;
     case 's': case 'S': saveWav(); break;
     case 't': case 'T': tutorial(); break;
@@ -612,6 +695,9 @@ function wire() {
     $('volume-out').textContent = `${e.target.value}%`;
   });
   $('coast').addEventListener('change', (e) => toggleCoast(e.target.checked));
+  $('voice').checked = voice.enabled;
+  $('voice').disabled = !voice.supported;
+  $('voice').addEventListener('change', (e) => toggleVoice(e.target.checked));
 
   for (const p of PRESETS) {
     const b = document.createElement('button');
