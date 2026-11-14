@@ -1,0 +1,10 @@
+{
+  "name": "earthsonar",
+  "private": true,
+  "type": "module",
+  "description": "Hear NASA Earth Information Center visualizations with a shrinking-ring sonar.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "serve": "python -m http.server 8000"
+  }
+}
