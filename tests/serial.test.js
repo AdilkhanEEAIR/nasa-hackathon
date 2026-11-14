@@ -1,4 +1,3 @@
-// Protocol tests: every example and rule in docs/PROTOCOL.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseLine, formatMotors, splitLines } from '../js/serial.js';
@@ -34,7 +33,6 @@ test('stream splitting keeps partial lines and survives garbage', () => {
   r = splitLines(r.rest, '2\nB,1,1\n');
   assert.deepEqual(r.lines, ['P,412', 'B,1,1']);
   assert.equal(r.rest, '');
-  // An endless line without a newline must not grow without bound.
   r = splitLines('', 'x'.repeat(10000));
   assert.ok(r.rest.length <= 64);
 });

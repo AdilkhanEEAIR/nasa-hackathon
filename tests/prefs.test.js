@@ -1,5 +1,3 @@
-// Accessibility preferences and the spoken guide's rules (js/prefs.js), plus static checks that
-// changing tabs can never make the guide speak.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -48,7 +46,6 @@ test('the guide is silent on tab changes and outside the Jukebox, even when on',
 
 test('the tab shell cannot speak: no speech API and no announcements in js/site.js', () => {
   const site = read('js/site.js');
-  // (The preload list names speech.js as a file to fetch; importing it is what would matter.)
   assert.doesNotMatch(site, /from '\.\/speech\.js'|speechSynthesis|SpeechSynthesisUtterance|\.say\(|announce\(/);
 });
 

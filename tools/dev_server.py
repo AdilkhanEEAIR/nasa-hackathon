@@ -1,9 +1,3 @@
-"""Local static server for EarthSonar development: like `python -m http.server`, but with
-caching disabled (edited JS modules always reload) and HTTP Range support (browsers need it
-to seek in the lightning video; production hosting supports it too).
-
-    python tools/dev_server.py 8765
-"""
 import os
 import re
 import sys
@@ -54,7 +48,7 @@ class DevHandler(SimpleHTTPRequestHandler):
                 outputfile.write(chunk)
                 remaining -= len(chunk)
         except (ConnectionResetError, BrokenPipeError):
-            pass  # the browser cancels range requests freely while seeking
+            pass
         finally:
             self._remaining = None
 

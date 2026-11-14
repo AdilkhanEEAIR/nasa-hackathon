@@ -1,11 +1,3 @@
-/* Sixth Sense styles. Every colour, size, radius, shadow and timing comes from css/tokens.css.
-   Look: a night-sky blue base, one yellow accent, red only for stop, recording and warnings.
-   Motion follows the restraint lens: only what is sounding moves; pointer-driven changes may
-   fade, keyboard-driven changes are instant; only transform and opacity are animated (the
-   ring, trail and note flashes are canvas). */
-
-/* ==================================================================== base */
-
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
@@ -31,8 +23,6 @@ a:hover { text-decoration-color: var(--ui-accent); }
   border-radius: var(--radius-sm);
 }
 main:focus, .panel:focus, .player:focus { outline: none; }
-
-/* ==================================================================== accessibility menu */
 
 .a11y { position: relative; order: 3; margin-left: auto; z-index: 30; }
 .a11y__toggle {
@@ -73,8 +63,6 @@ kbd {
   color: var(--ui-text-muted); white-space: nowrap;
 }
 
-/* ==================================================================== type */
-
 .eyebrow {
   margin: 0 0 var(--space-3);
   font-size: var(--text-xs); font-weight: var(--weight-bold);
@@ -92,8 +80,6 @@ kbd {
 .note, .caption { margin: var(--space-2) 0; font-size: var(--text-sm); color: var(--ui-text-muted); }
 p { max-width: var(--measure); }
 
-/* ==================================================================== header and tabs */
-
 .site-header {
   position: sticky; top: 0; z-index: 10;
   background: var(--ui-bg);
@@ -109,7 +95,6 @@ p { max-width: var(--measure); }
   font-size: var(--text-lg); font-weight: var(--weight-bold); text-decoration: none;
   color: var(--ui-text); white-space: nowrap;
 }
-/* The mark is the product's own idea, a ring closing on a point: no borrowed emblem. */
 .brand__tag { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ui-text-muted); margin-left: var(--space-2); }
 @media (max-width: 1000px) { .brand__tag { display: none; } }
 .brand__mark {
@@ -130,13 +115,10 @@ p { max-width: var(--measure); }
 .tab:hover { color: var(--ui-text); }
 .tab[aria-selected="true"] { color: var(--ui-text); border-bottom-color: var(--ui-accent); }
 
-/* ==================================================================== panels */
-
 .panel { max-width: var(--container); margin: 0 auto; padding: var(--space-7) var(--space-5) var(--space-8); }
 .panel--prose > * { max-width: calc(var(--measure) + 12rem); }
 body[data-tab="jukebox"] .site-header__inner { max-width: var(--container-wide); }
 
-/* Home */
 .panel--home { padding-top: var(--space-8); }
 .hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr); gap: var(--space-7); align-items: center; }
 .hero .display { font-size: var(--text-4xl); letter-spacing: -0.03em; }
@@ -171,17 +153,13 @@ body[data-tab="jukebox"] .site-header__inner { max-width: var(--container-wide);
 .track-chips li { display: flex; align-items: center; gap: var(--space-3); color: var(--ui-text-soft); }
 .track-chips__swatch { width: var(--swatch-size); height: var(--swatch-size); border-radius: 50%; flex: none; }
 
-/* Home blocks fade up once, the first time they scroll into view (site.js). */
 .reveal { opacity: 0; transform: translateY(var(--reveal-shift)); transition: opacity var(--dur-reveal) var(--ease-out), transform var(--dur-reveal) var(--ease-out); }
 .reveal.is-in { opacity: 1; transform: none; }
 .home-grid > .reveal:nth-child(2) { transition-delay: 80ms; }
 
-/* A panel opened by pointer fades in; keyboard tab changes stay instant (site.js). */
 .panel-enter { animation: panel-in var(--dur-panel) var(--ease-out); }
 @keyframes panel-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-
-/* ==================================================================== controls */
 
 .button {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
@@ -198,7 +176,6 @@ body[data-tab="jukebox"] .site-header__inner { max-width: var(--container-wide);
 .button--primary:hover { background: var(--ui-accent-hover); border-color: var(--ui-accent-hover); }
 .button--large { min-height: 3.25rem; padding: 0 var(--space-5); font-size: var(--text-md); }
 .button--small { padding: 0 var(--space-3); font-size: var(--text-sm); }
-/* Red is reserved: stop, recording and warnings only. */
 .button.button--stop { color: var(--ui-danger); }
 .button.button--stop:hover { color: var(--ui-text); border-color: var(--ui-danger); background: transparent; }
 #btn-wav[aria-busy="true"]::before { content: ''; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--ui-danger); }
@@ -224,8 +201,6 @@ body[data-tab="jukebox"] .site-header__inner { max-width: var(--container-wide);
 input[type="range"] { width: 100%; min-height: var(--target-min); margin: 0; accent-color: var(--ui-accent); }
 input[type="checkbox"] { width: var(--check-size); height: var(--check-size); margin: 0; accent-color: var(--ui-accent); flex: none; }
 output { color: var(--ui-text); font-weight: var(--weight-medium); margin-left: var(--space-2); font-variant-numeric: tabular-nums; }
-
-/* ==================================================================== jukebox */
 
 .panel--jukebox { max-width: var(--container-wide); padding-top: var(--space-5); padding-bottom: var(--space-9); }
 .jukebox-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-2) var(--space-5); margin-bottom: var(--space-5); }
@@ -301,7 +276,6 @@ body[data-mode="sweep"] .map-video { display: none; }
   transition: transform var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 .chip.on { color: var(--ui-text); border-bottom-color: var(--ui-accent); }
-/* Lightning: a date scale 2017-2023 with the current position of the video. */
 .timeline--dates { display: block; position: relative; height: var(--chip-height); border-bottom: 2px solid var(--ui-border); }
 .date-tick { position: absolute; top: 0; font-size: var(--text-xs); color: var(--ui-text-muted); font-variant-numeric: tabular-nums; padding-left: var(--space-1); border-left: var(--border-width) solid var(--ui-border-strong); }
 .date-mark { position: absolute; left: 0; bottom: -2px; width: 2px; height: 100%; background: var(--ui-accent); }
@@ -317,7 +291,6 @@ body[data-mode="sweep"] .map-video { display: none; }
 .presets .button { padding: 0 var(--space-2); }
 .check, .field.check { display: flex; gap: var(--space-3); align-items: center; font-size: var(--text-sm); color: var(--ui-text-soft); }
 
-/* Keyboard hints: always visible while the jukebox is open. */
 .keybar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 9;
   display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-1) var(--space-4);
@@ -325,12 +298,8 @@ body[data-mode="sweep"] .map-video { display: none; }
   background: var(--ui-bg-sunken); border-top: var(--border-width) solid var(--ui-border);
 }
 
-/* ==================================================================== demo mode */
-
 .demo-caption, .demo-card, .demo-progress { display: none; }
 
-/* Cinema mode: no header, panels or buttons; the map fills the screen at 16:9, large English
-   subtitles at the bottom, a thin progress line, and title/end cards. */
 body.demo-mode .site-header, body.demo-mode .site-footer, body.demo-mode .keybar,
 body.demo-mode #panel-demo, body.demo-mode .jukebox-head, body.demo-mode .tracks,
 body.demo-mode .instruments, body.demo-mode .transport, body.demo-mode .status,
@@ -361,8 +330,6 @@ body.demo-mode .demo-card[hidden] { display: none; }
 body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right: 0; bottom: 0; height: 4px; z-index: 47; background: var(--ui-border); }
 .demo-progress span { display: block; height: 100%; background: var(--ui-accent); transform: scaleX(0); transform-origin: left center; }
 
-/* ==================================================================== footer */
-
 .site-footer {
   max-width: var(--container); margin: 0 auto; padding: var(--space-6) var(--space-5) var(--space-9);
   font-size: var(--text-xs); color: var(--ui-text-muted); text-align: center;
@@ -376,8 +343,6 @@ body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right:
 .sources__hint { color: var(--ui-text-muted); text-decoration: underline; text-underline-offset: 0.2em; }
 .sources__list { margin: 0 0 var(--space-3); padding-left: var(--space-5); max-width: var(--measure); }
 .sources__list li { margin: 0 0 var(--space-2); }
-
-/* ==================================================================== responsive */
 
 @media (max-width: 1180px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
@@ -401,7 +366,6 @@ body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right:
   .panel { padding: var(--space-5) var(--space-4) var(--space-8); }
   .track-list { grid-template-columns: minmax(0, 1fr); }
   .instruments { display: block; }
-  /* On a phone the map comes straight after the track title; the buttons follow it. */
   .player { display: flex; flex-direction: column; }
   .player > .now { order: 0; }
   .player > .stage, .player > .demo-caption { order: 1; }
@@ -414,9 +378,6 @@ body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right:
   .keybar > span { flex: none; }
   }
 
-/* ==================================================================== reduced motion
-   Everything still works and sounds the same; transitions become instant and the
-   final-note ripple becomes a static mark (see js/view.js). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -430,8 +391,6 @@ body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right:
   .hero__dot { animation: none; }
 }
 
-/* Phone: the three tabs and the Accessibility switch share one row, no sideways scroll.
-   The switch keeps its full name; its shortcut hint and the wordmark text are dropped. */
 @media (max-width: 720px) {
   .site-header__inner { gap: var(--space-2); padding: 0 var(--space-3); }
   .brand { display: inline-flex; font-size: 0; gap: 0; }

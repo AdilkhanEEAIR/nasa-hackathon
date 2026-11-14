@@ -1,6 +1,3 @@
-// The project's name in one place: the header, page titles, Home, the demo and its cards all
-// read it from here. The web address stays https://earthsonar.vercel.app.
-
 export const BRAND = Object.freeze({
   name: 'Sixth Sense',
   tagline: 'Hear and feel Earth data',

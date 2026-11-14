@@ -1,14 +1,6 @@
-// Renders docs/slides/slides.html to docs/SixthSense-slides.pdf with headless Chrome,
-// after checking that no slide overflows its page.
-//
-//   node tools/build_slides.mjs http://localhost:8766/
-
 import { writeFileSync } from 'node:fs';
 import { launch, sleep } from './cdp.mjs';
 
-// Chrome writes its user-agent string (operating system, browser build) into the PDF's Creator
-// field. It is overwritten in place with a neutral name of the same byte length, so every
-// offset in the file stays valid.
 function cleanMetadata(buf) {
   const text = buf.toString('latin1');
   const key = '/Creator (';

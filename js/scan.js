@@ -1,8 +1,3 @@
-// The shrinking-ring sonar: a ring starts far from the chosen centre and contracts onto it.
-// Each of the 16 voices listens to one arc of the ring, so direction is heard as pitch
-// (north high, south low) and stereo position (west left, east right), and the data value on
-// that arc is heard as loudness and brightness, per instrument layer.
-
 import { ringArcs } from './geo.js';
 import { sampleField, gainForLevel, ARC_FULL_SCALE } from './fields.js';
 import { panForBearing } from './music.js';
@@ -12,15 +7,10 @@ import { encodeWav } from './wav.js';
 export const VOICES = 16;
 export const STEP_HZ = 30;
 
-/** Accepts one field or a {layerName: field} map; returns the map form. */
 export function asFieldMap(fields) {
   return fields && fields.values instanceof Uint8Array ? { main: fields } : fields;
 }
 
-/**
- * Pure part of a scan step: values for every voice at one radius. For each voice: per-layer
- * mean levels and gains on its arc, the land share, and the strongest level/gain overall.
- */
 export function readRing(fields, landField, center, radiusKm, full = ARC_FULL_SCALE) {
   const map = asFieldMap(fields);
   const names = Object.keys(map);
@@ -46,18 +36,11 @@ export function readRing(fields, landField, center, radiusKm, full = ARC_FULL_SC
   });
 }
 
-/** Per-layer values at a single point (the centre note). */
 export function readPoint(fields, lat, lon) {
   const map = asFieldMap(fields);
   return Object.fromEntries(Object.entries(map).map(([n, f]) => [n, sampleField(f, lat, lon, 1)]));
 }
 
-/**
- * Four tactile directions (N, E, S, W) from the 16 voices: each motor follows the strongest
- * voice on its side of the ring, weighted by how squarely it faces that direction. A maximum
- * (not a mean) keeps a single bright city to the east clearly felt instead of diluted.
- * These are the values the controller's vibration motors will receive.
- */
 export function motorLevels(ring) {
   const dirs = { n: 0, e: 90, s: 180, w: 270 };
   const out = {};
@@ -72,13 +55,8 @@ export function motorLevels(ring) {
   return out;
 }
 
-/** Default voice mapping: per-layer gains, brightness from the strongest level. */
 export const defaultVoice = (v) => ({ gains: v.gains, brightness: Math.min(1, v.level / v.full), land: v.land });
 
-/**
- * Feeds one ring reading to an engine at time `when`; returns the land state for clicks.
- * `mapVoice` lets a track decide how arc values become gains and brightness.
- */
 function applyRing(engine, ring, prevLand, coastClicks, when, mapVoice = defaultVoice) {
   const landNow = ring.map((v) => v.land >= 0.5);
   ring.forEach((v, k) => {
@@ -93,7 +71,6 @@ function applyRing(engine, ring, prevLand, coastClicks, when, mapVoice = default
   return landNow;
 }
 
-/** Strongest layer at the centre and its level: decides the shape of the final note. */
 function centreOf(fields, center) {
   const levels = readPoint(fields, center.lat, center.lon);
   let kind = null;
@@ -112,7 +89,6 @@ export class RingScan {
     this._timer = 0;
   }
 
-  /** `fields`: one value grid or {layer: grid}; radius in km, duration in s. */
   start({ fields, landField, center, radiusKm, durationS = 8, fullScale = ARC_FULL_SCALE, mapVoice = defaultVoice }) {
     this.mapVoice = mapVoice;
     this.stop(false);
@@ -125,8 +101,6 @@ export class RingScan {
     this.t0 = performance.now();
     this.prevLand = null;
     this.running = true;
-    // A timer rather than requestAnimationFrame: the sound must keep going when the page is
-    // not visible (screen-reader users often have no reason to keep the window in front).
     const tick = () => {
       if (!this.running) return;
       const t = Math.min(1, (performance.now() - this.t0) / (this.durationS * 1000));
@@ -156,13 +130,6 @@ export class RingScan {
   }
 }
 
-/**
- * Ring scan over a moving picture (lightning video). The ring keeps cycling from the outside
- * in while the video plays. Every tick it reads the current frame twice:
- *   - dot density on each arc  -> the voice's sustained "rumble" (thunder) layer;
- *   - dots that just appeared  -> sharp strikes in that direction, at a rate set by how many.
- * Arcs that lie wholly outside the sensor's coverage stay silent: no data, not no lightning.
- */
 export class LiveRingScan {
   constructor(engine, { onStep } = {}) {
     this.engine = engine;
@@ -171,11 +138,6 @@ export class LiveRingScan {
     this._timer = 0;
   }
 
-  /**
-   * `once` (the normal scan): the ring shrinks smoothly from the full radius to the centre a
-   * single time over `durationS`, then the scan stops and `onEnd` gets a summary. Without
-   * `once` (Play whole video) the ring keeps cycling until stopped.
-   */
   start({ getFrame, center, radiusKm, durationS = 8, fullScale = 0.05, coverageLat = 90, strikeRate, once = false, onEnd = null }) {
     this.stop();
     Object.assign(this, { getFrame, center, radiusKm, durationS, fullScale, coverageLat, strikeRate, once, onEnd });
@@ -189,7 +151,6 @@ export class LiveRingScan {
       const now = performance.now();
       const raw = (now - this.t0) / (this.durationS * 1000);
       const t = this.once ? Math.min(1, raw) : raw % 1;
-      // Smoothstep: the ring eases in and out instead of starting and stopping abruptly.
       const eased = this.once ? t * t * (3 - 2 * t) : t;
       const r = Math.max(1, this.radiusKm * (1 - eased));
       if (this.once && t >= 1) {
@@ -210,7 +171,6 @@ export class LiveRingScan {
         this.engine.setVoice(k, { gains: v.gains, brightness: Math.min(1, v.level / this.fullScale), land: 0 });
         if (!covered || !fresh) return;
         const rate = this.strikeRate(fresh[k].levels.hit);
-        // Poisson-like triggering at the voice's rate, with a global cap so storms stay legible.
         if (rate > 0 && Math.random() < rate / STEP_HZ && this._strikesThisSecond < 30) {
           this._strikesThisSecond++;
           v.struck = true;
@@ -232,13 +192,9 @@ export class LiveRingScan {
   }
 }
 
-/**
- * Renders a complete scan offline with the same engine, instruments and step rate as the
- * live scan, and returns the AudioBuffer (used by the WAV export and by tools/sound_report.mjs).
- */
 export async function renderScan({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8, fullScale = ARC_FULL_SCALE, trim = 1, mapVoice = defaultVoice }) {
   const sampleRate = 44100;
-  const tail = 2.6; // let the centre note and the reverb ring out
+  const tail = 2.6;
   const ctx = new OfflineAudioContext(2, Math.ceil((durationS + tail) * sampleRate), sampleRate);
   const engine = new SonicEngine(VOICES, layers);
   engine.volume = volume;
@@ -257,7 +213,6 @@ export async function renderScan({ fields, landField, center, radiusKm, duration
   return ctx.startRendering();
 }
 
-/** The same render as a WAV file (ArrayBuffer). */
 export async function renderScanWav(opts) {
   const buffer = await renderScan(opts);
   return encodeWav([buffer.getChannelData(0), buffer.getChannelData(1)], buffer.sampleRate);

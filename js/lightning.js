@@ -1,8 +1,3 @@
-// Lightning track source: the ISS LIS video, read frame by frame while it plays.
-// The video loads only when the track is chosen (poster first, metadata only, then it
-// streams as it plays). Frames are read at 1024x512 (half the 2048-px video): dots are 1-2 px
-// there, so they are not averaged away.
-
 import { lightningLevel } from './tracks.js';
 import { fetchBlob } from './loader.js';
 
@@ -25,7 +20,6 @@ export class LightningSource {
     this.tick = 0;
   }
 
-  /** Loads the per-frame dates and the video metadata (not the whole video). */
   async load(progress) {
     const onDates = progress && progress.part('dates');
     const blob = await fetchBlob(this.entry.dates, onDates);
@@ -49,18 +43,12 @@ export class LightningSource {
     return !!this.dates && this.video.readyState >= 1;
   }
 
-  /** Date shown in the current frame, from the official label file (2003 corrected to 2023). */
   get date() {
     if (!this.dates) return '';
     const i = Math.min(this.dates.length - 1, Math.max(0, Math.floor(this.video.currentTime * this.entry.fps)));
     return this.dates[i];
   }
 
-  /**
-   * Current frame as fields: `field` = dot level per pixel, `fresh` = dots that appeared since
-   * the last read (null when the frame has not changed). Frames are read on every other tick
-   * (~15 Hz), which is plenty for a 10-day rolling window shown at 30 fps.
-   */
   frame() {
     const v = this.video;
     if (v.readyState < 2) return null;
@@ -80,7 +68,6 @@ export class LightningSource {
     return { field: this.field, fresh: this.fresh };
   }
 
-  /** Reads one frame now (e.g. after seeking while paused). */
   refresh() {
     this.lastTime = -1;
     this.tick = 1;

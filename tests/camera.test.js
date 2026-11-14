@@ -81,7 +81,6 @@ test('ring geometry is independent of zoom: same km on the ground at every scale
   for (const cam of [HOME, { s: 3, cu: geoToMap(c.lat, c.lon).u, cv: geoToMap(c.lat, c.lon).v }]) {
     for (const arc of arcs) {
       for (const p of arc.points) {
-        // Project to screen and back: the geographic point (and its distance) is preserved.
         const m = geoToMap(p.lat, p.lon);
         const s = mapToScreen(m.u, m.v, cam, W, H);
         const back = screenToMap(s.x, s.y, cam, W, H);
@@ -90,7 +89,6 @@ test('ring geometry is independent of zoom: same km on the ground at every scale
       }
     }
   }
-  // And the ring is a fixed size in degrees: one degree north is one degree at any zoom.
   const north = destination(c.lat, c.lon, 0, 111.195);
   close(north.lat - c.lat, 1, 1e-3, 'one degree');
 });

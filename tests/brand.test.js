@@ -1,5 +1,3 @@
-// The project name: Sixth Sense, from one constant; the old name is gone from what the jury
-// sees, while the web address earthsonar.vercel.app keeps working.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

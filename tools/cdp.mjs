@@ -1,6 +1,3 @@
-// Minimal headless-Chrome driver over the DevTools Protocol. No dependencies: Node 22 has a
-// built-in WebSocket. Shared by the tools in this folder.
-
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,9 +28,7 @@ function client(wsUrl) {
     send,
     on: (fn) => listeners.push(fn),
     close: () => ws.close(),
-    /** Evaluates an expression in the page and returns its value. */
     eval: async (expression) => (await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })).result?.result?.value,
-    /** Polls an expression until it is truthy; returns elapsed ms or null on timeout. */
     async until(expression, timeoutMs = 60000) {
       const t0 = Date.now();
       while (Date.now() - t0 < timeoutMs) {
@@ -45,7 +40,6 @@ function client(wsUrl) {
   };
 }
 
-/** Starts headless Chrome with a throwaway profile; returns { c, close }. */
 export async function launch(port = 9333) {
   const profileDir = mkdtempSync(join(tmpdir(), 'es-cdp-'));
   const chrome = spawn(CHROME, [
@@ -58,7 +52,7 @@ export async function launch(port = 9333) {
     try {
       const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
       wsUrl = list.find((t) => t.type === 'page')?.webSocketDebuggerUrl;
-    } catch { /* not up yet */ }
+    } catch { }
     if (!wsUrl) await sleep(200);
   }
   if (!wsUrl) { chrome.kill(); throw new Error('Chrome did not start'); }
@@ -70,7 +64,7 @@ export async function launch(port = 9333) {
       c.close();
       chrome.kill();
       await sleep(500);
-      try { rmSync(profileDir, { recursive: true, force: true }); } catch { /* Chrome may still hold files */ }
+      try { rmSync(profileDir, { recursive: true, force: true }); } catch { }
     },
   };
 }

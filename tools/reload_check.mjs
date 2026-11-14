@@ -1,9 +1,3 @@
-// Opens the Jukebox and reloads it N times in a row (normal browser cache, like a person
-// pressing F5), checking that every load reaches "ready" and the visible map image is drawn. A load that
-// takes longer than the timeout counts as a hang.
-//
-//   node tools/reload_check.mjs https://earthsonar.vercel.app/ 10
-
 import { launch, sleep } from './cdp.mjs';
 
 const BASE = (process.argv[2] || 'https://earthsonar.vercel.app/').replace(/#.*$/, '');

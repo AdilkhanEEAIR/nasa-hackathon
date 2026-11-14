@@ -1,8 +1,3 @@
-// Design-token guard rails:
-//  1. no colour literal outside css/tokens.css (styles, scripts, HTML, canvas code);
-//  2. interface text/background pairs meet WCAG AA contrast;
-//  3. data colours inside each legend stay distinguishable for common colour-vision
-//     deficiencies (Machado et al. 2009 simulation, CIE76 difference in Lab).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -11,8 +6,6 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const TOKENS = readFileSync(join(ROOT, 'css/tokens.css'), 'utf8');
-
-// ---------------------------------------------------------------- token parsing
 
 const raw = {};
 for (const m of TOKENS.matchAll(/--([\w-]+):\s*([^;]+);/g)) raw[m[1]] = m[2].trim();
@@ -39,8 +32,6 @@ const contrast = (a, b) => {
   const [l1, l2] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (l1 + 0.05) / (l2 + 0.05);
 };
-
-// ---------------------------------------------------------------- 1. no stray colours
 
 const COLOUR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(/g;
 
@@ -72,8 +63,6 @@ test('every var(--token) used in the site exists in tokens.css', () => {
   assert.deepEqual([...missing], []);
 });
 
-// ---------------------------------------------------------------- 2. contrast
-
 test('interface text meets WCAG AA (4.5:1), large text and UI parts 3:1', () => {
   const pairs = [
     ['ui-text', 'ui-bg', 4.5], ['ui-text', 'ui-surface', 4.5], ['ui-text', 'ui-surface-2', 4.5],
@@ -92,8 +81,6 @@ test('the background is not pure black and the text is not pure white', () => {
   assert.notEqual(resolve('ui-bg').toUpperCase(), '#000000');
   assert.notEqual(resolve('ui-text').toUpperCase(), '#FFFFFF');
 });
-
-// ---------------------------------------------------------------- 3. colour-vision safety
 
 const CVD = {
   normal: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
@@ -125,7 +112,7 @@ const LEGENDS = {
 };
 
 test('data colours in each legend stay distinguishable with colour-vision deficiencies', () => {
-  const MIN = 12; // CIE76 ΔE: clearly different side by side
+  const MIN = 12;
   const report = [];
   for (const [legend, names] of Object.entries(LEGENDS)) {
     for (const [kind, m] of Object.entries(CVD)) {

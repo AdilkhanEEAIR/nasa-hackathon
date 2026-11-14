@@ -1,9 +1,3 @@
-// Visual layer for sighted users and demo videos. The sound never depends on it.
-// The map is two stacked <img> elements inside a "world" layer that zooms and pans with a
-// single CSS transform (compositor-only). The ring, centre and final-note ripple are drawn
-// on a separate overlay canvas through the same camera, so every layer stays geographically
-// aligned at any zoom.
-
 import { geoToMap, mapToGeo, mapToScreen, screenToMap, zoomAt, panBy, clampCamera, ensureVisible, HOME } from './camera.js';
 import { token, num, ms } from './theme.js';
 
@@ -19,8 +13,8 @@ export class MapView {
     this.ring = null;
     this.center = null;
     this.ripple = null;
-    this.trail = [];       // a few earlier rings, drawn fading behind the current one
-    this.flashes = [];     // short blooms where a voice has just become loud
+    this.trail = [];
+    this.flashes = [];
     this._lastFlash = new Float64Array(32);
     this._prevGain = new Float32Array(32);
     this._ringSteps = 0;
@@ -35,7 +29,6 @@ export class MapView {
     this._applyCamera();
   }
 
-  /** Overlay canvas at device resolution so lines stay crisp when the map is zoomed. */
   _fitCanvas() {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(1, Math.round(this.canvas.clientWidth * dpr));
@@ -50,8 +43,6 @@ export class MapView {
   get W() { return this.canvas.width; }
   get H() { return this.canvas.height; }
 
-  // ------------------------------------------------------------ camera
-
   setCamera(cam, { notify = true } = {}) {
     this.cam = clampCamera(cam);
     this._applyCamera();
@@ -61,11 +52,9 @@ export class MapView {
 
   _applyCamera() {
     const { s, cu, cv } = this.cam;
-    // translate() percentages are of the world layer's own size (= the stage), then scale.
     this.world.style.transform = `translate(${(0.5 - cu * s) * 100}%, ${(0.5 - cv * s) * 100}%) scale(${s})`;
   }
 
-  /** Zoom around the ring centre (keyboard), keeping it in frame. */
   zoomBy(factor) {
     const target = this.center ? geoToMap(this.center.lat, this.center.lon) : { u: this.cam.cu, v: this.cam.cv };
     const p = mapToScreen(target.u, target.v, this.cam, this.W, this.H);
@@ -76,13 +65,11 @@ export class MapView {
     this.setCamera({ ...HOME });
   }
 
-  /** Centres a geographic point at a given zoom (the demo uses it to frame each region). */
   focus(lat, lon, s) {
     const m = geoToMap(lat, lon);
     this.setCamera({ s, cu: m.u, cv: m.v });
   }
 
-  /** Glides the camera to a place (ease-out); instant with prefers-reduced-motion. */
   flyTo(lat, lon, s, ms = 600) {
     const m = geoToMap(lat, lon);
     const to = clampCamera({ s, cu: m.u, cv: m.v });
@@ -93,14 +80,12 @@ export class MapView {
     const step = (now) => {
       const t = Math.min(1, (now - t0) / ms);
       const e = 1 - (1 - t) ** 3;
-      // Zoom moves in log space so it feels even; position follows linearly.
       this.setCamera({ s: from.s * (to.s / from.s) ** e, cu: from.cu + (to.cu - from.cu) * e, cv: from.cv + (to.cv - from.cv) * e });
       if (t < 1) this._flyRaf = requestAnimationFrame(step);
     };
     this._flyRaf = requestAnimationFrame(step);
   }
 
-  /** Keeps a geographic point in frame (used when the ring centre moves). */
   follow(lat, lon) {
     const m = geoToMap(lat, lon);
     const next = ensureVisible(this.cam, m.u, m.v);
@@ -117,7 +102,6 @@ export class MapView {
     el.addEventListener('wheel', (ev) => {
       ev.preventDefault();
       const p = this._canvasPoint(ev);
-      // Exponential mapping: equal wheel steps feel like equal zoom steps at any scale.
       this.setCamera(zoomAt(this.cam, Math.exp(-ev.deltaY * 0.0015), p.x, p.y, this.W, this.H));
     }, { passive: false });
 
@@ -157,7 +141,6 @@ export class MapView {
       const p = pointers.get(ev.pointerId);
       pointers.delete(ev.pointerId);
       if (pointers.size < 2) pinch = null;
-      // A press that did not move is a click: it sets the ring centre.
       if (pointers.size === 0 && moved <= 4 * this.dpr && ev.type === 'pointerup' && this.onClick) {
         const m = screenToMap(p.x, p.y, this.cam, this.W, this.H);
         this.onClick(mapToGeo(m.u, m.v));
@@ -167,12 +150,6 @@ export class MapView {
     el.addEventListener('pointercancel', end);
   }
 
-  // ------------------------------------------------------------ images
-
-  /**
-   * Shows a map image. `fade` cross-fades (used while a year sweep plays, so the picture
-   * follows the music); direct keyboard changes switch instantly.
-   */
   setImage(url, { fade = false } = {}) {
     const cur = this.imgs[this.front];
     if (cur.getAttribute('src') === url) return;
@@ -194,26 +171,17 @@ export class MapView {
     return this.imgs[this.front].getAttribute('src');
   }
 
-  // ------------------------------------------------------------ overlay
-
   setCenter(center) {
     this.center = center;
     this.draw();
   }
 
-  /**
-   * The ring as it is heard. Behind it, a short trail of earlier rings fades out; where a
-   * voice turns loud (crosses 0.55 from below) a note flash blooms and decays. Flashes are
-   * limited to one per voice every 400 ms (under 3 per second anywhere, the photosensitivity
-   * limit) and are skipped entirely with prefers-reduced-motion.
-   */
   setRing(ring) {
     const still = reducedMotion();
     if (!ring) {
       this.trail = [];
       this._prevGain.fill(0);
     } else if (!still) {
-      // Keep every fourth step: evenly spaced ghosts rather than a smear.
       if (this.ring && this._ringSteps++ % 4 === 0) {
         this.trail.unshift(this.ring.flatMap((v) => v.points));
         this.trail.length = Math.min(this.trail.length, num('--overlay-trail-count'));
@@ -233,7 +201,6 @@ export class MapView {
     if (this.flashes.length) this._animateFlashes();
   }
 
-  /** Needle mode: a fixed vertical line on the globe (fractions of the frame), or null. */
   setNeedle(geom) {
     this.needle = geom;
     this.needleLevels = null;
@@ -241,11 +208,6 @@ export class MapView {
     this.draw();
   }
 
-  /**
-   * Needle band levels (0..1 per band, top first). Shown after `delayMs` (the audio output
-   * latency), so each band lights up when its sound reaches the speakers. `geom` moves the
-   * line (still-frame sweep) at the same moment.
-   */
   setNeedleLevels(levels, color, delayMs = 0, geom = null) {
     const show = () => {
       if (!this.needle) return;
@@ -257,16 +219,13 @@ export class MapView {
     if (delayMs > 1) setTimeout(show, delayMs); else show();
   }
 
-  /** A note on needle segment k (0 = top) blooms and fades on the line. */
   needleFlash(k, n, color, delayMs = 0) {
     if (!this.needle || reducedMotion()) return;
     const g = this.needle;
-    // t0 is when the note peaks at the speakers, so the flash blooms with the sound.
     this.flashes.push({ u: g.x, v: g.y0 + ((k + 0.5) / n) * (g.y1 - g.y0), color, t0: performance.now() + delayMs });
     this._animateFlashes();
   }
 
-  /** Lets flashes finish fading after the ring has stopped moving. */
   _animateFlashes() {
     if (this._flashRaf) return;
     const tick = () => {
@@ -277,7 +236,6 @@ export class MapView {
     this._flashRaf = requestAnimationFrame(tick);
   }
 
-  /** Optional visual layer: country borders and city names (Natural Earth). Never sonified. */
   setLabels(layer) {
     this.labels = layer;
     this.draw();
@@ -290,7 +248,6 @@ export class MapView {
     ctx.lineWidth = 1 * k;
     ctx.strokeStyle = token('--overlay-border');
     for (const line of borders) this._polyline(line.map(([lon, lat]) => ({ lat, lon })), false);
-    // More names as you zoom in, largest cities first, so the map never turns into a wall of text.
     const limit = Math.round(25 * this.cam.s * this.cam.s);
     ctx.font = `${Math.round(num('--overlay-label-size') * k)}px ${token('--font-sans')}`;
     ctx.textBaseline = 'middle';
@@ -308,7 +265,6 @@ export class MapView {
     }
   }
 
-  /** One expanding ring at the centre when the final note sounds. Plays once, never loops. */
   pulseCentre(level) {
     cancelAnimationFrame(this._rippleRaf);
     const start = performance.now();
@@ -336,7 +292,6 @@ export class MapView {
     ctx.beginPath();
     for (const p of points) {
       const q = this._project(p);
-      // Break the line where it wraps across the date line instead of drawing a stripe.
       if (!prev || Math.abs(q.u - prev.u) > 0.5) ctx.moveTo(q.x, q.y);
       else ctx.lineTo(q.x, q.y);
       if (!first) first = q;
@@ -364,7 +319,6 @@ export class MapView {
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
-      // Sounding bands: a thick bright stroke on the needle, as bright as the band is loud.
       const lv = this.needleLevels;
       if (lv && lv.length) {
         ctx.strokeStyle = token(this.needleColor || '--data-lights');
@@ -394,13 +348,10 @@ export class MapView {
     }
 
     if (this.ring) {
-      // Thin and translucent: the NASA map stays the main thing on screen.
       ctx.lineCap = 'round';
       ctx.lineWidth = num('--overlay-ring-width') * k;
       ctx.strokeStyle = token('--overlay-ring');
       this._polyline(this.ring.flatMap((v) => v.points), true);
-      // Loud arcs are drawn a little thicker in their instrument's colour, so a viewer can
-      // follow what is being heard.
       const wMin = num('--overlay-arc-min');
       const wMax = num('--overlay-arc-max');
       const aMin = num('--overlay-arc-alpha-min');
@@ -421,8 +372,7 @@ export class MapView {
       const size = num('--overlay-flash-size');
       this.flashes = this.flashes.filter((f) => now - f.t0 < dur);
       for (const f of this.flashes) {
-        if (now < f.t0) continue; // scheduled: its note has not peaked yet
-        // Ease-out: a quick bloom, then a long fade, like a plucked note.
+        if (now < f.t0) continue;
         const t = (now - f.t0) / dur;
         const e = 1 - (1 - t) ** 3;
         const q = f.u !== undefined ? mapToScreen(f.u, f.v, this.cam, this.W, this.H) : this._project(f);
@@ -449,7 +399,6 @@ export class MapView {
 
       if (this.ripple) {
         const { t, level, still } = this.ripple;
-        // Ease-out (fast start, gentle stop): the note's attack, then its decay.
         const e = 1 - (1 - t) ** 3;
         const radius = (still ? 18 : 8 + 34 * e) * k;
         ctx.lineWidth = 2 * k;

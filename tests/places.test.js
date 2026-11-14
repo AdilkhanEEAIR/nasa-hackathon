@@ -14,7 +14,6 @@ test('gazetteer entries are valid coordinates with unique names', () => {
 
 test('describePlace: at, near, and relative to cities', () => {
   assert.equal(describePlace(42.87, 74.59, true), 'Bishkek');
-  // About 50 km south of Bishkek.
   assert.match(describePlace(42.42, 74.59, true), /^\d+ km south of Bishkek$/);
   assert.match(describePlace(28.9, 77.5, true), /of Delhi$/);
 });

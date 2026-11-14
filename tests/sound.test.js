@@ -73,14 +73,11 @@ test('field sampling uses geography and wraps at the date line', () => {
   const w = 360;
   const h = 180;
   const rgba = new Uint8ClampedArray(w * h * 4);
-  // One bright column at lon 179.5 (last column) and one bright pixel at (10 N, 20 E).
   for (let y = 0; y < h; y++) rgba[(y * w + (w - 1)) * 4] = 255;
   rgba[((90 - 10 - 1) * w + (180 + 20)) * 4] = 255;
   const f = buildField(rgba, w, h, (r) => r / 255);
-  // Row 79 spans 11..10 N, column 200 spans 20..21 E.
   assert.equal(sampleField(f, 10.5, 20.5, 0), 1);
   assert.equal(sampleField(f, 0.5, 0.5, 0), 0);
-  // A 3x3 box centred on lon -179.5 must see the bright column at +179.5 across the seam.
   assert.ok(Math.abs(sampleField(f, 0.5, -179.5, 1) - 3 / 9) < 1e-9);
   assert.equal(meanOver(f, [{ lat: 10.5, lon: 20.5 }, { lat: 0.5, lon: 0.5 }], 0), 0.5);
 });

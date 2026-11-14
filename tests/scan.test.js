@@ -5,7 +5,6 @@ import { buildField } from '../js/fields.js';
 import { destination } from '../js/geo.js';
 import { encodeWav } from '../js/wav.js';
 
-// A 1-pixel-per-degree world with one bright square.
 function worldWithSpot(lat, lon, size = 4) {
   const w = 360;
   const h = 180;
@@ -68,8 +67,8 @@ test('encodeWav: valid 16-bit stereo PCM header and clipped samples', () => {
   assert.equal(v.getUint16(22, true), 2);
   assert.equal(v.getUint32(24, true), 44100);
   assert.equal(v.getUint16(34, true), 16);
-  assert.equal(v.getInt16(44 + 4 * 1, true), Math.round(0.5 * 0x7fff));   // frame 1 left
-  assert.equal(v.getInt16(44 + 4 * 1 + 2, true), -0x8000);               // frame 1 right = -1
-  assert.equal(v.getInt16(44 + 4 * 3, true), 0x7fff);                    // clipped +2
-  assert.equal(v.getInt16(44 + 4 * 3 + 2, true), -0x8000);               // clipped -2
+  assert.equal(v.getInt16(44 + 4 * 1, true), Math.round(0.5 * 0x7fff));
+  assert.equal(v.getInt16(44 + 4 * 1 + 2, true), -0x8000);
+  assert.equal(v.getInt16(44 + 4 * 3, true), 0x7fff);
+  assert.equal(v.getInt16(44 + 4 * 3 + 2, true), -0x8000);
 });

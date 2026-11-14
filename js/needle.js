@@ -1,47 +1,26 @@
-// Needle mode for rotating-globe and still-frame visualizations (Visual class: it sonifies the
-// picture, not calibrated measurements). A vertical needle is cut into bands from top (north,
-// high) to bottom (south, low). Every band has its own continuous voice whose loudness and
-// brightness follow, in real time, the pixels under the needle in that band (smoothed over
-// ~50 ms). Something moves under the needle: its band swells; it moves on: the band fades.
-// Sound is tied to the picture by construction, not by a schedule of notes.
-
 import { degreeToFreq } from './music.js';
 
 export const NEEDLE_SEGMENTS = 12;
-const SAMPLE_ROWS = 192;          // pixels read along the needle per frame
+const SAMPLE_ROWS = 192;
 
-/**
- * GEDI forest height (SVS 4950) as shown on the globe. Vegetation is found by its colour, not
- * its brightness: the globe darkens towards its edge and in shadow, so dark green must count
- * as much as bright green. Green hues (55 to 115 degrees) with some saturation are vegetation;
- * brown ground and desert (hue below 55), ocean (blue), ice and the grey no-data stripes (no
- * saturation) and space (black) read 0. Brighter, paler green stands for taller vegetation in
- * the palette, so it adds on top, scaled so the darkened edge still sounds.
- */
 export function forestValue(r, g, b) {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
-  if (max < 13) return 0;                          // space, deep shadow
+  if (max < 13) return 0;
   const sat = (max - min) / max;
-  if (sat < 0.18) return 0;                        // ice, grey no-data stripes, haze
+  if (sat < 0.18) return 0;
   const d = max - min;
   let hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
   hue = (hue * 60 + 360) % 360;
-  if (hue < 55 || hue > 115) return 0;             // brown ground and desert, ocean
+  if (hue < 55 || hue > 115) return 0;
   return Math.min(1, 0.45 + 0.55 * Math.min(1, max / 140));
 }
 
-/**
- * DYAMOND CO2 (SVS 5196) as shown on the globe: CO2 plumes are drawn yellow to orange to red
- * over a grey/white land base and a black ocean. "Warmth" of the colour (red minus blue)
- * stands for "more CO2 in the picture"; greys, whites and black read 0.
- */
 export function co2Value(r, g, b) {
   if (Math.max(r, g, b) < 30 || g > r + 10) return 0;
   return Math.max(0, Math.min(1, (r - b - 25) / 130));
 }
 
-/** Mean value per band (top = 0) from an RGBA column read top to bottom. */
 export function needleSegments(rgba, rows, valueFn, n = NEEDLE_SEGMENTS) {
   const out = new Float32Array(n);
   const per = rows / n;
@@ -57,7 +36,6 @@ export function needleSegments(rgba, rows, valueFn, n = NEEDLE_SEGMENTS) {
   return out;
 }
 
-/** Mean value per band down one column of a still's value grid (0..255 per pixel). */
 export function fieldSegments(field, x, y0, y1, n = NEEDLE_SEGMENTS) {
   const { width, height, values } = field;
   const col = Math.min(width - 1, Math.max(0, Math.round(x * width)));
@@ -75,12 +53,10 @@ export function fieldSegments(field, x, y0, y1, n = NEEDLE_SEGMENTS) {
   return out;
 }
 
-/** Pitch of a band: top of the needle (north) is the highest compass degree. */
 export function segmentFreq(k, n = NEEDLE_SEGMENTS) {
   return degreeToFreq(14 - Math.round((k * 14) / (n - 1)));
 }
 
-/** Band loudness for a value: below 0.08 silent, then a steep curve so rich parts stand out. */
 export function bandLevel(value) {
   const v = Math.max(0, Math.min(1, value));
   return v < 0.08 ? 0 : ((v - 0.08) / 0.92) ** 0.8;
@@ -99,13 +75,6 @@ export class NeedleScan {
     this._quiet = () => this._silence();
   }
 
-  /**
-   * Two sources:
-   *   video  a turning globe; the needle stays at geom.x and the picture moves under it;
-   *          read on every presented frame (requestVideoFrameCallback);
-   *   field  a still frame's precomputed value grid; the needle sweeps from geom.x0 to
-   *          geom.x1 over `durationS`, then stops and calls `onEnd`.
-   */
   start({ video = null, field = null, geom, valueFn, voice = 'wood', durationS = 8, onEnd = null }) {
     this.stop();
     Object.assign(this, { video, field, geom, valueFn, voice, durationS, onEnd });
@@ -131,7 +100,6 @@ export class NeedleScan {
       return;
     }
     const read = (mediaTime) => {
-      // Only a frame that is on screen and moving may sound.
       if (video.paused || video.seeking || video.readyState < 3 || document.hidden) { this._silence(); return; }
       if (mediaTime === this._lastMediaTime) return;
       this._lastMediaTime = mediaTime;
@@ -140,8 +108,6 @@ export class NeedleScan {
       this._ctx.drawImage(video, geom.x * vw - 1, geom.y0 * vh, 2, (geom.y1 - geom.y0) * vh, 0, 0, 2, SAMPLE_ROWS);
       apply(needleSegments(this._ctx.getImageData(0, 0, 1, SAMPLE_ROWS).data, SAMPLE_ROWS, valueFn), geom.x);
     };
-    // A globe scan lasts Scan length of playing time (pauses and buffering do not count),
-    // then stops by itself and reports, like the still-frame sweep.
     let played = 0;
     let lastT = performance.now();
     this._clock = setInterval(() => {

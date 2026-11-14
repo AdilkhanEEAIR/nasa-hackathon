@@ -1,10 +1,6 @@
-// Per-track rules: how a rendered pixel becomes values, and which instruments play them.
-// Pure functions only (no DOM, no audio), so they are unit-tested.
-
 import { LIGHT_FLOOR, ARC_FULL_SCALE } from './fields.js';
 import { DEFAULT_LAYERS } from './audio.js';
 
-/** The dominant class of a set of levels, or null if all are zero. */
 export function dominant(levels) {
   let best = null;
   let max = 0;
@@ -14,23 +10,12 @@ export function dominant(levels) {
   return best;
 }
 
-/**
- * Aerosols (SVS 5669). Classes come from the lossless sound grid written by
- * tools/prepare_media.py: R = amount, G = class id * 50 (1 smoke/black carbon, 2 dust,
- * 3 sea salt, 4 sulfate). Each class is its own instrument, recognisable without a legend.
- */
 export const AEROSOL_CLASSES = ['smoke', 'dust', 'salt', 'sulfate'];
 
-// Peaks are loudness-matched: each instrument at full value renders at about the same RMS as
-// the night-lights tone (measured offline), so no phenomenon is louder just because of its timbre.
 export const AEROSOL_LAYERS = [
-  // Smoke / black carbon: crackling fire over a low rumble.
   { name: 'smoke', source: 'crackle', filter: 'lowpass', octave: 3, q: 0.8, pitchFilter: true, brightMul: 1.5, peak: 2.95 },
-  // Dust: a dry, high rustle (band-passed noise).
   { name: 'dust', source: 'noise', filter: 'bandpass', octave: 4, q: 1.6, pitchFilter: true, brightMul: 0.4, peak: 3.7 },
-  // Sea salt: soft surf, low and slowly swelling.
   { name: 'salt', source: 'surf', filter: 'lowpass', octave: 2, q: 0.5, pitchFilter: true, brightMul: 0.8, peak: 4.2 },
-  // Sulfate: a buzzing tone (square wave) at the compass pitch.
   { name: 'sulfate', type: 'square', octave: 0, cutoffLo: 500, cutoffHi: 1800, peak: 0.65 },
 ];
 
@@ -38,7 +23,6 @@ export const AEROSOL_COLORS = { smoke: '--data-smoke', dust: '--data-dust', salt
 
 export const AEROSOL_NAMES = { smoke: 'smoke and black carbon', dust: 'dust', salt: 'sea salt', sulfate: 'sulfate' };
 
-/** Splits the aerosol sound grid (RGBA pixels) into one value field per class. */
 export function aerosolFields(img, lon0 = -180) {
   const { width, height, data } = img;
   const fields = Object.fromEntries(AEROSOL_CLASSES.map((c) => [c, new Uint8Array(width * height)]));
@@ -53,11 +37,6 @@ export function describeAerosol(kind) {
   return kind ? `mostly ${AEROSOL_NAMES[kind]}` : 'clear of the four aerosol types';
 }
 
-/**
- * Ocean temperature (SVS 3912, ECCO2 model, 19 June 2007). The lossless grid written by
- * tools/prepare_media.py holds R = flow line present, G = temperature 0..32 deg C read from the
- * colorbar by hue (brightness of the streaks does not change the value).
- */
 export const OCEAN_RANGE_C = 32;
 
 export function oceanFields(img, lon0 = -180) {
@@ -70,17 +49,10 @@ export function oceanFields(img, lon0 = -180) {
   return { cover: { width, height, lon0, values: cover }, temp: { width, height, lon0, values: temp } };
 }
 
-/** Mean temperature (deg C) where flow lines exist, from arc/point means of cover and temp. */
 export function oceanTemp(coverMean, tempMean) {
   return coverMean > 0.02 ? (tempMean / coverMean) * OCEAN_RANGE_C : null;
 }
 
-/**
- * Five fixed temperature bands, each with its own character. Moving up the scale adds
- * harmonics (sine -> triangle -> sawtooth), opens the filter and speeds up the shimmer, so
- * temperature is heard as a change of instrument, not only as brightness. Band centres in
- * deg C; a voice between two centres blends the two neighbouring bands.
- */
 export const OCEAN_BANDS = [
   { name: 'ice', centre: 0, label: 'ice-cold' },
   { name: 'cold', centre: 6, label: 'cold' },
@@ -89,30 +61,17 @@ export const OCEAN_BANDS = [
   { name: 'hot', centre: 29, label: 'hot' },
 ];
 
-// Shared by every band: the voice glides (pitch and filter) at a depth set by how dense the
-// current lines are on the arc, so busy currents are heard as moving water.
 const OCEAN_GLIDE = { rate: 0.35, rateBoost: 2.5, cents: 28, filterCents: 900 };
 
-// Ambient ocean. Temperature picks the register and the layer; the compass (north-south)
-// picks the note inside that register; west-east stays the stereo position. Long attacks
-// (`smooth`, seconds) let the layers flow into each other as the ring moves.
 export const OCEAN_LAYERS = [
-  // Ice-cold: a low, dense hum an octave down, top cut off.
   { name: 'ice', type: 'sine', octave: -1, cutoffLo: 320, cutoffHi: 320, peak: 0.95, smooth: 0.5, glide: OCEAN_GLIDE },
-  // Cold: a low, darker triangle hum, still an octave down.
   { name: 'cold', type: 'triangle', octave: -1, cutoffLo: 520, cutoffHi: 650, peak: 0.8, smooth: 0.5 },
-  // Mild: soft pads in the middle register, slowly breathing.
   { name: 'mild', type: 'triangle', octave: 0, cutoffLo: 1300, cutoffHi: 1700, peak: 1.0, smooth: 0.45, tremolo: { rate: 0.45, depth: 0.35 } },
-  // Warm: high ringing tones an octave up, a gentle shimmer.
   { name: 'warm', type: 'sine', octave: 1, cutoffLo: 5000, cutoffHi: 6000, peak: 0.95, smooth: 0.4, tremolo: { rate: 3.5, depth: 0.25 } },
-  // Hot: brighter ringing tones an octave up, a quicker shimmer.
   { name: 'hot', type: 'triangle', octave: 1, cutoffLo: 6500, cutoffHi: 8000, peak: 0.9, smooth: 0.4, tremolo: { rate: 6, depth: 0.3 } },
-  // Hottest water (30 C and above): a twin 40 cents sharp beats against the hot tone, a
-  // light tension in the sound. Nothing about trends or anomalies: one day, no baseline.
   { name: 'tension', type: 'sine', octave: 1, detune: 40, cutoffLo: 6000, cutoffHi: 6000, peak: 0.6, smooth: 0.4 },
 ];
 
-/** Blend weights (0..1, summing to 1) of the five bands for a temperature in deg C. */
 export function oceanBandWeights(t) {
   const out = Object.fromEntries(OCEAN_BANDS.map((b) => [b.name, 0]));
   if (t === null || t === undefined) return out;
@@ -130,7 +89,6 @@ export function oceanBandWeights(t) {
   return out;
 }
 
-/** The band a temperature belongs to (nearest centre), for words and legends. */
 export function oceanBand(t) {
   if (t === null || t === undefined) return null;
   let best = OCEAN_BANDS[0];
@@ -138,19 +96,10 @@ export function oceanBand(t) {
   return best;
 }
 
-// Density of current lines over open water, mapped to motion 0..1 between these fixed limits
-// (measured on the frame: 16-px blocks range 0.05..0.8, median 0.39).
 export const OCEAN_CALM = 0.25;
 export const OCEAN_DENSE = 0.75;
-// Share of an arc that must be sea for full loudness.
 export const OCEAN_FULL_WATER = 0.6;
 
-/**
- * Ring voice -> sound for the ocean track, all on fixed scales:
- *   loudness   = share of sea on the arc (land is silent);
- *   instrument = temperature band (0..32 deg C, read from the colorbar), blended between bands;
- *   motion     = density of current lines on the sea part of the arc -> glide depth and speed.
- */
 export function oceanVoice(v) {
   const cover = v.levels.cover || 0;
   const t = oceanTemp(cover, v.levels.temp || 0);
@@ -165,7 +114,6 @@ export function oceanVoice(v) {
   return { gains, brightness: t / OCEAN_RANGE_C, land: 0, temp: t, motion };
 }
 
-// From here the water is called "hottest water" and the sound gains a light tension.
 export const HOTTEST_C = 30;
 
 export function describeTemp(t) {
@@ -174,13 +122,6 @@ export function describeTemp(t) {
   return `sea surface about ${Math.round(t)} degrees Celsius, ${label}`;
 }
 
-/**
- * Near-surface wind (SVS 5148, GEOS-FP, 29 Oct 2026 09:00 UTC). The lossless grid written by
- * tools/prepare_media.py holds R = speed 0..40 m/s (read from the colorbar by nearest colour),
- * G = 255 where a speed was read, B = 255 where the frame has no data (logos, date box).
- * Calm air below 3.6 m/s is left uncoloured on the map, so it reads as 0; the grey
- * hurricane-force end of the scale cannot be told from the base map, so readings stop at 34.
- */
 export const WIND_RANGE_MS = 40;
 
 export function windFields(img, lon0 = -180) {
@@ -191,16 +132,12 @@ export function windFields(img, lon0 = -180) {
 }
 
 export const WIND_LAYERS = [
-  // Rushing air: band-passed noise on the compass pitch; stronger wind opens it up and lifts it.
   { name: 'gust', source: 'noise', filter: 'bandpass', octave: 0, q: 1.1, pitchFilter: true, brightMul: 5, peak: 3.0 },
-  // A narrow whistle that only appears in strong wind (above about 12 m/s).
   { name: 'whistle', source: 'noise', filter: 'bandpass', octave: 2, q: 14, pitchFilter: true, brightMul: 1.5, peak: 7 },
 ];
 
-// Mean wind on an arc heard at full loudness (calm parts of the arc count as 0 m/s).
 export const WIND_FULL_MS = 18;
 
-/** Ring voice -> sound for the wind track: loudness, brightness and whistle all follow speed. */
 export function windVoice(v) {
   const ms = (v.levels.speed || 0) * WIND_RANGE_MS;
   const gain = ms > 0 ? Math.min(1, ms / WIND_FULL_MS) ** 0.7 : 0;
@@ -214,26 +151,17 @@ export function describeWind(ms) {
   return `${word} wind, about ${Math.round(ms)} metres per second`;
 }
 
-/**
- * Lightning (SVS 5011). Dots are yellow (median RGB 138,130,21); the base map, lines and
- * coverage shading are neutral grey (R = G = B), so "yellowness" separates them cleanly
- * (DATA_NOTES 3.3): R > 90, G > 70, B < G - 40.
- */
 export function lightningLevel(r, g, b) {
   if (r <= 90 || g <= 70 || b >= g - 40) return 0;
   return Math.min(1, (Math.min(r, g) - b - 40) / 120);
 }
 
-/** ISS LIS coverage edge (DATA_NOTES 3.1): beyond this there is no data, not "no lightning". */
 export const LIGHTNING_COVERAGE_LAT = 52;
 
 export const LIGHTNING_LAYERS = [
-  // Storm density on the arc: a low thunder rumble. Individual new flashes are separate,
-  // sharp strikes (see SonicEngine.strike).
   { name: 'rumble', source: 'noise', filter: 'lowpass', octave: -1, q: 0.9, pitchFilter: true, brightMul: 1, peak: 3.2 },
 ];
 
-/** Strikes per second for one voice from the share of new dots on its arc (fixed curve). */
 export function strikeRate(newLevel, maxRate = 8) {
   if (!(newLevel > 0)) return 0;
   return Math.min(maxRate, maxRate * Math.sqrt(newLevel / 0.02));
@@ -241,11 +169,6 @@ export function strikeRate(newLevel, maxRate = 8) {
 
 export { LIGHT_FLOOR };
 
-/**
- * Centre presets per track (keys 1-5). Each set sits where its own data has contrast: lit
- * cities for night lights, plumes for aerosols, storm hot spots for lightning and strong
- * temperature fronts for the ocean (the shared land presets left half of an ocean ring silent).
- */
 export const TRACK_PRESETS = {
   nightlights: [
     { key: '1', name: 'India', lat: 22.5, lon: 79.0, radiusKm: 1500 },
@@ -284,15 +207,9 @@ export const TRACK_PRESETS = {
   ],
 };
 
-/**
- * Sound settings per track, shared by the player (js/app.js) and the offline sound report
- * (tools/sound_report.mjs): instruments, the arc level heard at full loudness, the loudness
- * trim and, where needed, how arc values become a voice.
- */
 export const TRACK_SOUND = {
   nightlights: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1 },
   aerosols: { layers: AEROSOL_LAYERS, fullScale: 0.6, trim: 0.9 },
-  // Open ocean fills every voice at once: measured RMS 0.13-0.18 before trim, ~0.09 after.
   ocean: { layers: OCEAN_LAYERS, fullScale: ARC_FULL_SCALE, trim: 0.55, mapVoice: (v) => oceanVoice(v) },
   wind: { layers: WIND_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0, mapVoice: (v) => windVoice(v) },
   forest: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
@@ -301,13 +218,6 @@ export const TRACK_SOUND = {
   currents: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
 };
 
-/**
- * Two classes of track, shown in the list and said in each intro:
- *   data   - values are read back from the visualization's own colour scale (Data-true);
- *   visual - the picture itself is sonified (brightness, hue, motion), not calibrated
- *            measurements.
- */
 export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual', co2: 'visual', river: 'visual', currents: 'visual' };
 
-/** Needle tracks play a rotating globe: no map centre, no presets, no ring. */
 export const NEEDLE_TRACKS = new Set(['forest', 'co2', 'river', 'currents']);

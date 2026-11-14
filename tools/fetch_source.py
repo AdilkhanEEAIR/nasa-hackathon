@@ -1,16 +1,3 @@
-"""Safe downloader for EarthSonar source data.
-
-Rules (see docs/DATA_NOTES.md, "Downloads"):
-  * https only, and only from allowed hosts (NASA SVS by default; Natural Earth when asked);
-    a redirect to any other host aborts the download;
-  * only media and text: .mp4 .png .jpg .txt (+ .geojson/.json for Natural Earth);
-  * nothing over 400 MB;
-  * after download the content must match its extension (file signature, ffprobe for video,
-    UTF-8 for text); nothing downloaded is ever executed;
-  * every file is logged with URL, size, date and SHA-256 to datasets/downloads.json.
-
-    python tools/fetch_source.py <url> [<url> ...] [--dest datasets/<sub>] [--allow-natural-earth]
-"""
 from __future__ import annotations
 
 import argparse
@@ -61,7 +48,7 @@ def check_content(path: Path) -> str:
         s = info["streams"][0]
         return f"ffprobe OK: {s['codec_name']} {s['width']}x{s['height']} {s['r_frame_rate']} fps, {float(info['format']['duration']):.1f} s"
     text = path.read_bytes()
-    text.decode("utf-8")  # raises if binary
+    text.decode("utf-8")
     assert b"<script" not in text.lower() and b"<html" not in text[:512].lower(), "looks like an HTML page"
     if ext in NE_EXT:
         json.loads(text)
@@ -101,7 +88,7 @@ def fetch(url: str, dest: Path, hosts: set, exts: set) -> dict:
     tmp.replace(out)
     try:
         verdict = check_content(out)
-    except Exception as e:  # noqa: BLE001 - any failure means the file is rejected
+    except Exception as e:  # noqa: BLE001
         out.unlink(missing_ok=True)
         raise SystemExit(f"{name} rejected: {e}")
     rec = {

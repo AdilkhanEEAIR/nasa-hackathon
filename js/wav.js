@@ -1,6 +1,3 @@
-// Minimal 16-bit PCM WAV encoder (RIFF). WAV is uncompressed and opens everywhere, which
-// matters for sharing scans with listeners who use assistive software.
-
 export function encodeWav(channels, sampleRate) {
   const nCh = channels.length;
   const frames = channels[0].length;
@@ -14,8 +11,8 @@ export function encodeWav(channels, sampleRate) {
   v.setUint32(4, 36 + dataBytes, true);
   str(8, 'WAVE');
   str(12, 'fmt ');
-  v.setUint32(16, 16, true);              // PCM chunk size
-  v.setUint16(20, 1, true);               // PCM format
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true);
   v.setUint16(22, nCh, true);
   v.setUint32(24, sampleRate, true);
   v.setUint32(28, sampleRate * nCh * bytesPerSample, true);

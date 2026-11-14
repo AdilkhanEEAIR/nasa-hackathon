@@ -1,6 +1,3 @@
-// Sixth Sense application: tracks, state, keyboard control, announcements.
-// Everything is reachable from the keyboard; every button shows its shortcut.
-
 import { SonicEngine, DEFAULT_LAYERS } from './audio.js';
 import { RingScan, motorLevels, renderScanWav, readPoint, readRing } from './scan.js';
 import { MapView, reducedMotion } from './view.js';
@@ -17,7 +14,6 @@ import {
 } from './tracks.js';
 import { NeedleScan, forestValue, co2Value, NEEDLE_SEGMENTS } from './needle.js';
 
-// How each needle track reads its picture and which voice plays it.
 const NEEDLE_READ = {
   forest: { valueFn: forestValue, voice: 'wood', color: '--data-forest' },
   co2: { valueFn: co2Value, voice: 'breath', color: '--data-co2' },
@@ -36,9 +32,8 @@ import { describePlace } from './places.js';
 import { DEMO_LENGTH_MS, DEMO_SCENES, DEMO_CAPTIONS, DEMO_CARDS, DEMO_CENTRES } from './demo-plan.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
-const AMBER = '--data-lights'; // design-token name (css/tokens.css), resolved at draw time
+const AMBER = '--data-lights';
 
-/** Tracks whose map is split into named classes, each played by its own instrument. */
 const CLASS_TRACKS = {
   aerosols: {
     layers: AEROSOL_LAYERS, colors: AEROSOL_COLORS, describe: describeAerosol, slug: 'aerosols-2025-08-19',
@@ -70,12 +65,9 @@ const ALL_TRACKS = [
     intro: 'Ocean Currents from Perpetual Ocean 2: one still frame of a globe where white streaks trace the currents of NASA\'s ECCO ocean model. A needle sweeps across the globe from west to east, north high, south low. Where it crosses bright current streaks you hear soft tones sliding gently down, like flowing water: the Gulf Stream and the equatorial currents stand out. Land and snow are silent. Space plays the sweep.' },
 ];
 
-// Disabled tracks keep their code in the repository but are left out of the site: the list,
-// the Shift+digit keys, the intros, the manifest and the deployment.
 const DISABLED_TRACKS = new Set(['currents']);
 export const TRACKS = ALL_TRACKS.filter((t) => !DISABLED_TRACKS.has(t.id));
 
-// Each track has its own centre presets (js/tracks.js); night lights are the starting set.
 export const PRESETS = TRACK_PRESETS.nightlights;
 const currentPresets = () => TRACK_PRESETS[state.track] || PRESETS;
 
@@ -88,22 +80,21 @@ const state = {
   radiusKm: PRESETS[0].radiusKm,
   durationS: 8,
   manifest: null,
-  fields: new Map(),   // year -> value field
+  fields: new Map(),
   land: null,
   busy: false,
-  aerosols: null,      // {smoke, dust, salt, sulfate} value fields
-  ocean: null,         // {cover, temp} value fields
-  wind: null,          // {speed} value field
-  explore: false,     // explore mode: a sustained probe tone at the centre point
+  aerosols: null,
+  ocean: null,
+  wind: null,
+  explore: false,
   probeLand: null,
-  centreFromPreset: true, // the centre is still a preset (not moved by hand): a track switch moves it
+  centreFromPreset: true,
 };
 
 const engine = new SonicEngine();
 const voice = new Voice(prefs().voice);
-// The scan is ducked while the guide talks, so speech never covers the data being heard.
 voice.onSpeaking = (on) => engine.setDucked(on);
-let pendingScan = false; // Space pressed before the first data arrived: start when ready
+let pendingScan = false;
 const view = new MapView({
   world: $('world'),
   imgA: $('map-a'),
@@ -117,7 +108,6 @@ const view = new MapView({
 });
 const dial = new VoiceDial($('dial'));
 
-/** Colour of a voice in the visuals: the instrument that is loudest on its arc. */
 function voiceColor(v) {
   if (classTrack()) return classTrack().colors[dominant(v.gains)] || AMBER;
   if (state.track === 'ocean') return tempColor(v.temp);
@@ -125,12 +115,6 @@ function voiceColor(v) {
   return AMBER;
 }
 
-// ---------------------------------------------------------------- touch: phone and game controller
-
-/**
- * Sends the N/E/S/W values to the browser haptics (Android vibration, controller rumble; see
- * js/haptics.js for the rule) and shows the resulting intensity under the dial.
- */
 function haptics(levels) {
   dial.setHaptics(hapticsModule.set(levels), hapticsModule.available);
 }
@@ -163,12 +147,9 @@ const scan = new RingScan(engine, {
   },
 });
 
-// Lightning: arc density of dots that is heard at full rumble loudness (fixed for the video).
 const LIGHTNING_FULL = 0.04;
-// Measured live against the night-lights scan (analyser on the master bus): RMS 0.022 vs
-// 0.073, so the lightning track is lifted to match.
-const LIGHTNING_TRIM = 3.2; // re-measured in the demo: 0.068 RMS at 2.5 vs 0.084-0.097 for the map scenes
-let lightning = null; // LightningSource, created when the lightning track is first chosen
+const LIGHTNING_TRIM = 3.2;
+let lightning = null;
 
 const liveScan = new LiveRingScan(engine, {
   onStep: ({ ring }) => {
@@ -176,7 +157,6 @@ const liveScan = new LiveRingScan(engine, {
     view.setRing(ring);
     const m = motorLevels(ring);
     dial.update(ring.map((v) => v.gain), m, ring.map((v) => v.color));
-    // A strike is a short, full-strength jolt on its side; the rumble is the steady level.
     for (const v of ring) {
       if (!v.struck) continue;
       const side = ['n', 'e', 's', 'w'][Math.round(v.bearing / 90) % 4];
@@ -187,15 +167,7 @@ const liveScan = new LiveRingScan(engine, {
   },
 });
 
-// ---------------------------------------------------------------- announcements
-
 let announceTimer = 0;
-/**
- * Polite live region (cleared first so repeating the same sentence is still read out). Every
- * message goes there for the user's own screen reader. The built-in guide speaks a message
- * only when `say` names one of its kinds ('intro', 'where', 'result'), the guide is on and
- * the Jukebox is the open tab (see mayVoiceSpeak in js/prefs.js).
- */
 function announce(text, { say = null } = {}) {
   const el = $('status');
   el.textContent = '';
@@ -249,14 +221,8 @@ function updateDescription() {
   if (state.track === 'ocean' && state.manifest) $('temp-scale-img').src = state.manifest.ocean.legend;
 }
 
-// ---------------------------------------------------------------- data loading
-
-// Sound and sight are separate files: lossless PNG grids hold the exact values the sound
-// uses; lossy WebP/JPEG views are only for the eyes. Only the first year loads before the
-// player is ready; everything else loads on demand or in the background afterwards.
-
 let viewExt = 'jpg';
-const inflight = new Map(); // url -> Promise, so a file is never fetched twice
+const inflight = new Map();
 
 function viewUrl(entry) {
   return entry.view[viewExt];
@@ -279,19 +245,13 @@ function currentEntry() {
 
 const HI_RES_FROM = 1.5;
 
-/**
- * Shows the current frame: the 1920-px view normally, the 3840-px source view once zoomed
- * past 1.5x. The high-resolution file is fetched only for the frame on screen, only when
- * needed, and swapped in when it has arrived (so zooming never shows a blank map).
- */
 function showFrame({ fade = false } = {}) {
-  if (!state.manifest || state.track === 'lightning' || isNeedle()) return; // the video is its own frame
+  if (!state.manifest || state.track === 'lightning' || isNeedle()) return;
   const entry = currentEntry();
   const low = viewUrl(entry);
   const hi = entry.viewHi ? entry.viewHi[viewExt] : null;
   const wantHi = hi && view.cam.s > HI_RES_FROM;
   if (!wantHi) {
-    // Zoomed back out: keep the sharper image if it is already this frame's.
     if (!hi || view.currentImage !== hi) view.setImage(low, { fade });
     return;
   }
@@ -316,13 +276,10 @@ async function loadGrid(url, onProgress) {
   return once(url, async () => blobToPixels(await fetchBlob(url, onProgress)));
 }
 
-/** Warms the HTTP cache and decodes a view image, so showing it later is instant. */
 function prefetchView(url) {
   return once(url, async () => {
     const img = new Image();
     img.src = url;
-    // decode() can stall in a hidden or background window; the picture is only for the eyes,
-    // so readiness never waits on it for long.
     await Promise.race([img.decode().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
   });
 }
@@ -335,7 +292,6 @@ async function loadYear(year, progress) {
   state.fields.set(year, channelField(img, 0));
 }
 
-/** Value fields for the current track (and year). */
 async function loadAerosols(progress) {
   if (state.aerosols) return;
   const entry = state.manifest.aerosols;
@@ -363,7 +319,7 @@ async function currentFields() {
     }
     return state.ocean;
   }
-  if (isNeedle()) return null; // the needle reads the video directly
+  if (isNeedle()) return null;
   if (state.track === 'wind') {
     if (!state.wind) {
       await withProgress('Near-Surface Wind', async (p) => {
@@ -385,19 +341,16 @@ async function currentFields() {
   return state.fields.get(state.year);
 }
 
-/** How arc values become sound on the current track (see scan.js defaultVoice). */
 function currentMapVoice() {
   return TRACK_SOUND[state.track] ? TRACK_SOUND[state.track].mapVoice : undefined;
 }
 
-/** Temperature at the ring centre (deg C) or null, read like "Where am I". */
 function centreTemp() {
   if (!state.ocean) return null;
   const c = state.center;
   return oceanTemp(sampleField(state.ocean.cover, c.lat, c.lon, 2), sampleField(state.ocean.temp, c.lat, c.lon, 2));
 }
 
-/** Coldest and warmest temperature heard on the ring at its starting size, in words. */
 function ringTempRange() {
   const temps = readRing(state.ocean, null, state.center, state.radiusKm)
     .map((v) => oceanTemp(v.levels.cover, v.levels.temp)).filter((t) => t !== null);
@@ -405,7 +358,6 @@ function ringTempRange() {
   return `from about ${Math.round(Math.min(...temps))} to ${Math.round(Math.max(...temps))} degrees Celsius`;
 }
 
-/** Large centre temperature under the ocean title. */
 function showCentreTemp() {
   const el = $('temp-readout');
   if (state.track !== 'ocean') { el.hidden = true; return; }
@@ -414,7 +366,6 @@ function showCentreTemp() {
   el.textContent = t === null ? 'Centre: land, no ocean' : `Centre: ${Math.round(t)} °C${t >= HOTTEST_C ? ' · hottest water' : ''}`;
 }
 
-/** Blue (cold) to red (warm) for the ocean visuals, matching the source colorbar's ends. */
 function tempColor(t) {
   if (t === null || t === undefined) return '--data-nodata';
   return mix('--data-cold', '--data-warm', t / 32);
@@ -426,11 +377,9 @@ function currentLayers() {
   return classTrack() ? classTrack().layers : DEFAULT_LAYERS;
 }
 
-// ---------------------------------------------------------------- lightning playback
-
 const COMPASS16 = ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east',
   'south', 'south-south-west', 'south-west', 'west-south-west', 'west', 'west-north-west', 'north-west', 'north-north-west'];
-let lightningMode = null; // 'scan' (one timed shrink) or 'video' (Play whole video)
+let lightningMode = null;
 
 function stopLightning(words) {
   const v = $('map-video');
@@ -445,16 +394,11 @@ function stopLightning(words) {
   if (words) announce(words);
 }
 
-/**
- * Lightning scan: the video plays while the ring shrinks once, slowly and smoothly, from the
- * full radius to the centre over the scan length; then it stops and says what it heard.
- */
 async function toggleLightning() {
   if (liveScan.running) { stopLightning(`Stopped at ${lightning.date}.`); return; }
   await startLightning('scan');
 }
 
-/** Play whole video: the ring keeps cycling while the whole video plays to its end. */
 async function toggleLightningVideo() {
   if (state.track !== 'lightning') { announce('Play whole video is for the lightning track.'); return; }
   await ensureSound();
@@ -475,8 +419,6 @@ async function startLightning(mode) {
   announce(mode === 'scan'
     ? `Scanning lightning from ${from}, ring around ${centreLabel()}, ${state.durationS} seconds.`
     : `Playing the whole lightning video from ${from}.`);
-  // Do not wait for playback to begin: on a slow network the video may still be buffering,
-  // and the ring must start on time, reading the frame already on screen.
   v.play().catch((err) => console.error(err));
   liveScan.start({
     getFrame: () => lightning.frame(),
@@ -501,7 +443,6 @@ async function startLightning(mode) {
   v.onended = () => { if (liveScan.running) stopLightning(`End of the video, ${lightning.date}.`); };
 }
 
-/** Date scale 2017-2023 under the map on the lightning track, with the current position. */
 function renderDateScale() {
   const tl = $('timeline');
   tl.textContent = '';
@@ -531,7 +472,6 @@ function markDate() {
   mark.style.transform = `translateX(${(v.currentTime / v.duration) * $('timeline').clientWidth}px)`;
 }
 
-/** Page Up / Page Down move about one month (the video runs ~1 s per month). */
 function seekLightning(deltaSeconds, absolute = null) {
   if (!lightning || !lightning.ready) return;
   if (absolute === null) lightning.seekBy(deltaSeconds);
@@ -545,10 +485,6 @@ function seekLightning(deltaSeconds, absolute = null) {
   }, { once: true });
 }
 
-/**
- * Runs a load job with a visible progress bar, a live-region message and (if the job takes
- * a while) spoken progress. Short jobs only say "ready", to avoid chatter.
- */
 async function withProgress(label, job) {
   const bar = $('loadbar');
   const fill = bar.querySelector('.fill');
@@ -576,7 +512,6 @@ async function withProgress(label, job) {
   }
 }
 
-/** Background loading after the first screen is ready: other years, then the next track. */
 async function prefetchRest() {
   const idle = () => new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(() => r(), { timeout: 800 }) : setTimeout(r, 50)));
   for (const y of YEARS) {
@@ -592,7 +527,6 @@ async function init() {
   const [manifest, webp] = await Promise.all([fetch('manifest.json').then((r) => r.json()), supportsWebp()]);
   state.manifest = manifest;
   viewExt = webp ? 'webp' : 'jpg';
-  // Everything the first screen needs, in parallel: one view, one sound grid, the land mask.
   const first = state.manifest.nightlights.years[String(state.year)];
   const [mask] = await Promise.all([
     loadGrid(state.manifest.landMask.file),
@@ -610,8 +544,6 @@ async function init() {
   prefetchRest();
 }
 
-// ---------------------------------------------------------------- actions
-
 async function ensureSound() {
   if (engine.ready) return true;
   const ok = await engine.unlock();
@@ -621,18 +553,14 @@ async function ensureSound() {
   return ok;
 }
 
-// One source of truth for "a scan is playing": the scanners' own running flags, plus the short
-// moment while a scan is starting (loading frames, waiting for the video). The button is always
-// drawn from it; nothing stores "pressed" separately. Every stop path ends in setScanButton().
 let scanStarting = false;
-let scanToken = 0;            // bumped by stopScans(): an async start that was overtaken gives up
-let sweepTimers = [];         // the year sweep's scheduled steps, so it can be cancelled
+let scanToken = 0;
+let sweepTimers = [];
 
 function scanActive() {
   return scanStarting || scan.running || (liveScan.running && lightningMode === 'scan') || needle.running;
 }
 
-/** `starting` true marks a scan that is about to start; anything else just redraws. */
 function setScanButton(starting = false) {
   scanStarting = starting === true;
   const running = scanActive();
@@ -641,11 +569,6 @@ function setScanButton(starting = false) {
   b.querySelector('.btn-label').textContent = running ? 'Stop scan' : 'Play scan';
 }
 
-/**
- * Stops every kind of scan completely: ring, lightning (scan and whole video), needle and
- * still-frame sweep, the year sweep, vibration. Used on track change, on leaving the Jukebox,
- * on Esc and by stopAll(). Quiet: the caller says what happens next.
- */
 function stopScans() {
   scanToken++;
   scanStarting = false;
@@ -707,7 +630,6 @@ async function toggleScan() {
 
 async function setYear(year, { speak = true } = {}) {
   if (state.track === 'lightning') {
-    // Year keys move through the video: one step is about a month.
     if (year === YEARS[0]) seekLightning(0, 0);
     else if (year === YEARS[YEARS.length - 1]) seekLightning(0, Infinity);
     else seekLightning(year > state.year ? 1 : -1);
@@ -721,12 +643,11 @@ async function setYear(year, { speak = true } = {}) {
   state.year = y;
   $('year').value = String(y);
   await loadYear(y);
-  showFrame();   // instant: keyboard-driven changes are never animated
+  showFrame();
   updateDescription();
   if (speak) announce(String(y));
   updateProbe();
   if (scan.running) {
-    // Restart so the ring reads the new year from the outside in, keeping comparisons fair.
     scan.stop(false);
     toggleScan();
   }
@@ -735,7 +656,7 @@ async function setYear(year, { speak = true } = {}) {
 function setCenter(center, { speak = true } = {}) {
   state.center = { lat: clampLat(center.lat), lon: normalizeLon(center.lon), name: center.name || '' };
   view.setCenter(state.center);
-  view.follow(state.center.lat, state.center.lon); // a zoomed map keeps the scan centre in frame
+  view.follow(state.center.lat, state.center.lon);
   updateDescription();
   if (speak) announce(`Centre ${centreLabel()}.`);
   state.centreFromPreset = false;
@@ -751,7 +672,6 @@ function applyPreset(p, { speak = true } = {}) {
   if (scan.running) { scan.stop(false); toggleScan(); }
 }
 
-/** Buttons for the current track's presets (keys 1-5). */
 function renderPresets() {
   const box = $('presets');
   box.textContent = '';
@@ -767,8 +687,6 @@ function renderPresets() {
 }
 
 function moveCenter(dLat, dLon) {
-  // Explore mode moves in finer steps; the spoken centre is skipped so the probe tone is
-  // what you hear while walking (W names the place on demand).
   const k = state.explore ? 0.5 : 1;
   setCenter({ lat: state.center.lat + dLat * k, lon: state.center.lon + dLon * k }, { speak: !state.explore });
 }
@@ -840,7 +758,6 @@ function renderLegend() {
   }
 }
 
-/** `fade` (pointer clicks only) cross-fades the map; keyboard track changes are instant. */
 async function selectTrack(id, { fade = false } = {}) {
   const t = TRACKS.find((x) => x.id === id);
   if (!t) return;
@@ -848,7 +765,7 @@ async function selectTrack(id, { fade = false } = {}) {
     announce(`${t.title} is coming next.`);
     return;
   }
-  if (state.busy && !sweepTimers.length) return;   // a tutorial or probe is speaking
+  if (state.busy && !sweepTimers.length) return;
   stopScans();
   state.track = id;
   const isLt = id === 'lightning';
@@ -858,8 +775,6 @@ async function selectTrack(id, { fade = false } = {}) {
   renderLegend();
   renderPresets();
   setNeedleTrack(isNeedle());
-  // A centre still sitting on a preset moves to this track's first preset, where its data has
-  // contrast (an ocean ring centred on India would be half silent).
   if (state.centreFromPreset && currentPresets().length) applyPreset(currentPresets()[0], { speak: false });
   $('track-title').textContent = t.title;
   document.body.dataset.track = id;
@@ -867,7 +782,6 @@ async function selectTrack(id, { fade = false } = {}) {
   const yearsOnly = id === 'nightlights';
   for (const b of ['btn-prev-year', 'btn-next-year']) $(b).disabled = !(yearsOnly || isLt);
   $('year').disabled = !yearsOnly;
-  // WAV export renders offline from still frames; the lightning video has no such path.
   const wav = $('btn-wav');
   const videoTrack = isLt || NEEDLE_TRACKS.has(id);
   if (videoTrack) { wav.setAttribute('aria-disabled', 'true'); wav.setAttribute('aria-describedby', 'wav-note'); }
@@ -877,23 +791,16 @@ async function selectTrack(id, { fade = false } = {}) {
   $('btn-video').hidden = !isLt;
   $('year').closest('.field').hidden = !yearsOnly;
   await currentFields();
-  // The record starts in March 2017 with few flashes; open on a stormy northern summer.
   if (isLt && $('map-video').currentTime < 1) seekLightning(0, DEMO_LIGHTNING_AT);
   if (isLt) renderDateScale();
   else if ($('timeline').classList.contains('timeline--dates')) renderTimeline();
   showFrame({ fade });
   updateDescription();
-  // Short spoken introduction: what the data is and how each state sounds.
   const cls = TRACK_CLASS[id] === 'visual' ? 'Visual track: it sonifies the picture, not calibrated measurements.' : 'Data-true track: values are read from the colour scale.';
   announce(`Track ${TRACKS.indexOf(t) + 1}. ${cls} ${t.intro || `${t.title}. ${t.blurb}`} Press Space to scan.`, { say: 'intro' });
   updateProbe();
 }
 
-/**
- * "Y" on class tracks (Aerosols): how the signal inside the ring divides
- * between the classes. Each class is played on its own instrument, largest share first,
- * louder for a larger share, then the shares are read out.
- */
 async function classSummary() {
   if (state.busy) return;
   await ensureSound();
@@ -927,7 +834,6 @@ async function classSummary() {
   announce(`Inside the ring around ${centreLabel()}, ${what}: ${parts.join(', ')}.`, { say: 'result' });
 }
 
-/** Pings one year chip in the visual timeline when its note sounds. */
 function pingYear(year) {
   const chip = document.querySelector(`.chip[data-year="${year}"]`);
   if (!chip) return;
@@ -935,11 +841,6 @@ function pingYear(year) {
   setTimeout(() => chip.classList.remove('ping'), 220);
 }
 
-/**
- * Plays one note per year: the mean rendered brightness inside the disk around the centre,
- * on a fixed logarithmic pentatonic scale shared by all regions and years.
- */
-/** Lightning "Y": where the lightning is around the centre in the current 10-day window. */
 async function lightningSummary() {
   await ensureSound();
   const f = await currentFields();
@@ -974,8 +875,6 @@ async function lightningSummary() {
   announce(`In the 10 days to ${date}: ${level} lightning within the ring around ${centreLabel()}, most of it to the ${names[order[0]]}.`, { say: 'result' });
 }
 
-/** Ocean "Y": coldest and warmest directions around the ring and the mean temperature,
- * heard as a sweep of the ocean tone from the coldest to the warmest side. */
 async function oceanSummary() {
   await ensureSound();
   if (scan.running) scan.stop(false);
@@ -1024,12 +923,11 @@ async function yearSweep() {
   const values = YEARS.map((y) => meanOver(state.fields.get(y), pts, 1));
   announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`);
   const lead = 0.8;
-  const step = 0.55; // under 2 notes per second, so the visual pings stay far below 3 flashes/s
+  const step = 0.55;
   sweepTimers = [];
   values.forEach((v, i) => {
     engine.note(degreeToFreq(degreeForIndex(v)), { when: lead + i * step, duration: 0.5, level: 0.32, bright: Math.min(1, v / 0.02), type: 'triangle' });
     sweepTimers.push(setTimeout(() => {
-      // While music plays, the picture follows it with a short cross-fade.
       view.setImage(yearUrl(YEARS[i]), { fade: true });
       $('year-readout').textContent = String(YEARS[i]);
       markTimeline(YEARS[i]);
@@ -1052,11 +950,6 @@ async function yearSweep() {
   }, (lead + YEARS.length * step + 0.3) * 1000));
 }
 
-/**
- * Short sound tutorial: each rule is said first, then heard on its own, so speech and the
- * example note never overlap. Without the voice guide the text goes to the live region and
- * the notes keep a fixed rhythm.
- */
 async function tutorial() {
   if (state.busy) return;
   await ensureSound();
@@ -1073,7 +966,7 @@ async function tutorial() {
   ];
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   for (const s of steps) {
-    if (!state.busy) break; // Escape cancels
+    if (!state.busy) break;
     announce(s.text);
     dial.setHighlight(s.hl);
     const talk = mayVoiceSpeak({ voiceOn: voice.enabled, tab: document.body.dataset.tab, kind: 'tutorial' });
@@ -1086,7 +979,6 @@ async function tutorial() {
   state.busy = false;
 }
 
-/** Wind "Y": the windiest and calmest directions in the ring and the mean, as a short sweep. */
 async function windSummary() {
   await ensureSound();
   if (scan.running) scan.stop(false);
@@ -1111,7 +1003,6 @@ async function windSummary() {
     + `the calmest to the ${lo.d}; average about ${Math.round(mean)}.`, { say: 'result' });
 }
 
-/** Values at the centre point for the current track: words for "where am I" and the probe. */
 function pointReading(fields) {
   const c = state.center;
   if (classTrack()) {
@@ -1155,9 +1046,6 @@ async function whereAmI() {
     + `${formatLatLon(c.lat, c.lon)}.`, { say: 'where' });
 }
 
-// ---------------------------------------------------------------- explore mode
-
-/** Sustained probe at the centre point; called whenever the point, year or track changes. */
 async function updateProbe() {
   if (!state.explore) return;
   const fields = await currentFields();
@@ -1167,15 +1055,13 @@ async function updateProbe() {
   state.probeLand = onLand;
   const pr = pointReading(fields);
   const { levels } = pr;
-  // A single point carries the full pixel level (0..1), not an arc average, so it maps to
-  // loudness directly with the same curve shape.
   const gains = Object.fromEntries(Object.entries(levels).map(([k, v]) => [k, v > 0 ? v ** 0.7 : 0]));
   const peak = Math.max(...Object.values(levels));
   const isOcean = state.track === 'ocean';
   engine.setProbe({
     gains,
     brightness: isOcean ? (pr.temp ?? 0) / 32 : state.track === 'wind' ? Math.min(1, (pr.windMs || 0) / 25) : peak,
-    land: onLand && !isOcean && state.track !== 'wind' ? 1 : 0, // ocean and wind keep land silent
+    land: onLand && !isOcean && state.track !== 'wind' ? 1 : 0,
     lat: c.lat,
     motion: pr.motion || 0,
   });
@@ -1208,16 +1094,10 @@ async function toggleExplore(force) {
   }
 }
 
-// ---------------------------------------------------------------- controller input
-
 let joy = { x: 0, y: 0 };
 let joyTimer = 0;
 let joyMoved = false;
 
-/**
- * Joystick: moves the centre smoothly (about 6 degrees per second at full tilt, half that in
- * explore mode); when the stick returns to rest the new place is spoken once.
- */
 function joyTick() {
   if (joy.x === 0 && joy.y === 0) {
     clearInterval(joyTimer);
@@ -1225,15 +1105,13 @@ function joyTick() {
     if (joyMoved) { joyMoved = false; announce(`Centre ${centreLabel()}.`); }
     return;
   }
-  const speed = (state.explore ? 3 : 6) / 20; // degrees per tick at 20 Hz
+  const speed = (state.explore ? 3 : 6) / 20;
   const c = state.center;
   const dLon = (joy.x / 100) * speed / Math.max(0.2, Math.cos((c.lat * Math.PI) / 180));
   setCenter({ lat: c.lat + (joy.y / 100) * speed, lon: c.lon + dLon }, { speak: false });
   joyMoved = true;
 }
 
-// Game controller (Gamepad API): left stick moves the centre like the arrow keys, A / Cross
-// starts or stops the scan, X / Square asks "Where am I". Polled only while a pad is connected.
 let padPrev = [];
 let padLoop = 0;
 function pollPad() {
@@ -1251,7 +1129,6 @@ function pollPad() {
   padLoop = requestAnimationFrame(pollPad);
 }
 window.addEventListener('gamepadconnected', () => { if (!padLoop) padLoop = requestAnimationFrame(pollPad); announce('Game controller connected: left stick moves the centre, A starts the scan, X says where you are.'); });
-// A controller connected before the player loaded (on Home) has already fired its event.
 if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padLoop = requestAnimationFrame(pollPad);
 new MutationObserver(() => {
   const tab = document.body.dataset.tab;
@@ -1265,7 +1142,6 @@ window.addEventListener('earthsonar:haptics', () => dial.setHaptics({ strong: 0,
 async function saveWav() {
   if (state.busy || !requireReadyTrack()) return;
   if (state.track === 'lightning' || isNeedle()) {
-    // Offline rendering needs every video frame decoded in advance; not built yet.
     announce($('wav-note').textContent);
     return;
   }
@@ -1309,20 +1185,17 @@ async function saveWav() {
   }
 }
 
-/** V and the Jukebox checkbox change the same shared preference as the Accessibility menu. */
 function toggleVoice(force) {
   const on = typeof force === 'boolean' ? force : !voice.enabled;
   setPref('voice', on);
   announce(`Voice guide ${on ? 'on' : 'off'}.`);
 }
 
-// Preferences changed anywhere (Accessibility menu, V, the checkbox): follow them here.
 window.addEventListener('earthsonar:prefs', (e) => {
   const p = e.detail;
   voice.setEnabled(p.voice);
   $('voice').checked = p.voice;
   if (p.changed === 'large') {
-    // The overlay and the dial read tokens from CSS; large mode swaps those tokens.
     resetTokens();
     view.draw();
     dial.draw();
@@ -1330,7 +1203,6 @@ window.addEventListener('earthsonar:prefs', (e) => {
 });
 
 let labelLayer = null;
-/** Borders and city names (Natural Earth), drawn over the map only; they make no sound. */
 async function toggleLabels(force) {
   const on = typeof force === 'boolean' ? force : !view.labels;
   if (on && !labelLayer) {
@@ -1351,7 +1223,7 @@ function toggleCoast(force) {
 
 function stopAll() {
   stopScans();
-  state.busy = false; // cancels a running tutorial
+  state.busy = false;
   voice.cancel();
   if (state.explore) toggleExplore(false);
   engine.stopAll();
@@ -1361,8 +1233,6 @@ function stopAll() {
   dial.clear();
   announce('Sound stopped.');
 }
-
-// ---------------------------------------------------------------- rendering helpers
 
 function renderTracks() {
   const list = $('track-list');
@@ -1394,7 +1264,7 @@ function renderTimeline() {
   for (const y of YEARS) {
     const c = document.createElement('button');
     c.type = 'button';
-    c.tabIndex = -1; // pointer convenience; keyboard users have Page Up/Down and the year select
+    c.tabIndex = -1;
     c.className = 'chip';
     c.dataset.year = String(y);
     c.textContent = String(y).slice(2);
@@ -1407,29 +1277,23 @@ function markTimeline(year) {
   for (const c of document.querySelectorAll('.chip')) c.classList.toggle('on', c.dataset.year === String(year));
 }
 
-// ---------------------------------------------------------------- keyboard
-
 function isTypingTarget(el) {
   return el && (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
 }
 
 function onKey(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
-  // Player shortcuts belong to the Jukebox tab only. Elsewhere only Escape works, and only
-  // to stop sound that is actually playing (e.g. during the demo).
   if (document.body.dataset.tab !== 'jukebox') {
     const playing = scan.running || liveScan.running || state.explore || document.body.classList.contains('demo-mode');
     if (e.key === 'Escape' && playing) { stopAll(); endDemoMode(); e.preventDefault(); }
     return;
   }
   const t = e.target;
-  // Let native controls keep their own keys; Escape always works.
   if (e.key !== 'Escape' && isTypingTarget(t)) return;
   if ((e.key === ' ' || e.key === 'Enter') && t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'SUMMARY')) return;
 
-  // Shift+1..4 selects a track (by physical key, so keyboard layout does not matter).
   const digit = /^Digit([0-9])$/.exec(e.code);
-  const trackNo = digit ? (Number(digit[1]) || 10) : 0; // Shift+0 is track 10
+  const trackNo = digit ? (Number(digit[1]) || 10) : 0;
   if (e.shiftKey && digit && TRACKS[trackNo - 1]) {
     selectTrack(TRACKS[trackNo - 1].id);
     e.preventDefault();
@@ -1470,10 +1334,7 @@ function onKey(e) {
   if (handled) e.preventDefault();
 }
 
-// ---------------------------------------------------------------- wiring
-
 function wire() {
-  // Any first interaction unlocks audio, as browsers require.
   const unlockOnce = () => { ensureSound(); };
   window.addEventListener('keydown', unlockOnce, { once: true, capture: true });
   window.addEventListener('pointerdown', unlockOnce, { once: true, capture: true });
@@ -1518,13 +1379,7 @@ function wire() {
   document.body.dataset.motion = reducedMotion() ? 'reduced' : 'full';
 }
 
-// ---------------------------------------------------------------- demo mode (?demo)
-//
-// A fixed 28-second scenario for the submission video (limit: 30 s with English subtitles).
-// Browsers only allow sound after a user gesture, so the page waits for one click or key,
-// then everything is timed from that moment. All data is preloaded before the click.
-
-const DEMO_LIGHTNING_AT = 41; // seconds into the video: July 2019, northern summer storms
+const DEMO_LIGHTNING_AT = 41;
 
 function caption(text) {
   const el = $('demo-caption');
@@ -1548,7 +1403,6 @@ async function demoScan(durationS) {
 let demoPrepared = null;
 let demoTimers = [];
 
-/** Leaves the full-stage demo presentation and returns to the Demo tab. */
 function endDemoMode() {
   demoTimers.forEach(clearTimeout);
   demoTimers = [];
@@ -1563,25 +1417,20 @@ async function prepareDemo() {
   const start = $('demo-start');
   start.disabled = true;
   start.textContent = 'Preparing the demo…';
-  // Everything the scenario touches, loaded before the clock starts.
   await loadYear(2012);
   await loadYear(2023);
   const keep = state.track;
   for (const id of ['aerosols', 'lightning']) { state.track = id; await currentFields(); }
   state.track = keep;
-  // The lightning video, parked on a stormy July 2019 frame so its scene starts without a
-  // black frame.
   const vid = $('map-video');
   vid.preload = 'auto';
   const seeked = new Promise((r) => { vid.addEventListener('seeked', r, { once: true }); setTimeout(r, 4000); });
   lightning.seekTo(DEMO_LIGHTNING_AT);
   if (vid.seeking) await seeked;
-  // Enough of the video buffered to play its scene without a stall.
   if (vid.readyState < 4) await Promise.race([new Promise((r) => vid.addEventListener('canplaythrough', r, { once: true })), new Promise((r) => setTimeout(r, 6000))]);
   start.disabled = false;
   start.textContent = 'Start the 28-second demo';
   $('demo-status').textContent = 'Ready. Turn your sound on, then press the button.';
-  // The button is the user gesture browsers require before sound; the clock starts here.
   start.addEventListener('click', async () => {
     if (document.body.classList.contains('demo-mode')) return;
     await ensureSound();
@@ -1590,7 +1439,6 @@ async function prepareDemo() {
   });
 }
 
-/** Called by the site shell when the Demo tab opens: preload once, then wait for the click. */
 export async function openDemo() {
   await ready;
   if (!demoPrepared) demoPrepared = prepareDemo();
@@ -1599,7 +1447,7 @@ export async function openDemo() {
 
 async function runDemo() {
   const voiceWas = voice.enabled;
-  voice.enabled = false; // subtitles carry the words; speech would fight the timing
+  voice.enabled = false;
   const durationWas = state.durationS;
   const t0 = performance.now();
   const at = (ms, fn) => setTimeout(fn, Math.max(0, ms - (performance.now() - t0)));
@@ -1611,7 +1459,6 @@ async function runDemo() {
     requestAnimationFrame(tickProgress);
   };
   requestAnimationFrame(tickProgress);
-  // What each scene does; timing, captions and cards live in js/demo-plan.js.
   const scenes = {
     title: () => { card(DEMO_CARDS.title); },
     nightlights: async (st) => {
@@ -1631,7 +1478,6 @@ async function runDemo() {
       seekLightning(0, DEMO_LIGHTNING_AT);
       demoFly(DEMO_CENTRES.storms);
       later(st.soundAt, async () => { state.durationS = st.scanS; await startLightning('scan'); });
-      // The ring's last second over the storm centre is sparse: its centre chord bridges to the end card.
       later(st.soundAt + st.scanS * 1000 - 1100, () => engine.centreNote(0.55));
     },
     end: () => {
@@ -1656,7 +1502,6 @@ async function runDemo() {
   ];
 }
 
-/** Title and end cards over the map (cinema mode). */
 function card(c) {
   const el = $('demo-card');
   el.hidden = !c;
@@ -1666,19 +1511,14 @@ function card(c) {
   el.querySelector('.demo-card__small').innerHTML = (c.small || []).map((t) => `<span>${t}</span>`).join('');
 }
 
-/** The camera glides onto the place before the sound starts (instant with reduced motion). */
 function demoFly(c) {
   state.radiusKm = c.radiusKm;
   setCenter(c, { speak: false });
   view.flyTo(c.lat, c.lon, c.zoom, 650);
 }
 
-// ---------------------------------------------------------------- needle tracks (Visual)
-
 const needle = new NeedleScan(engine, {
   onStep: ({ segments, levels, x }) => {
-    // The needle lights exactly the bands that sound, as bright as they are loud, delayed by
-    // the audio output latency so light and sound reach the user together.
     const g = state.manifest[state.track].needle;
     view.setNeedleLevels(levels, NEEDLE_READ[state.track].color, engine.outputDelayMs, isSweep() ? { x, y0: g.y0, y1: g.y1 } : null);
     if (!isSweep()) segments.forEach((v, k) => { bandSums[Math.min(2, Math.floor((k * 3) / segments.length))] += v; });
@@ -1688,20 +1528,19 @@ const needle = new NeedleScan(engine, {
   },
 });
 
-const sweepFields = {}; // value grids of still frames, by track
-let sweepSums = [0, 0, 0]; // what the sweep heard in the left, middle and right third
-let bandSums = [0, 0, 0];  // what a globe scan heard in the north, middle and south third of the needle
+const sweepFields = {};
+let sweepSums = [0, 0, 0];
+let bandSums = [0, 0, 0];
 
 function needleVideo() {
   return $('needle-video');
 }
 
-/** Shows or hides the globe video and the needle when a needle track is chosen or left. */
 function setNeedleTrack(on) {
   const v = needleVideo();
   const entry = on ? state.manifest[state.track] : null;
   const sweep = on && entry.mode === 'sweep';
-  if (needle.running) stopNeedle();   // a scan never carries over to another track
+  if (needle.running) stopNeedle();
   document.body.dataset.mode = !on ? 'map' : sweep ? 'sweep' : 'needle';
   v.hidden = !on || sweep;
   if (sweep) {
@@ -1780,7 +1619,6 @@ async function toggleNeedle() {
   announce('Playing the turning globe; the needle reads north to south.');
 }
 
-/** Needle "Y": where along the needle the phenomenon is right now. */
 function needleSummary() {
   if (isSweep()) {
     announce('This track is a still frame: press Space to sweep the needle across it and hear where the picture is strongest.', { say: 'result' });
@@ -1806,15 +1644,8 @@ function needleSummary() {
   announce(`On the needle right now, ${what} in the picture is in ${names[best]} of the globe.`, { say: 'result' });
 }
 
-// Exposed for manual debugging in the browser console only.
 window.earthsonar = { engine, scan, state, view, haptics: hapticsModule, scanActive, liveScan, get needle() { return needle; } };
 
-// The site shell (js/site.js) imports this module only when the Jukebox or Demo tab opens,
-// so the landing page never downloads player code or map data.
-/**
- * Called by Home's "Hear this ring": night lights 2023 around the place the Home map was
- * circling, scanned at once (the click that asked for it is the user gesture for sound).
- */
 export async function playAt(place) {
   await ready;
   await ensureSound();

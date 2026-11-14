@@ -1,12 +1,3 @@
-// Home: a live mini-map. A ring closes in on one city region after another over the 2023
-// night-lights frame, and its arcs light up where it crosses lights: the same reading the
-// jukebox does (real values from the lossless sound grid), only silent. Sound starts only
-// when the visitor asks for it ("Hear this ring" opens the jukebox on the same place).
-//
-// Light on purpose: this module, three small helpers and one 29 KB grid. Nothing loads until
-// Home is on screen, the loop pauses when Home is hidden, and with prefers-reduced-motion the
-// ring is drawn once, standing still.
-
 import { fetchBlob, blobToPixels, channelField } from './loader.js';
 import { sampleField } from './fields.js';
 import { ringArcs } from './geo.js';
@@ -21,7 +12,7 @@ export const HOME_PLACES = [
 
 const SCAN_MS = 6000;
 const HOLD_MS = 900;
-const FULL = 0.08; // the night-lights track's arc full scale (js/tracks.js)
+const FULL = 0.08;
 
 const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -47,7 +38,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
   let dpr = fit();
   new ResizeObserver(() => { dpr = fit(); if (!running) frame(performance.now(), true); }).observe(canvas);
 
-  // Same equirectangular frame as the image: lon -180..180 across, lat 90..-90 down.
   const project = (p) => ({ x: (((p.lon + 180) % 360 + 360) % 360) / 360 * canvas.width, y: (90 - p.lat) / 180 * canvas.height });
 
   function line(points, close) {
@@ -66,7 +56,7 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
   }
 
   function frame(now, force = false) {
-    if (!force && now - lastDraw < 33) return; // ~30 fps is plenty for a slow ring
+    if (!force && now - lastDraw < 33) return;
     lastDraw = now;
     const place = HOME_PLACES[index];
     const s = still();
@@ -77,7 +67,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = 'round';
 
-    // Trail: earlier rings fade behind the current one.
     if (!s) {
       if (!trail.length || now - trail[0].at > 220) {
         trail.unshift({ at: now, points: arcs.flatMap((a) => a.points) });
@@ -93,7 +82,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
     ctx.strokeStyle = token('--overlay-ring');
     line(arcs.flatMap((a) => a.points), true);
 
-    // Arcs over lights: thicker and gold, by the same arc reading as the jukebox.
     const lights = token('--data-lights');
     arcs.forEach((a, i) => {
       if (!field) return;
@@ -116,7 +104,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
       prevLevel[i] = gain;
     });
 
-    // Note flashes: bloom and fade.
     const dur = ms('--dur-flash');
     flashes = flashes.filter((f) => now - f.t0 < dur);
     ctx.fillStyle = lights;
@@ -130,7 +117,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
     }
     ctx.globalAlpha = 1;
 
-    // Centre marker.
     const c = project(place);
     ctx.strokeStyle = token('--overlay-marker');
     ctx.lineWidth = 1.25 * k;
@@ -156,7 +142,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
 
   const api = {
     get place() { return HOME_PLACES[index]; },
-    /** Runs while Home is shown and the page is visible; draws one still frame otherwise. */
     setActive(on) {
       const want = on && !document.hidden && !still();
       if (want && !running) { running = true; t0 = performance.now(); raf = requestAnimationFrame(loop); }
@@ -167,7 +152,6 @@ export function startHomeMap({ canvas, placeEl, manifest }) {
   placeEl.textContent = HOME_PLACES[index].name;
   frame(performance.now(), true);
 
-  // The data arrives a moment later; until then the ring runs without lit arcs.
   const entry = manifest.nightlights.years['2023'];
   fetchBlob(entry.sound).then(blobToPixels).then((img) => { field = channelField(img, 0); if (!running) frame(performance.now(), true); }).catch(() => {});
   return api;

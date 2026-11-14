@@ -1,6 +1,3 @@
-// Hosting (Vercel) runs on Linux, where paths are case-sensitive. Windows is not, so a
-// wrong-case reference would work locally and break in production. These checks walk each
-// path segment against the real directory listing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';

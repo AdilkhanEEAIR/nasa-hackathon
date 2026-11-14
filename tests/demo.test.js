@@ -1,4 +1,3 @@
-// The 28-second demo (js/demo-plan.js) for a recording under the 30-second limit.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEMO_LENGTH_MS, DEMO_SCENES, DEMO_CAPTIONS, DEMO_CARDS } from '../js/demo-plan.js';

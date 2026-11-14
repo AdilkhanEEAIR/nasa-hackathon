@@ -1,7 +1,3 @@
-// "Now sounding" instruments: the 16 ring voices laid out as a compass and, where vibration is
-// available, two haptic-intensity bars (heavy and light motor; one phone motor uses the larger). Drawn on their own small canvas so updating
-// them never touches page layout or the audio thread. All colours and sizes are tokens.
-
 import { token, num } from './theme.js';
 
 const TAU = Math.PI * 2;
@@ -13,13 +9,12 @@ export class VoiceDial {
     this.levels = new Float32Array(16);
     this.motors = { n: 0, e: 0, s: 0, w: 0 };
     this.haptic = { strong: 0, weak: 0 };
-    this.hapticOn = false;  // bars only where vibration is really available
-    this.colors = null;     // per-voice token names, e.g. '--data-dust'
-    this.highlight = null;  // bearing to emphasise during the tutorial
+    this.hapticOn = false;
+    this.colors = null;
+    this.highlight = null;
     this.draw();
   }
 
-  /** `colors` (optional) gives each voice the token of its loudest instrument. */
   update(levels, motors, colors = null) {
     this.levels.set(levels);
     this.motors = motors;
@@ -62,17 +57,16 @@ export class VoiceDial {
     ctx.arc(cx, cy, r0, 0, TAU);
     ctx.stroke();
 
-    // 16 voices: bar length and opacity follow the data gain of that direction.
     const n = this.levels.length;
     ctx.lineCap = 'round';
     ctx.lineWidth = num('--dial-voice-width');
     for (let k = 0; k < n; k++) {
-      const a = (k / n) * TAU - Math.PI / 2; // bearing 0 at the top
+      const a = (k / n) * TAU - Math.PI / 2;
       const g = this.levels[k];
       const len = r0 + 6 + (r1 - r0 - 6) * Math.max(0.04, g);
       const hot = this.highlight !== null && Math.abs(((k * 22.5 - this.highlight + 540) % 360) - 180) < 12;
       const c = hot ? '--ui-accent' : (this.colors && this.colors[k]) || '--data-lights';
-      ctx.strokeStyle = c.startsWith('#') ? c : token(c); // mixed colours arrive already resolved
+      ctx.strokeStyle = c.startsWith('#') ? c : token(c);
       ctx.globalAlpha = hot ? 1 : 0.22 + 0.78 * g;
       ctx.beginPath();
       ctx.moveTo(cx + Math.cos(a) * (r0 + 6), cy + Math.sin(a) * (r0 + 6));
@@ -95,7 +89,6 @@ export class VoiceDial {
     ctx.fillText('high', cx, cy - r0 * 0.45);
     ctx.fillText('low', cx, cy + r0 * 0.45);
 
-    // Haptic intensity: what the phone or controller is vibrating right now.
     if (!this.hapticOn) return;
     const top = w + 8;
     const bh = h - top - 24;

@@ -1,12 +1,3 @@
-// Browser test for the scan button: for every ordered pair of tracks, start a scan on the first,
-// switch to the second mid-scan (Shift+digit on odd pairs, a click in the track list on even
-// pairs), then check that nothing is sounding, the button reads "Play scan" (aria-pressed
-// false), one press starts the new track's scan and a second press stops it. Then the same
-// for leaving to Home and Demo, for Esc and for a scan that ends by itself.
-//
-//   node tools/track_switch_check.mjs http://localhost:8766/
-//   node tools/track_switch_check.mjs https://earthsonar.vercel.app/
-
 import { launch, sleep } from './cdp.mjs';
 
 const BASE = (process.argv[2] || 'http://localhost:8766/').replace(/#.*$/, '');
@@ -70,7 +61,6 @@ for (let a = 1; a <= n; a++) {
   }
 }
 
-// Leaving the Jukebox, Esc, and a scan that ends by itself.
 for (const [label, act] of [
   ['leave to Home', () => c.eval("document.getElementById('tab-home').click()")],
   ['leave to Demo', () => c.eval("document.getElementById('tab-demo').click()")],

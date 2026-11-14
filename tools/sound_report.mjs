@@ -1,19 +1,3 @@
-// Renders ring scans offline in headless Chrome, with the site's own synthesis code, and
-// measures how they differ: we cannot listen in CI, so differences are shown as numbers.
-//
-//   node tools/sound_report.mjs http://localhost:8766/ [out.json]
-//
-// For every case (track + place) it reports:
-//   voices    share of the 16 ring voices that sound at all, averaged over the scan
-//   tempC     mean temperature heard by the voices (ocean only)
-//   rms       loudness of the whole render
-//   centroid  spectral centroid in Hz: how bright the timbre is
-//   hiShare   share of spectral energy above 1.5 kHz: how many strong harmonics
-//   flicker   dominant envelope fluctuation, 1-16 Hz: how fast the sound shimmers or pulses
-//   modDepth  envelope fluctuation depth (std / mean after removing the slow ring swell)
-//   wobble    spread of the instantaneous spectral centroid (Hz): audible sliding/gliding
-//   tonal     share of spectral energy in the 40 strongest bins: high = clear tones, low = noise
-
 import { writeFileSync } from 'node:fs';
 import { launch } from './cdp.mjs';
 
@@ -38,7 +22,6 @@ const PAGE_CODE = String.raw`
     wind: T.windFields(await grid(manifest.wind.sound)),
   };
 
-  // ---- analysis helpers
   function fft(re, im) {
     const n = re.length;
     for (let i = 1, j = 0; i < n; i++) {
@@ -68,7 +51,6 @@ const PAGE_CODE = String.raw`
     for (let i = 0; i < n; i++) x[i] = 0.5 * (L[i] + R[i]);
     let ss = 0; for (let i = 0; i < n; i++) ss += x[i] * x[i];
     const rms = Math.sqrt(ss / n);
-    // Spectrum: 4096-point frames, Hann window.
     const N = 4096; const hop = 2048;
     let cNum = 0, cDen = 0, hi = 0; const cents = []; let tonSum = 0, tonN = 0;
     for (let s = 0; s + N <= n; s += hop) {
@@ -87,7 +69,6 @@ const PAGE_CODE = String.raw`
     const centroid = cDen > 0 ? cNum / cDen : 0;
     const mean = cents.reduce((a, b) => a + b, 0) / Math.max(1, cents.length);
     const wobble = Math.sqrt(cents.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, cents.length));
-    // Envelope at 200 Hz, slow swell removed with a 0.5 s moving average.
     const eh = Math.floor(sr / 200); const env = [];
     for (let s = 0; s + eh <= n; s += eh) { let e = 0; for (let i = 0; i < eh; i++) e += x[s + i] * x[s + i]; env.push(Math.sqrt(e / eh)); }
     const W = 100; const fast = [];
@@ -97,7 +78,6 @@ const PAGE_CODE = String.raw`
     }
     let ms = 0; for (const v of fast) ms += v * v;
     const modDepth = Math.sqrt(ms / Math.max(1, fast.length));
-    // Dominant fluctuation 1-16 Hz from a DFT of the normalised envelope.
     let best = 0, bestP = 0;
     for (let f = 1; f <= 16; f += 0.25) {
       let a = 0, b = 0;
@@ -111,7 +91,6 @@ const PAGE_CODE = String.raw`
   for (const c of window.__cases) {
     const cfg = T.TRACK_SOUND[c.track];
     const f = fields[c.field || c.track];
-    // Ring statistics at five radii, read with the track's own voice mapping.
     let sounding = 0, total = 0, tSum = 0, tN = 0, mSum = 0;
     for (const k of [1, 0.8, 0.6, 0.4, 0.2]) {
       for (const v of readRing(f, land, c, c.radiusKm * k, cfg.fullScale)) {
@@ -131,16 +110,13 @@ const PAGE_CODE = String.raw`
 })()`;
 
 const CASES = JSON.parse(process.env.CASES || 'null') || [
-  // Old shared presets on the ocean track (the hypothesis: mostly land, little contrast).
   { track: 'ocean', name: 'India (old preset)', lat: 22.5, lon: 79.0, radiusKm: 1500 },
   { track: 'ocean', name: 'Europe (old preset)', lat: 48.5, lon: 9.0, radiusKm: 1500 },
-  // Ocean presets.
   { track: 'ocean', name: 'Gulf Stream', lat: 38, lon: -68, radiusKm: 1200 },
   { track: 'ocean', name: 'Kuroshio', lat: 35, lon: 145, radiusKm: 1200 },
   { track: 'ocean', name: 'Agulhas', lat: -38, lon: 24, radiusKm: 1200 },
   { track: 'ocean', name: 'Equatorial Pacific', lat: 0, lon: -120, radiusKm: 1500 },
   { track: 'ocean', name: 'Southern Ocean front', lat: -52, lon: 140, radiusKm: 1200 },
-  // Other tracks: two places each should not sound alike.
   { track: 'nightlights', name: 'India 2023', lat: 22.5, lon: 79.0, radiusKm: 1500 },
   { track: 'nightlights', name: 'Europe 2023', lat: 48.5, lon: 9.0, radiusKm: 1500 },
   { track: 'nightlights', name: 'Sahara 2023', lat: 23, lon: 10, radiusKm: 1500 },

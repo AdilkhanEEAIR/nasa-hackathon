@@ -9,13 +9,11 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/site.js"></script>
-  <!-- Applies "Large text and high contrast" before first paint (the switch lives in js/site.js). -->
-  <script>try { if (JSON.parse(localStorage.getItem('earthsonar.a11y') || '{}').large === true) document.documentElement.setAttribute('data-large', ''); } catch (e) { /* storage blocked */ }</script>
+  <script>try { if (JSON.parse(localStorage.getItem('earthsonar.a11y') || '{}').large === true) document.documentElement.setAttribute('data-large', ''); } catch (e) { }</script>
 </head>
 <body data-tab="home">
   <header class="site-header">
     <div class="site-header__inner">
-      <!-- First stop for the keyboard and for screen readers: accessibility options. -->
       <div class="a11y" id="a11y">
         <button id="a11y-toggle" class="a11y__toggle" type="button" aria-expanded="false" aria-controls="a11y-panel" aria-keyshortcuts="Alt+A">
           Accessibility<span class="sr-only"> options: voice guide, large text and high contrast. Shortcut Alt plus A.</span>
@@ -55,7 +53,6 @@
 
   <main id="main" tabindex="-1">
 
-    <!-- ================================================================ HOME -->
     <section class="panel panel--home" id="panel-home" role="tabpanel" aria-labelledby="tab-home" tabindex="-1">
       <div class="hero">
         <div class="hero__text">
@@ -105,7 +102,6 @@
       </div>
     </section>
 
-    <!-- ================================================================ JUKEBOX -->
     <section class="panel panel--jukebox" id="panel-jukebox" role="tabpanel" aria-labelledby="tab-jukebox" tabindex="-1" hidden>
       <div class="jukebox-head">
         <p class="rules-inline">Top is north · right ear is east · louder is more
@@ -161,7 +157,6 @@
                     aria-label="Night lights map. Loading."></canvas>
             <p class="zoom-badge" id="zoom-badge" aria-hidden="true">1×</p>
           </div>
-          <!-- Demo (cinema mode): title/end card, large subtitles, a thin progress line. -->
           <div id="demo-card" class="demo-card" hidden><p class="demo-card__name"></p><p class="demo-card__line"></p><p class="demo-card__small"></p></div>
           <p id="demo-caption" class="demo-caption" aria-live="polite" hidden></p>
           <div class="demo-progress" aria-hidden="true"><span id="demo-progress"></span></div>
@@ -237,7 +232,6 @@
       </div>
     </section>
 
-    <!-- ================================================================ DEMO -->
     <section class="panel panel--prose" id="panel-demo" role="tabpanel" aria-labelledby="tab-demo" tabindex="-1" hidden>
       <h1 class="title">A 28-second tour</h1>
       <p class="lede">The demo plays a fixed scenario with English subtitles on screen. It plays three scenes in cinema mode: night lights over Europe, aerosols over Africa, and lightning seen from space, then the address. Use headphones if you can.</p>

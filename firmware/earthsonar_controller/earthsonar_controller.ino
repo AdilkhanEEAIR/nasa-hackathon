@@ -1,37 +1,27 @@
-// EarthSonar controller firmware.
-// Protocol: docs/PROTOCOL.md (115200 baud, ASCII lines, full-state messages).
-// Target: Arduino Uno / Nano (ATmega328P). Uses only the core Arduino API.
-
-// ---- Configuration ---------------------------------------------------------
-
 const unsigned long BAUD = 115200;
 
 const uint8_t PIN_JOY_X   = A0;
 const uint8_t PIN_JOY_Y   = A1;
 const uint8_t PIN_POT     = A2;
-const uint8_t PIN_JOY_SW  = 2;   // joystick press, active LOW
-const uint8_t PIN_BUTTON  = 4;   // main button, active LOW
+const uint8_t PIN_JOY_SW  = 2;
+const uint8_t PIN_BUTTON  = 4;
 const uint8_t PIN_LED     = 13;
 
-// Motor order matches the M message: north, east, south, west.
 const uint8_t MOTOR_PINS[4] = {3, 5, 6, 9};
 
-// Coin motors stall below a minimum duty; any non-zero request is lifted to this.
 const uint8_t MOTOR_MIN_DUTY = 70;
 
-// Joystick mounting fixes, so the page always gets x = east, y = north.
 const bool INVERT_X = false;
-const bool INVERT_Y = true;   // most modules read low when pushed up
+const bool INVERT_Y = true;
 const bool SWAP_XY  = false;
 
-const int  JOY_DEADZONE      = 8;    // in output units (-100..100)
+const int  JOY_DEADZONE      = 8;
 const int  JOY_CHANGE_MIN    = 3;
-const int  POT_CHANGE_MIN    = 8;    // in output units (0..1000)
+const int  POT_CHANGE_MIN    = 8;
 const unsigned long STATE_REPEAT_MS    = 250;
 const unsigned long MOTOR_TIMEOUT_MS   = 500;
 const unsigned long DEBOUNCE_MS        = 20;
 
-// ---- State -----------------------------------------------------------------
 
 int joyCenterX = 512;
 int joyCenterY = 512;
@@ -42,7 +32,7 @@ unsigned long lastJoySent = 0, lastPotSent = 0;
 struct Button {
   uint8_t pin;
   uint8_t id;
-  bool stable;          // true = pressed
+  bool stable;
   bool lastRead;
   unsigned long changedAt;
 };
@@ -58,17 +48,14 @@ char lineBuf[32];
 uint8_t lineLen = 0;
 bool lineOverflow = false;
 
-// ---- Helpers ---------------------------------------------------------------
 
 int readAveraged(uint8_t pin) {
-  // Four reads smooth out ADC noise so the change thresholds are not tripped constantly.
   long sum = 0;
   for (uint8_t i = 0; i < 4; i++) sum += analogRead(pin);
   return (int)(sum / 4);
 }
 
 int axisToUnits(int raw, int center) {
-  // Separate scaling per half keeps 0 at rest even when the stick's center is not 512.
   long v;
   if (raw >= center) v = (long)(raw - center) * 100 / max(1, 1023 - center);
   else               v = (long)(raw - center) * 100 / max(1, center);
@@ -99,7 +86,6 @@ void sendHello() {
   Serial.println(F("H,EarthSonar,1"));
 }
 
-// Parses a non-negative integer field; returns false on anything that is not digits.
 bool parseUint(const char* s, long& out) {
   if (*s == '\0') return false;
   long v = 0;
@@ -116,8 +102,6 @@ void handleLine(char* line) {
   if (line[0] == '?' && line[1] == '\0') { sendHello(); return; }
   if (line[0] == 'S' && line[1] == '\0') { stopMotors(); return; }
   if (line[0] == 'M' && line[1] == ',') {
-    // Expect exactly four fields; a garbled line is dropped as a whole so motors never get a
-    // half-applied state.
     uint8_t commas = 0;
     for (char* q = line; *q; q++) if (*q == ',') commas++;
     if (commas != 4) return;
@@ -137,7 +121,6 @@ void handleLine(char* line) {
     lastMotorCmd = millis();
     applyMotors();
   }
-  // Anything else is ignored on purpose (see protocol rule 3).
 }
 
 void readSerial() {
@@ -168,7 +151,6 @@ void pollJoystick(unsigned long now) {
   if (INVERT_Y) y = -y;
 
   bool changed = abs(x - lastJoyX) >= JOY_CHANGE_MIN || abs(y - lastJoyY) >= JOY_CHANGE_MIN;
-  // Returning exactly to rest must always be reported, even if the step is below the threshold.
   if ((x == 0 && lastJoyX != 0) || (y == 0 && lastJoyY != 0)) changed = true;
   if (changed || now - lastJoySent >= STATE_REPEAT_MS) {
     Serial.print(F("J,")); Serial.print(x); Serial.print(','); Serial.println(y);
@@ -179,7 +161,6 @@ void pollJoystick(unsigned long now) {
 void pollPot(unsigned long now) {
   int v = (int)((long)readAveraged(PIN_POT) * 1000 / 1023);
   if (abs(v - lastPot) >= POT_CHANGE_MIN || now - lastPotSent >= STATE_REPEAT_MS) {
-    // Snap the ends so the page can always reach the first and last item.
     if (v < POT_CHANGE_MIN) v = 0;
     if (v > 1000 - POT_CHANGE_MIN) v = 1000;
     Serial.print(F("P,")); Serial.println(v);
@@ -199,7 +180,6 @@ void pollButtons(unsigned long now) {
   }
 }
 
-// ---- Arduino entry points --------------------------------------------------
 
 void setup() {
   Serial.begin(BAUD);
@@ -210,7 +190,6 @@ void setup() {
     pinMode(MOTOR_PINS[i], OUTPUT);
     analogWrite(MOTOR_PINS[i], 0);
   }
-  // Calibrate the joystick rest position at boot; do not touch the stick while powering on.
   joyCenterX = readAveraged(PIN_JOY_X);
   joyCenterY = readAveraged(PIN_JOY_Y);
   sendHello();
@@ -226,5 +205,5 @@ void loop() {
   pollJoystick(now);
   pollPot(now);
   pollButtons(now);
-  delay(10);  // ~100 Hz polling is plenty for hands and keeps serial traffic modest
+  delay(10);
 }

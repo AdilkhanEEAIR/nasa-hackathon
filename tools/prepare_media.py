@@ -1,22 +1,3 @@
-"""Prepare web-ready media for EarthSonar from the raw NASA SVS downloads.
-
-Reads   datasets/   raw SVS files (not in git)
-Caches  build/      expensive intermediate encodes (not in git)
-Writes  media/      content-hashed files (committed, each < 50 MB, cached "immutable")
-        manifest.json  index of everything in media/ (short cache, read first by the site)
-
-Two kinds of output per frame:
-  * sound grids - lossless 8-bit PNGs holding the exact values the sonification uses, so
-    compression can never change a sound;
-  * views       - lossy WebP (with JPEG fallback) for the eyes only.
-
-Every number used here (frame indices, crop boxes, longitude offset, thresholds) was measured
-from the frames and is documented in docs/DATA_NOTES.md. Run from the repository root:
-
-    python tools/prepare_media.py
-
-Requires ffmpeg/ffprobe on PATH, numpy and Pillow (with WebP support).
-"""
 from __future__ import annotations
 
 import hashlib
@@ -42,16 +23,10 @@ AE_LEGEND = SRC / "Aerosols_cbar.png"
 LT_VIDEO = SRC / "iss_lightning_sos_yearly_07312023_2048p60.mp4"
 LT_LABELS = SRC / "lightning_labels.txt"
 
-# --- Night lights geometry (DATA_NOTES section 1) -----------------------------------------
 NL_W, NL_H = 7680, 2160
 COPY_W = 3840
-# Copy 1 starts at about 169.0 W; rolling right by 117 px puts 180 W at x = 0 (residual
-# 0.03 deg, well inside the +-0.3 deg fit error) so every map in the app shares lon0 = -180.
 NL_ROLL_PX = 117
-# The change-map colorbar overlaps copy 1 at its right edge; copy 2 holds the same geography
-# there without the overlay.
 PATCH_X0, PATCH_X1, PATCH_Y0, PATCH_Y1 = 3760, 3840, 1181, 1291
-# Mid-segment frames of the first (inset-free) pass, one per year.
 NL_YEAR_FRAMES = {
     2012: 7, 2013: 24, 2014: 42, 2015: 60, 2016: 77, 2017: 95,
     2018: 113, 2019: 130, 2020: 148, 2021: 166, 2022: 184, 2023: 235,
@@ -61,7 +36,6 @@ NL_CHANGE_FRAME = 400
 WEB_W, WEB_H = 1920, 1080
 MAX_BYTES = 50 * 1024 * 1024
 
-# Must match js/fields.js (LIGHT_FLOOR) and js/tracks.js (changeClass).
 LIGHT_FLOOR = 45
 
 
@@ -73,7 +47,7 @@ def run(cmd: list[str]) -> bytes:
 
 
 def publish(src: Path, sub: str, stem: str) -> str:
-    """Copies `src` into media/<sub>/<stem>.<hash><ext>; returns the site-relative path."""
+
     digest = hashlib.sha256(src.read_bytes()).hexdigest()[:10]
     dst = OUT / sub / f"{stem}.{digest}{src.suffix}"
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -96,7 +70,7 @@ def publish_image(img: Image.Image, sub: str, stem: str, **save) -> str:
 
 
 def publish_view(img: Image.Image, sub: str, stem: str) -> dict:
-    """Lossy view for the eyes: WebP plus a JPEG fallback."""
+
     return {
         "webp": publish_image(img, sub, f"view-{stem}", format="WEBP", quality=82, method=6),
         "jpg": publish_image(img.convert("RGB"), sub, f"view-{stem}", format="JPEG", quality=85, optimize=True, progressive=True),
@@ -104,7 +78,7 @@ def publish_view(img: Image.Image, sub: str, stem: str) -> dict:
 
 
 def read_frames(video: Path, indices: list[int], w: int, h: int) -> dict[int, np.ndarray]:
-    """Decode exact frame indices as RGB arrays (one ffmpeg pass)."""
+
     expr = "+".join(f"eq(n\\,{i})" for i in sorted(indices))
     raw = run(["ffmpeg", "-v", "error", "-i", str(video), "-vf", f"select={expr}",
                "-vsync", "0", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
@@ -115,7 +89,7 @@ def read_frames(video: Path, indices: list[int], w: int, h: int) -> dict[int, np
 
 
 def clean_world(frame: np.ndarray) -> np.ndarray:
-    """One copy of the world, overlay removed, rolled to start at 180 W."""
+
     world = frame[:, :COPY_W].copy()
     world[PATCH_Y0:PATCH_Y1, PATCH_X0:PATCH_X1] = \
         frame[PATCH_Y0:PATCH_Y1, COPY_W + PATCH_X0:COPY_W + PATCH_X1]
@@ -123,20 +97,18 @@ def clean_world(frame: np.ndarray) -> np.ndarray:
 
 
 def to_web(arr: np.ndarray) -> Image.Image:
-    # Box filter averages instead of picking pixels, so small city lights are dimmed equally
-    # in every year rather than randomly dropped.
     return Image.fromarray(arr).resize((WEB_W, WEB_H), Image.BOX)
 
 
 def light_grid(rgb: np.ndarray) -> np.ndarray:
-    """0..255 light level per pixel: identical to lightLevel() in js/fields.js."""
+
     m = rgb.max(axis=2).astype(np.float64)
     level = np.where(m <= LIGHT_FLOOR, 0.0, np.minimum(1.0, (m - LIGHT_FLOOR) / (255 - LIGHT_FLOOR)))
     return np.round(255 * level).astype(np.uint8)
 
 
 def change_grid(rgb: np.ndarray) -> np.ndarray:
-    """RGB = (more, less, same) levels: identical to changeClass() in js/tracks.js."""
+
     r, g, b = (rgb[..., i].astype(np.int16) for i in range(3))
     level = light_grid(rgb)
     lit = level > 0
@@ -151,18 +123,18 @@ def change_grid(rgb: np.ndarray) -> np.ndarray:
 
 
 def self_check() -> None:
-    """Same test vectors as tests/sound.test.js and tests/tracks.test.js."""
+
     px = np.array([[[1, 0, 2], [26, 21, 15], [33, 33, 33], [255, 255, 255], [96, 77, 123], [131, 98, 71], [105, 92, 99]]], np.uint8)
     lg = light_grid(px)[0]
     assert lg[0] == lg[1] == lg[2] == 0 and lg[3] == 255, lg
     cg = change_grid(px)[0]
-    assert cg[4][0] > 0 and cg[4][1] == 0 and cg[4][2] == 0, cg[4]   # purple -> more
-    assert cg[5][1] > 0 and cg[5][0] == 0, cg[5]                      # orange -> less
-    assert cg[6][2] > 0 and cg[6][0] == 0 and cg[6][1] == 0, cg[6]   # white  -> same
+    assert cg[4][0] > 0 and cg[4][1] == 0 and cg[4][2] == 0, cg[4]
+    assert cg[5][1] > 0 and cg[5][0] == 0, cg[5]
+    assert cg[6][2] > 0 and cg[6][0] == 0 and cg[6][1] == 0, cg[6]
 
 
 def land_mask_from(world: np.ndarray) -> Image.Image:
-    """Ocean is near-black and bluish in the night-lights base map; everything else is land."""
+
     r, g, b = (world[..., i].astype(np.int16) for i in range(3))
     mx = world.max(axis=2)
     ocean = (mx <= 4) & (b >= r) & (b >= g)
@@ -181,7 +153,6 @@ def nightlights(manifest: dict) -> None:
         web = to_web(world)
         years[str(year)] = {
             "view": publish_view(web, "nl", str(year)),
-            # Full source resolution, fetched by the site only when zoomed past 1.5x.
             "viewHi": publish_view(Image.fromarray(world), "nl", f"{year}-hi"),
             "sound": publish_image(Image.fromarray(light_grid(np.asarray(web))), "nl", f"sound-{year}", format="PNG", optimize=True),
             "sourceFrame": idx, "sourceTime": round(idx / 30, 3),
@@ -207,39 +178,33 @@ def nightlights(manifest: dict) -> None:
     }
 
 
-# Aerosol legend swatches measured from Aerosols_cbar.png (DATA_NOTES 2.2), in class order.
-AEROSOL_CLASSES = ["smoke", "dust", "salt", "sulfate"]   # smoke = "Black Carbon" in the legend
+AEROSOL_CLASSES = ["smoke", "dust", "salt", "sulfate"]
 AEROSOL_LEGEND = np.array([[210, 94, 69], [193, 154, 220], [133, 170, 169], [83, 220, 52]], np.float64)
-AE_WEAK = 35          # below this max channel nothing is classified (dark background)
-AE_LAND_BASE = 62     # brightest grey land relief (Antarctica); subtracted on land
+AE_WEAK = 35
+AE_LAND_BASE = 62
 AE_OCEAN_BASE = 35
 
 
 def aerosol_grid(rgb: np.ndarray, land: np.ndarray) -> np.ndarray:
-    """R = amount 0..255 (brightness above the base map), G = class id * 50 (0 = none).
 
-    Class = nearest legend chromaticity. Sea salt is not allowed on land, where the grey
-    relief has almost the same chromaticity. Small white dots on land are city lights of the
-    base map and are dropped. Overlapping plumes are reported as their dominant type.
-    """
     a = rgb.astype(np.float64)
     mx = a.max(axis=2)
     mn = a.min(axis=2)
     chroma = a / (a.sum(axis=2, keepdims=True) + 1e-9)
     leg = AEROSOL_LEGEND / AEROSOL_LEGEND.sum(axis=1, keepdims=True)
     dist = np.linalg.norm(chroma[..., None, :] - leg[None, None], axis=3)
-    cls = dist.argmin(axis=2) + 1                                   # 1..4
+    cls = dist.argmin(axis=2) + 1
 
     base = np.where(land, AE_LAND_BASE, AE_OCEAN_BASE)
     level = np.clip((mx - base) / (255 - base), 0, 1)
     none = (mx < AE_WEAK) | (level <= 0)
-    none |= land & (cls == 3)                                      # no sea salt on land
+    none |= land & (cls == 3)
 
-    cand = land & (mn > 150) & ((mx - mn) < 35)                    # white, unsaturated, on land
+    cand = land & (mn > 150) & ((mx - mn) < 35)
     k = 7
     pad = np.pad(cand.astype(np.int32), k // 2)
     count = sum(pad[dy:dy + cand.shape[0], dx:dx + cand.shape[1]] for dy in range(k) for dx in range(k))
-    none |= cand & (count <= 9)                                    # isolated dots = cities
+    none |= cand & (count <= 9)
 
     out = np.zeros(rgb.shape, np.uint8)
     out[..., 0] = np.where(none, 0, np.round(255 * level)).astype(np.uint8)
@@ -255,7 +220,7 @@ def aerosol_self_check() -> None:
     assert g[4, 0] == 0 and g[4, 1] == 0, g[4]
     grey_land = np.array([[[62, 69, 61], [120, 125, 118]]], np.uint8)
     gl = aerosol_grid(grey_land, np.ones((1, 2), bool))[0]
-    assert gl[0, 1] == 0 and gl[1, 1] != 150, gl                     # relief never becomes sea salt
+    assert gl[0, 1] == 0 and gl[1, 1] != 150, gl
 
 
 def aerosols(manifest: dict) -> None:
@@ -281,16 +246,11 @@ def aerosols(manifest: dict) -> None:
 OC_FRAME = SRC / "ecco2" / "flat_global_ecco2_2028x1024.25000.jpg"
 OC_CBAR = SRC / "ecco2" / "sst_ecco2_cbar.png"
 OC_DATES = SRC / "ecco2" / "flat_ecco2_dates.txt"
-OC_SAT_MIN, OC_VAL_MIN = 90, 40   # PIL HSV units (0..255): below this a pixel is grey land or a dark gap
+OC_SAT_MIN, OC_VAL_MIN = 90, 40
 
 
 def ocean_hue_lut() -> np.ndarray:
-    """Temperature (deg C) for every PIL hue 0..255, read from the official colorbar.
 
-    The bar runs 0..32 deg C over x = 14..291 at y = 50. Hue falls monotonically from blue
-    (~161) to red; the last few red pixels wrap past 0 to ~250, so hues above 200 are treated
-    as negative before matching.
-    """
     bar = np.asarray(Image.open(OC_CBAR).convert("RGB").convert("HSV")).astype(np.int32)[50, 14:292]
     hues = np.where(bar[:, 0] > 200, bar[:, 0] - 256, bar[:, 0]).astype(np.float64)
     temps = np.linspace(0, 32, len(hues))
@@ -298,13 +258,13 @@ def ocean_hue_lut() -> np.ndarray:
     for h in range(256):
         hh = h - 256 if h > 200 else h
         if hh < hues.min() - 6 or hh > hues.max() + 6:
-            continue  # purple/magenta hues that the scale never uses
+            continue
         lut[h] = temps[np.abs(hues - hh).argmin()]
     return lut
 
 
 def ocean_grid(rgb: np.ndarray, lut: np.ndarray) -> np.ndarray:
-    """R = flow present (255) or not, G = temperature as 0..255 over 0..32 deg C."""
+
     hsv = np.asarray(Image.fromarray(rgb).convert("HSV")).astype(np.int32)
     h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
     temp = lut[h]
@@ -330,7 +290,7 @@ def ocean(manifest: dict) -> None:
     print("Ocean temperature")
     lut = ocean_hue_lut()
     ocean_self_check(lut)
-    img = Image.open(OC_FRAME).convert("RGB")      # 2048x1024, equirectangular, 180 W at x = 0
+    img = Image.open(OC_FRAME).convert("RGB")
     grid = ocean_grid(np.asarray(img), lut)
     cover = (grid[..., 0] > 0).mean()
     print(f"  flow pixels: {cover:.1%} of the frame")
@@ -345,23 +305,16 @@ def ocean(manifest: dict) -> None:
     }
 
 
-# ---------------------------------------------------------------- near-surface wind (SVS 5148)
-
 WD_DIR = SRC / "svs-5148"
-WD_FRAME = WD_DIR / "00000001.png"            # 2048x1024 equirectangular, 180 W at x = 0
+WD_FRAME = WD_DIR / "00000001.png"
 WD_CBAR = WD_DIR / "NearSurfaceWindSpeed_colorbar_plain.png"
-WD_DATE = "2026-10-29T09:00Z"                  # "29 Oct 2026 05:00:00 EDT" printed on the frame
-# Colorbar geometry, measured on the 528x165 file: major ticks every 5 m/s at x = 71.5, 120.5,
-# 169.5 ... 463.5 (9.8 px per m/s); colour starts at x = 107 (3.6 m/s, calmer air is left
-# transparent so the base map shows through) and ends at x = 462; the bar spans rows 80..108.
+WD_DATE = "2026-10-29T09:00Z"
 WD_X0, WD_PX_PER_MS = 71.5, 9.8
 WD_COL0, WD_COL1, WD_ROWS = 107, 462, (80, 109)
-WD_TOP = 34.0           # highest speed matched (m/s), see wind_lut
-WD_MAX_DIST = 34        # RGB distance to the nearest bar colour that still counts as a reading
-WD_MIN_SAT = 28         # max-min channel spread: white/grey land and grey labels are not wind
-# Overlays on the frame that are not data. The agency logos are also never shown on our site:
-# their area is painted over in the view and marked "no data" in the sound grid.
-WD_LOGOS = (0, 0, 360, 80)          # x0, y0, x1, y1
+WD_TOP = 34.0
+WD_MAX_DIST = 34
+WD_MIN_SAT = 28
+WD_LOGOS = (0, 0, 360, 80)
 WD_DATEBOX = (0, 920, 515, 1024)
 WD_NODATA_FILL = (8, 24, 58)
 
@@ -370,15 +323,12 @@ def wind_lut() -> tuple[np.ndarray, np.ndarray]:
     bar = np.asarray(Image.open(WD_CBAR).convert("RGB")).astype(np.float64)
     cols = bar[WD_ROWS[0]:WD_ROWS[1], WD_COL0:WD_COL1 + 1].mean(axis=0)
     speeds = (np.arange(WD_COL0, WD_COL1 + 1) - WD_X0) / WD_PX_PER_MS
-    # The grey hurricane-force end (above 34 m/s) is too close to the dark-purple calm ocean
-    # base to tell apart, so it is left out: such winds read as 34 m/s at most (the cap is
-    # stated in the README), never the other way round.
     keep = speeds <= WD_TOP
     return cols[keep], speeds[keep]
 
 
 def wind_speed(rgb: np.ndarray, lut: tuple[np.ndarray, np.ndarray]) -> np.ndarray:
-    """Wind speed in m/s per pixel from the nearest colorbar colour; NaN where unreadable."""
+
     cols, speeds = lut
     flat = rgb.reshape(-1, 3).astype(np.int32)
     packed = (flat[:, 0] << 16) | (flat[:, 1] << 8) | flat[:, 2]
@@ -394,8 +344,7 @@ def wind_speed(rgb: np.ndarray, lut: tuple[np.ndarray, np.ndarray]) -> np.ndarra
 
 
 def wind_grid(rgb: np.ndarray, lut) -> np.ndarray:
-    """R = speed 0..255 over 0..40 m/s (0 = calm or unreadable), G = 255 where a speed was read,
-    B = 255 where the frame carries no data (logos, date box)."""
+
     sp = wind_speed(rgb, lut)
     out = np.zeros(rgb.shape, np.uint8)
     read = ~np.isnan(sp)
@@ -412,8 +361,6 @@ def wind_self_check(lut) -> None:
     got = wind_speed(bar, lut)[0]
     ok = ~np.isnan(got)
     err = np.abs(got - speeds)[ok]
-    # The palest start (3.6-5 m/s, lavender) and the grey hurricane-force end (35-40 m/s) are
-    # too colourless to tell from land and labels; everything between must read back.
     mid = speeds >= 5
     assert ok[mid].all() and err.max() <= 1.0, f"colorbar round trip: {ok[mid].mean():.0%} of 5-34 m/s read, max error {err.max():.2f} m/s"
     print(f"  colorbar round trip: 5-34 m/s all read, max error {err.max():.2f} m/s")
@@ -442,12 +389,7 @@ def wind(manifest: dict) -> None:
     }
 
 
-
-# ---------------------------------------------------------------- forest height (SVS 4950), needle
-
 GE_SRC = SRC / "svs-4950" / "GEDI_global_w_colorbar_1080p60.mp4"
-# Globe disk, measured on frames 0, 900, 1800 and 2700: centre x = 960 of 1920, lit from
-# y = 23 to 1056 of 1080. The needle runs down x = 0.5 inside that span.
 GE_NEEDLE = {"x": 0.5, "y0": 0.025, "y1": 0.975}
 
 
@@ -464,12 +406,7 @@ def forest(manifest: dict) -> None:
     }
 
 
-
-# ---------------------------------------------------------------- CO2 (SVS 5196), needle
-
 CO_SRC = SRC / "svs-5196" / "dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4"
-# Globe disk, measured on frames 0, 400, 800, 1150: x 480..1406 (lit edge varies with the
-# night side), y 59..1002 of 1080, so the centre is x = 951 (0.495).
 CO_NEEDLE = {"x": 0.495, "y0": 0.06, "y1": 0.925}
 
 
@@ -486,15 +423,12 @@ def co2(manifest: dict) -> None:
     }
 
 
-
-# ---------------------------------------------------------------- still frames, needle sweep (Visual)
-
 AR_FRAME = SRC / "svs-4960" / "atmos_river.0324_rfm23_2021-11-29_1351.04370_print.jpg"
 PO_FRAME = SRC / "svs-5425" / "perpetual_ocean2_CLOSE_093_clean_noDate_1080p_carousel.jpg"
 
 
 def box_mean(a: np.ndarray, r: int) -> np.ndarray:
-    """Mean over a (2r+1)^2 window (edges clamped), via an integral image."""
+
     p = np.pad(a, r, mode="edge").cumsum(0).cumsum(1)
     p = np.pad(p, ((1, 0), (1, 0)))
     n = 2 * r + 1
@@ -502,9 +436,7 @@ def box_mean(a: np.ndarray, r: int) -> np.ndarray:
 
 
 def river(manifest: dict) -> None:
-    """Atmospheric river (SVS 4960), one 1024x576 still of the 3D view. Visual: blue intensity
-    (water vapour in the picture) = clamp((B - R - 40) / 140); the yellow label, the white
-    H/L letters, land and the white frame corner read 0."""
+
     print("Atmospheric river (SVS 4960), still")
     img = Image.open(AR_FRAME).convert("RGB")
     rgb = np.asarray(img).astype(np.float64)
@@ -519,9 +451,7 @@ def river(manifest: dict) -> None:
 
 
 def currents(manifest: dict) -> None:
-    """Perpetual Ocean 2 (SVS 5425), one 1920x1080 still of the globe. Visual: whiteness of
-    the current streaks, counted only where the surrounding 41x41 px are ocean blue (mean
-    B - R > 35), so snow on land, which has the same white, stays silent."""
+
     print("Perpetual Ocean 2 (SVS 5425), still")
     img = Image.open(PO_FRAME).convert("RGB")
     rgb = np.asarray(img).astype(np.float64)
@@ -535,14 +465,13 @@ def currents(manifest: dict) -> None:
     }
 
 
-
 NE_DIR = SRC / "naturalearth"
 
 
 def natural_earth(manifest: dict) -> None:
-    """Country borders and large cities for an optional visual layer (never sonified)."""
+
     print("Natural Earth")
-    rnd = lambda c: [round(c[0], 2), round(c[1], 2)]  # noqa: E731 - ~1 km, plenty at 1:110m
+    rnd = lambda c: [round(c[0], 2), round(c[1], 2)]  # noqa: E731
     lines = []
     for f in json.loads((NE_DIR / "ne_110m_admin_0_boundary_lines_land.geojson").read_text(encoding="utf-8"))["features"]:
         g = f["geometry"]
@@ -571,8 +500,6 @@ def lightning_dates() -> list[str]:
         if not line:
             continue
         d = datetime.strptime(line, "%d %b %Y %H:%M")
-        # The official SOS label file writes every 2023 date as 2003 (it jumps from Dec 2022
-        # to Jan 2003); the dataset spans 2017-2023, so these are corrected.
         if d.year == 2003:
             d = d.replace(year=2023)
         out.append(d.strftime("%Y-%m-%d"))
@@ -583,7 +510,6 @@ def lightning(manifest: dict) -> None:
     print("Lightning")
     enc = BUILD / "lightning_2048x1024_30p.mp4"
     if not enc.exists():
-        # Halving to 30 fps keeps every second source frame; a GOP of 30 keeps seeking quick.
         run(["ffmpeg", "-v", "error", "-y", "-i", str(LT_VIDEO),
              "-vf", "fps=30,scale=2048:1024:flags=area",
              "-c:v", "libx264", "-crf", "25", "-preset", "slow", "-g", "30", "-pix_fmt", "yuv420p",
@@ -597,7 +523,6 @@ def lightning(manifest: dict) -> None:
     dates = [src[min(2 * i, len(src) - 1)] for i in range(n_out)]
     dpath = tmp("dates.json")
     dpath.write_text(json.dumps({"fps": 30, "dates": dates}, separators=(",", ":")))
-    # Poster: a mid-series frame with plenty of lightning, so the player is never a black box.
     poster = tmp("poster.png")
     run(["ffmpeg", "-v", "error", "-y", "-ss", "53", "-i", str(enc), "-frames:v", "1", str(poster)])
     manifest["lightning"] = {
@@ -609,11 +534,7 @@ def lightning(manifest: dict) -> None:
     }
 
 
-
-
 def main() -> None:
-    # --only <step> rebuilds one dataset into the existing manifest (adding a track must not
-    # re-encode everything else, and unchanged files keep their hashed names).
     if "--only" in sys.argv:
         step = sys.argv[sys.argv.index("--only") + 1]
         manifest = json.loads(MANIFEST.read_text())
@@ -623,7 +544,7 @@ def main() -> None:
         return
     self_check()
     if OUT.exists():
-        shutil.rmtree(OUT)  # media/ only ever holds generated, hashed files
+        shutil.rmtree(OUT)
     manifest: dict = {"version": 2}
     nightlights(manifest)
     aerosols(manifest)

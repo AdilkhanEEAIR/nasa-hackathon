@@ -1,7 +1,3 @@
-// Network and decoding helpers: progress-reporting fetch, exact (colour-managed-free) pixel
-// decoding for sound grids, and a WebP support check for the visual layer.
-
-/** Fetches a URL as a Blob, reporting (bytesSoFar, totalBytesOrZero) as chunks arrive. */
 export async function fetchBlob(url, onProgress) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
@@ -20,10 +16,6 @@ export async function fetchBlob(url, onProgress) {
   return new Blob(chunks, { type: res.headers.get('content-type') || '' });
 }
 
-/**
- * Decodes an image Blob to RGBA pixels without colour-space conversion or premultiplication,
- * so a lossless sound grid arrives with exactly the byte values it was written with.
- */
 export async function blobToPixels(blob) {
   const bmp = await createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
   const c = document.createElement('canvas');
@@ -35,7 +27,6 @@ export async function blobToPixels(blob) {
   return ctx.getImageData(0, 0, c.width, c.height);
 }
 
-/** Grid of one channel (0..255) as a value field. */
 export function channelField(img, channel = 0, lon0 = -180) {
   const { width, height, data } = img;
   const values = new Uint8Array(width * height);
@@ -44,7 +35,6 @@ export function channelField(img, channel = 0, lon0 = -180) {
 }
 
 let webpCheck = null;
-/** Resolves true when the browser decodes WebP (checked once with a 1x1 image). */
 export function supportsWebp() {
   if (!webpCheck) {
     webpCheck = new Promise((resolve) => {
@@ -57,10 +47,6 @@ export function supportsWebp() {
   return webpCheck;
 }
 
-/**
- * Tracks several downloads as one job (e.g. "Track 3") and reports a single fraction.
- * Unknown sizes count as half-done until they finish, so the bar never jumps backwards.
- */
 export class Progress {
   constructor(onChange) {
     this.onChange = onChange;

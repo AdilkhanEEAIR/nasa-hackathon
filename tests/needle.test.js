@@ -1,4 +1,3 @@
-// Needle mode (js/needle.js): a fixed line down a turning globe, read north to south.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { forestValue, co2Value, needleSegments, segmentFreq, bandLevel, NEEDLE_SEGMENTS } from '../js/needle.js';
@@ -6,8 +5,8 @@ import { forestValue, co2Value, needleSegments, segmentFreq, bandLevel, NEEDLE_S
 test('forest picture: ocean and space are silent, brighter vegetation reads higher', () => {
   assert.equal(forestValue(5, 5, 8), 0, 'space');
   assert.equal(forestValue(40, 110, 170), 0, 'ocean blue');
-  const short = forestValue(100, 110, 40);  // olive green
-  const tall = forestValue(215, 235, 190);  // pale green to white
+  const short = forestValue(100, 110, 40);
+  const tall = forestValue(215, 235, 190);
   assert.ok(short > 0 && tall > short);
 });
 
@@ -21,8 +20,8 @@ test('CO2 picture: grey land, white desert and dark ocean are silent, warmer plu
 test('segments are read top to bottom and the top sounds highest', () => {
   const rows = 32;
   const px = new Uint8ClampedArray(rows * 4);
-  for (let y = 0; y < rows / 2; y++) px.set([200, 235, 190, 255], y * 4); // vegetation in the north half
-  for (let y = rows / 2; y < rows; y++) px.set([40, 110, 170, 255], y * 4); // ocean in the south half
+  for (let y = 0; y < rows / 2; y++) px.set([200, 235, 190, 255], y * 4);
+  for (let y = rows / 2; y < rows; y++) px.set([40, 110, 170, 255], y * 4);
   const seg = needleSegments(px, rows, forestValue);
   assert.equal(seg.length, NEEDLE_SEGMENTS);
   assert.ok(seg[0] > 0.5 && seg[NEEDLE_SEGMENTS - 1] === 0);
@@ -40,7 +39,7 @@ test('still-frame sweep reads the precomputed grid column, top to bottom', async
   const { fieldSegments } = await import('../js/needle.js');
   const width = 4; const height = 32;
   const values = new Uint8Array(width * height);
-  for (let y = 0; y < 8; y++) for (let x = 0; x < width; x++) values[y * width + x] = 255; // bright top quarter
+  for (let y = 0; y < 8; y++) for (let x = 0; x < width; x++) values[y * width + x] = 255;
   const seg = fieldSegments({ width, height, values }, 0.5, 0, 1);
   assert.ok(seg[0] > 0.9 && seg[1] > 0.9 && seg[seg.length - 1] === 0);
 });

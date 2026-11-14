@@ -1,8 +1,3 @@
-// Spoken guide (Web Speech API, English). Off by default: it is switched on in the
-// Accessibility menu (or with V in the Jukebox) and the choice lives in js/prefs.js.
-// What it may say is decided by mayVoiceSpeak() in js/prefs.js. Data is never spoken, it is
-// heard as sound; while the guide talks, `onSpeaking` lets the player duck the scan.
-
 export class Voice {
   constructor(enabled = false) {
     this.enabled = enabled;
@@ -37,14 +32,12 @@ export class Voice {
     return u;
   }
 
-  /** Speaks `text`; by default interrupts what was being said so the newest state wins. */
   say(text, { interrupt = true } = {}) {
     if (!this.enabled || !this.supported || !text) return;
     if (interrupt) speechSynthesis.cancel();
     speechSynthesis.speak(this._utter(text));
   }
 
-  /** Speaks and resolves when finished (or after a timeout, or at once when voice is off). */
   sayAsync(text, maxMs = 6000) {
     if (!this.enabled || !this.supported || !text) return Promise.resolve();
     return new Promise((resolve) => {

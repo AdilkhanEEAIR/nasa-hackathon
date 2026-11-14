@@ -1,24 +1,12 @@
-// Web Audio synthesis. Nothing is pre-recorded: every sound is generated from the values the
-// ring reads off the map. The same graph runs live (AudioContext) or offline
-// (OfflineAudioContext) so "Save scan as WAV" renders exactly what you hear.
-//
-// Each of the 16 ring voices has one or more "layers" (instruments). A layer has its own
-// waveform, octave and filter, so different categories in a map (more vs less light, dust vs
-// smoke) are heard as different instruments while direction stays the same pitch/stereo rule.
-
 import { degreeToFreq, degreeForBearing, panForBearing } from './music.js';
 
-const VOICE_PEAK = 0.16;      // per-voice ceiling; 16 voices then sum safely into the limiter
-const LAND_HUM = 0.025;       // quiet bed under unlit land so continents are audible
-const SMOOTH = 0.06;          // seconds; gain glides avoid zipper noise between ring steps
-const DUCK = 0.25;            // mix level (-12 dB) under the spoken guide
-// Attack time of each struck voice (s): the visual flash is timed to the end of the attack.
+const VOICE_PEAK = 0.16;
+const LAND_HUM = 0.025;
+const SMOOTH = 0.06;
+const DUCK = 0.25;
 const PLUCK_ATTACK = { wood: 0.008, drone: 0.25, water: 0.006, glide: 0.12 };
 
-/** Default single instrument (night lights): triangle wave, brightness opens the filter. */
 export const DEFAULT_LAYERS = [
-  // City lights: a warm triangle tone with a gentle twinkle (tremolo), so it is recognisable
-  // next to the plain tones of the other tracks.
   { name: 'main', type: 'triangle', octave: 0, cutoffLo: 600, cutoffHi: 4800, peak: 1.05, tremolo: { rate: 5.5, depth: 0.35 } },
 ];
 
@@ -30,10 +18,9 @@ export class SonicEngine {
     this.offline = false;
     this.voices = [];
     this.volume = 0.8;
-    this.ducked = false; // lowered while the spoken guide talks, so speech never covers a scan
-    // Per-track loudness trim, so dense maps (every voice active) are not louder than sparse ones.
+    this.ducked = false;
     this.trim = 1;
-    this.levels = new Float32Array(voices); // last requested data gain per voice, for visuals
+    this.levels = new Float32Array(voices);
   }
 
   get ready() {
@@ -44,7 +31,6 @@ export class SonicEngine {
     return this.ctx ? this.ctx.currentTime : 0;
   }
 
-  /** Must be called from a user gesture: browsers block audio until the user interacts. */
   async unlock() {
     if (!this.ctx) {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -54,7 +40,6 @@ export class SonicEngine {
     return this.ready;
   }
 
-  /** Builds the synthesis graph on any BaseAudioContext (live or offline). */
   attach(ctx, { offline = false } = {}) {
     this.ctx = ctx;
     this.offline = offline;
@@ -68,7 +53,6 @@ export class SonicEngine {
     limiter.release.value = 0.2;
     this.master.connect(limiter).connect(ctx.destination);
 
-    // Small synthetic room so the pentatonic chord blends instead of sounding like test tones.
     this.reverb = ctx.createConvolver();
     this.reverb.buffer = this._impulse(2.2, 2.5);
     const wet = ctx.createGain();
@@ -81,7 +65,6 @@ export class SonicEngine {
     this._buildVoices();
   }
 
-  /** Switches the instrument set (e.g. when the track changes). */
   setLayers(layers) {
     this.layers = layers;
     if (this.ctx) this._buildVoices();
@@ -89,8 +72,8 @@ export class SonicEngine {
 
   _buildVoices() {
     for (const v of [...this.voices, this.probe].filter(Boolean)) {
-      for (const l of v.layers) { try { l.osc.stop(); } catch { /* already stopped */ } }
-      if (v.glide) { try { v.glide.lfo.stop(); } catch { /* already stopped */ } }
+      for (const l of v.layers) { try { l.osc.stop(); } catch { } }
+      if (v.glide) { try { v.glide.lfo.stop(); } catch { } }
       v.pan.disconnect();
     }
     this.voices = [];
@@ -98,16 +81,9 @@ export class SonicEngine {
       const bearing = (k * 360) / this.nVoices;
       this.voices.push(this._makeVoice(degreeToFreq(degreeForBearing(bearing)), panForBearing(bearing), bearing));
     }
-    // The explore-mode probe: one centred voice whose pitch follows latitude.
     this.probe = this._makeVoice(degreeToFreq(7), 0, null);
   }
 
-  /**
-   * Looping texture buffers for noise-based instruments, built once per context:
-   *   noise   - white noise (dust: a dry rustle once band-passed high)
-   *   surf    - soft low noise swelling twice every 8 s (sea salt: surf)
-   *   crackle - sparse random clicks over a low rumble (smoke and fire)
-   */
   _texture(kind) {
     this._textures = this._textures || {};
     if (this._textures[kind]) return this._textures[kind];
@@ -131,7 +107,6 @@ export class SonicEngine {
       }
     }
     if (kind === 'crackle') {
-      // ~30 crackles per second: short decaying bursts of random strength.
       const count = Math.floor(secs * 30);
       for (let c = 0; c < count; c++) {
         const start = Math.floor(Math.random() * (n - 400));
@@ -170,8 +145,6 @@ export class SonicEngine {
       const gain = ctx.createGain();
       gain.gain.value = 0;
       if (spec.tremolo) {
-        // Amplitude modulation between (1 - depth) and 1; each voice gets a slightly different
-        // rate so the ring twinkles instead of pulsing in unison.
         const am = ctx.createGain();
         am.gain.value = 1 - spec.tremolo.depth / 2;
         const lfo = ctx.createOscillator();
@@ -184,14 +157,10 @@ export class SonicEngine {
       } else {
         osc.connect(filter).connect(gain).connect(pan);
       }
-      // Random start offsets decorrelate the 16 copies of a noise texture.
       if (source === 'osc') osc.start(t0);
       else osc.start(t0, Math.random() * osc.buffer.duration);
       return { spec, osc, filter, gain };
     });
-    // Glide: one slow LFO per voice swings the pitch a little and the filter a lot. Its depth
-    // and speed follow a "motion" value (ocean: density of current lines), so moving water is
-    // heard as a sliding, swirling tone. The compass pitch stays the centre of the swing.
     const gspec = this.layers.find((l) => l.glide)?.glide;
     let glide = null;
     if (gspec) {
@@ -213,7 +182,6 @@ export class SonicEngine {
     return { bearing, pan, layers, base, glide };
   }
 
-  /** Same loudness/timbre rule as a ring voice, applied to any voice object. */
   _drive(v, g, brightness, land, when, motion = 0) {
     if (v.glide) {
       const m = Math.max(0, Math.min(1, motion));
@@ -229,8 +197,6 @@ export class SonicEngine {
       const target = Math.max(hum, lg * VOICE_PEAK * (l.spec.peak ?? 1) * this.trim);
       let cutoff;
       if (l.spec.pitchFilter) {
-        // Noise instruments: the filter centre carries the compass pitch, so "north is high"
-        // holds for them too; a stronger value opens the band a little.
         cutoff = v.base * 2 ** l.spec.octave * (1 + brightness * (l.spec.brightMul ?? 0.5));
       } else {
         cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
@@ -241,10 +207,6 @@ export class SonicEngine {
     return total;
   }
 
-  /**
-   * Explore mode: a sustained tone at the probe point. Pitch follows latitude (north high,
-   * same law as the ring), loudness and timbre follow the value exactly like a ring voice.
-   */
   setProbe({ gains, brightness = 0, land = 0, lat = 0, motion = 0 }) {
     if (!this.ready || !this.probe) return;
     const when = this.now;
@@ -255,7 +217,6 @@ export class SonicEngine {
       if (l.osc.frequency) l.osc.frequency.setTargetAtTime(base * 2 ** l.spec.octave, when, 0.03);
     }
     this._drive(this.probe, gains, brightness, land, when, motion);
-    // The probe is louder than one ring voice: it is the only thing sounding.
     this.probe.pan.pan.setValueAtTime(0, when);
   }
 
@@ -284,17 +245,11 @@ export class SonicEngine {
     return this.volume * (this.ducked ? DUCK : 1);
   }
 
-  /** Ducks the whole mix under the spoken guide, and restores it when speech ends. */
   setDucked(on) {
     this.ducked = !!on;
     if (this.master && !this.offline) this.master.gain.setTargetAtTime(this._masterLevel(), this.now, on ? 0.05 : 0.25);
   }
 
-  /**
-   * One ring voice. `gains` maps layer name -> data loudness 0..1 (or pass a single `gain` for
-   * the first layer); `brightness` 0..1 opens the filters; `land` 0..1 is the land share
-   * under the arc (unlit land gets a quiet hum on the first layer).
-   */
   setVoice(k, { gain, gains, brightness = 0, land = 0, motion = 0 }, when = this.now) {
     const g = gains || { [this.layers[0].name]: gain || 0 };
     let total = 0;
@@ -310,7 +265,6 @@ export class SonicEngine {
     for (const v of this.voices) for (const l of v.layers) l.gain.gain.setTargetAtTime(0, when, 0.08);
   }
 
-  /** Short tick marking a coastline crossing, placed in the stereo field of its voice. */
   click(pan, when = this.now, level = 0.12) {
     if (!this.ready) return;
     const ctx = this.ctx;
@@ -332,10 +286,6 @@ export class SonicEngine {
     src.start(when);
   }
 
-  /**
-   * One lightning strike: a sharp noise crack plus a short thump at the compass pitch of its
-   * direction, so a strike to the north-east is a high crack in the right ear.
-   */
   strike(pan, freq, level = 0.6, when = this.now) {
     if (!this.ready) return;
     const ctx = this.ctx;
@@ -366,22 +316,15 @@ export class SonicEngine {
     osc.stop(when + 0.16);
   }
 
-  /**
-   * One short struck note for needle tracks. 'wood' is a marimba-like knock: a sine with a
-   * quickly fading partial four times higher and a tiny click, all at the needle pitch.
-   */
   pluck(freq, level = 0.5, voice = 'wood', when = this.now) {
     if (!this.ready) return 0;
     const ctx = this.ctx;
-    // When the note peaks at the speakers, in seconds from now: output latency + attack.
     const latency = (ctx.baseLatency || 0) + (ctx.outputLatency || 0);
     const peak = latency + (when - ctx.currentTime) + (PLUCK_ATTACK[voice] ?? 0.01);
     const out = ctx.createGain();
     out.gain.value = level * this.trim * 0.35;
     out.connect(this.bus);
     if (voice === 'drone') {
-      // CO2: a low, slowly swelling hum an octave down. More CO2 opens the filter and adds a
-      // detuned twin, so the sound thickens rather than simply getting louder.
       const f = ctx.createBiquadFilter();
       f.type = 'lowpass';
       f.frequency.value = 220 + 1400 * level;
@@ -402,8 +345,6 @@ export class SonicEngine {
       return peak;
     }
     if (voice === 'water' || voice === 'glide') {
-      // water: a droplet, the pitch springs up quickly (atmospheric river);
-      // glide: a soft tone sliding gently down, like water flowing on (ocean currents).
       const o = ctx.createOscillator();
       o.type = voice === 'water' ? 'sine' : 'triangle';
       const g = ctx.createGain();
@@ -425,7 +366,6 @@ export class SonicEngine {
       o.stop(when + 1.05);
       return peak;
     }
-    // Wood: a soft 8 ms knock (no click), a body that rings 0.45 s and a short bright partial.
     const parts = voice === 'wood' ? [[1, 1, 0.45], [4, 0.35, 0.07]] : [[1, 1, 0.5]];
     for (const [mul, amp, decay] of parts) {
       const o = ctx.createOscillator();
@@ -442,15 +382,6 @@ export class SonicEngine {
     return peak;
   }
 
-  // ---------------------------------------------------------------- needle bands
-  /**
-   * One continuous voice per needle band (top = highest). Each band's loudness and filter
-   * follow its value through setNeedleBand with ~25 ms smoothing, so the sound swells and fades
-   * exactly as things pass under the needle.
-   *   wood    trembling marimba: a sine plus a soft partial 4x up, 8 Hz tremolo
-   *   breath  an exhale: soft band-passed noise over a low tone an octave down
-   *   water   flowing water: band-passed noise whose band slides slowly, over a gliding tone
-   */
   buildNeedle(freqs, kind) {
     this.clearNeedle();
     if (!this.ctx) return;
@@ -470,8 +401,6 @@ export class SonicEngine {
       filter.connect(out);
       let peak = 0.12;
       if (kind === 'wood') {
-        // No continuous tone for forest: the band re-strikes a dry marimba bar (see
-        // setNeedleBand), so it can never blur into the sustained voices of other tracks.
         filter.frequency.value = 2500;
         return { out, filter, peak: 0.5, kind, f, next: 0 };
       } else if (kind === 'breath') {
@@ -482,7 +411,7 @@ export class SonicEngine {
         peak = 0.2;
       } else {
         const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 3; bp.Q.value = 3.5;
-        lfo(0.6, 500, bp.detune);                     // the water's slow slide
+        lfo(0.6, 500, bp.detune);
         const ng = ctx.createGain(); ng.gain.value = 3;
         noise().connect(bp).connect(ng).connect(filter);
         const tone = osc('sine', f); lfo(0.4, 30, tone.detune);
@@ -495,13 +424,11 @@ export class SonicEngine {
     this._needleSources = started;
   }
 
-  /** Band k to a level 0..1 (loudness and brightness together), smoothed over ~25 ms. */
   setNeedleBand(k, level, when = this.now) {
     const b = this.needleBands && this.needleBands[k];
     if (!b || !this.ready) return;
     b.out.gain.setTargetAtTime(level * b.peak * this.trim, when, 0.025);
     if (b.kind === 'wood') {
-      // Denser vegetation strikes faster: from about 3 to 9 strikes a second.
       if (level > 0 && when >= b.next) {
         this._woodStrike(b, level, when);
         b.next = when + (0.34 - 0.23 * level) * (0.9 + 0.2 * Math.random());
@@ -511,7 +438,6 @@ export class SonicEngine {
     b.filter.frequency.setTargetAtTime(500 + 3500 * level, when, 0.025);
   }
 
-  /** One dry marimba strike: a short knock, the bar's fundamental and its 4th partial. */
   _woodStrike(b, level, when) {
     const ctx = this.ctx;
     const stop = when + 0.3;
@@ -526,9 +452,8 @@ export class SonicEngine {
       o.start(when);
       o.stop(stop);
     };
-    part(1, 0.8, 0.22);          // the bar: short, no ring
-    part(3.93, 0.3 * (0.5 + level), 0.06);   // marimba overtone, gone almost at once
-    // the mallet's knock: a 10 ms burst of band-passed noise
+    part(1, 0.8, 0.22);
+    part(3.93, 0.3 * (0.5 + level), 0.06);
     const n = ctx.createBufferSource();
     n.buffer = this._texture('noise');
     const bp = ctx.createBiquadFilter();
@@ -547,18 +472,16 @@ export class SonicEngine {
       for (const b of this.needleBands) b.out.gain.setTargetAtTime(0, when, 0.04);
       const srcs = this._needleSources || [];
       const bands = this.needleBands;
-      setTimeout(() => { for (const n of srcs) { try { n.stop(); } catch { /* stopped */ } } for (const b of bands) b.out.disconnect(); }, 300);
+      setTimeout(() => { for (const n of srcs) { try { n.stop(); } catch { } } for (const b of bands) b.out.disconnect(); }, 300);
     }
     this.needleBands = null;
     this._needleSources = null;
   }
 
-  /** Output delay to the speakers in ms: the picture is delayed by this much to stay in step. */
   get outputDelayMs() {
     return this.ctx ? ((this.ctx.baseLatency || 0) + (this.ctx.outputLatency || 0)) * 1000 : 0;
   }
 
-  /** A plucked note. `when` is seconds from now (live); `at` is an absolute context time. */
   note(freq, { when = 0, at = null, duration = 0.6, level = 0.3, pan = 0, type = 'sine', bright = 0.5 } = {}) {
     if (!this.ready) return;
     const ctx = this.ctx;
@@ -580,11 +503,6 @@ export class SonicEngine {
     osc.stop(t + duration + 0.05);
   }
 
-  /**
-   * The ring's final note: the value at the centre point. `kind` lets a track shape it:
-   * 'more' rises, 'less' falls, anything else is a single chord. Silence would be ambiguous,
-   * so "nothing here" is a soft low thud rather than no sound at all.
-   */
   centreNote(level, at = this.now, kind = null) {
     if (!(level > 0.001)) {
       this.note(degreeToFreq(0) / 2, { at, duration: 0.5, level: 0.25, bright: 0 });

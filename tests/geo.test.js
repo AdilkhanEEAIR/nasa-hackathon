@@ -106,7 +106,6 @@ test('pixel mapping round-trips', () => {
   }
 });
 
-// Measured positions from docs/DATA_NOTES.md, converted to the 1920x1080 web images.
 test('georeference: night-lights roll puts 180 W at x = 0', () => {
   const lonAtX0 = -169.0 - (117 * 360) / 3840;
   close(lonAtX0, -180, 0.1, 'lon at left edge');
@@ -114,7 +113,6 @@ test('georeference: night-lights roll puts 180 W at x = 0', () => {
 
 test('georeference: measured city lights match predicted pixels (within 2.5 px)', () => {
   const measured = [
-    // name, lat, lon, night-lights web px (copy-1 px + 117 roll, halved), aerosol web px (halved)
     ['Cape Town', -33.92, 18.42, [(1996 + 117) / 2, 1487 / 2], [2117 / 2, 1488 / 2]],
     ['Perth', -31.95, 115.86, [(3035 + 117) / 2, 1463 / 2], [3155 / 2, 1462 / 2]],
     ['Tokyo', 35.69, 139.69, [(3289 + 117) / 2, 650 / 2], null],

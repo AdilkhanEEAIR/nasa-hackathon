@@ -1,11 +1,3 @@
-// Takes the README and slide screenshots with headless Chrome (a throwaway profile, page
-// content only: no browser window, tabs or bookmarks can appear in a shot).
-//
-//   node tools/screenshots.mjs https://earthsonar.vercel.app/
-//
-// Writes docs/screenshots/: home-desktop, jukebox-ring-scan, needle-forest,
-// accessibility-menu, home-phone, jukebox-phone (all .jpg).
-
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { launch, sleep } from './cdp.mjs';
 
@@ -25,7 +17,6 @@ async function shot(c, file, clip = null) {
   save(file, (await c.send('Page.captureScreenshot', params)).result.data);
 }
 
-/** The player only: from the "Now playing" block to the bottom of the map and the dial. */
 async function shotPlayer(c, file) {
   const clip = await c.eval(`(() => {
     document.querySelector('.keybar').style.visibility = 'hidden';
@@ -52,7 +43,7 @@ const HOME_READY = "document.body.dataset.shell === 'ready' && document.querySel
 const PLAYER_READY = "document.body.dataset.ready === 'true'";
 
 async function europeScan(c) {
-  await c.eval(key('4'));                                   // preset 4: Europe
+  await c.eval(key('4'));
   await c.eval("{ const y = document.getElementById('year'); y.value = '2023'; y.dispatchEvent(new Event('change')); }");
   await sleep(1200);
   await c.eval("document.getElementById('btn-scan').click()");
@@ -69,20 +60,17 @@ try {
   await open(c, '#home', HOME_READY);
   await shot(c, 'home-desktop.jpg');
 
-  // The Accessibility menu, opened with its own button.
   await c.eval("document.getElementById('a11y-toggle').click()");
   await sleep(400);
   await shot(c, 'accessibility-menu.jpg', { x: 540, y: 0, width: 900, height: 560 });
 
-  // Ring scan: night lights 2023 around Europe, the ring about a third of the way in.
   await open(c, '#jukebox', PLAYER_READY);
   await c.eval(`${key('=')}; ${key('=')}`);
   await europeScan(c);
   await shotPlayer(c, 'jukebox-ring-scan.jpg');
   await c.eval(key('Escape'));
 
-  // Needle on the turning GEDI globe, with Africa under the needle.
-  await c.eval(key('0'));                                   // back to the whole picture
+  await c.eval(key('0'));
   await c.eval(key('^', ", code: 'Digit6', shiftKey: true"));
   await c.until("document.getElementById('needle-video').readyState >= 2", 60000);
   await c.eval("document.getElementById('needle-video').currentTime = 21.5");

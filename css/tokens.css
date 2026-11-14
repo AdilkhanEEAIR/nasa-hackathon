@@ -1,41 +1,22 @@
-/* Sixth Sense design tokens — the only place where raw colours, sizes and timings live.
-   Mood: a night sky over Earth. Deep blue base, one yellow accent, red only for stop and
-   warnings. (Colour mood only: no agency logos, emblems or lettering are used anywhere.)
-   Three layers: primitives (raw values) -> semantic (purpose) -> component (where used).
-   Interface colours and data colours are separate sets and never stand in for each other.
-   tests/tokens.test.js fails if a colour literal appears anywhere else in the site. */
-
 :root {
   color-scheme: dark;
 
-  /* ------------------------------------------------------------------ primitives: blues
-     Deep night-sky blues (hue ~220): the background sits well below the brand blue, never
-     black. Mist tones for text are blue-tinted, never pure white. */
   --navy-950: #050E22;
   --navy-900: #08183A;
   --navy-850: #0D2250;
   --navy-800: #132C63;
   --navy-700: #24427C;
   --navy-600: #3A5A96;
-  --blue-500: #0B3D91;   /* the brand tone: selected and hovered planes only */
+  --blue-500: #0B3D91;
   --mist-400: #A3B4D2;
   --mist-200: #C8D3E8;
   --mist-100: #EAF0FA;
 
-  /* ------------------------------------------------------------------ primitives: accents
-     Yellow is the one main accent (primary action, selected tab, focus). Red is rare and
-     only marks stop, recording and warnings. Both are softened from full saturation and
-     never fill large areas. */
   --sun-400: #F6D684;
   --sun-500: #EFC457;
   --sun-ink: #071330;
   --red-500: #F0604A;
 
-  /* ------------------------------------------------------------------ primitives: data
-     Muted, colour-blind-checked set, balanced in lightness and kept clear of the interface
-     red, blue and yellow (tests/tokens.test.js checks contrast on the blue background,
-     deuteranopia, protanopia and tritanopia). Cold water is cyan, not interface blue; warm
-     water is a soft salmon, not interface red or yellow. */
   --dp-yellow: #E6CB7C;
   --dp-orange: #E5915F;
   --dp-pink: #CD8FC4;
@@ -48,7 +29,6 @@
   --dp-nodata: #56688C;
   --dp-flash: #F4ECD6;
 
-  /* ------------------------------------------------------------------ semantic: interface */
   --ui-bg: var(--navy-900);
   --ui-bg-sunken: var(--navy-950);
   --ui-surface: var(--navy-850);
@@ -66,7 +46,6 @@
   --ui-danger: var(--red-500);
   --ui-scrim: rgba(5, 14, 34, 0.82);
 
-  /* ------------------------------------------------------------------ semantic: data */
   --data-lights: var(--dp-yellow);
   --data-land: var(--dp-quiet);
   --data-smoke: var(--dp-orange);
@@ -85,9 +64,6 @@
   --data-wind-calm: var(--dp-neutral);
   --data-wind-strong: var(--dp-orange);
 
-  /* ------------------------------------------------------------------ component: map overlay
-     Thin and translucent: the NASA map stays the main thing on screen. The trail keeps a few
-     fading copies of the ring behind it; note flashes bloom and fade where a voice gets loud. */
   --overlay-ring: rgba(234, 240, 250, 0.45);
   --overlay-marker: var(--mist-100);
   --overlay-label: rgba(234, 240, 250, 0.85);
@@ -104,24 +80,21 @@
   --overlay-arc-alpha-max: 0.9;
   --overlay-label-size: 12;
 
-  /* ------------------------------------------------------------------ component: voice dial */
   --dial-guide: var(--navy-700);
   --dial-letter: var(--mist-200);
   --dial-caption: var(--mist-400);
   --dial-bar-track: var(--navy-800);
   --dial-voice-width: 7;
 
-  /* ------------------------------------------------------------------ typography
-     One family (the platform UI font: no download, sharp on every OS). */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --text-xs: 0.8125rem;   /* 13 */
-  --text-sm: 0.9375rem;   /* 15 */
-  --text-md: 1.0625rem;   /* 17: body */
-  --text-lg: 1.25rem;     /* 20 */
-  --text-xl: 1.625rem;    /* 26 */
-  --text-2xl: 2.25rem;    /* 36 */
-  --text-3xl: 3.25rem;    /* 52 */
-  --text-4xl: 4.5rem;     /* 72: the Home headline */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3.25rem;
+  --text-4xl: 4.5rem;
   --leading-tight: 1.15;
   --leading-body: 1.6;
   --weight-regular: 400;
@@ -129,7 +102,6 @@
   --weight-bold: 680;
   --tracking-caps: 0.12em;
 
-  /* ------------------------------------------------------------------ space, size, shape */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -140,9 +112,9 @@
   --space-8: 4rem;
   --space-9: 6rem;
   --container: 76rem;
-  --container-wide: 96rem;    /* the jukebox: the map gets the room */
+  --container-wide: 96rem;
   --measure: 62ch;
-  --target-min: 2.75rem;      /* 44 px touch target */
+  --target-min: 2.75rem;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -151,7 +123,6 @@
   --focus-offset: 3px;
   --shadow-1: 0 1px 2px rgba(2, 6, 18, 0.55), 0 8px 24px rgba(2, 6, 18, 0.4);
 
-  /* ------------------------------------------------------------------ component: layout */
   --layout-tracks: 16rem;
   --layout-side: 17.5rem;
   --dial-size: 16.25rem;
@@ -161,23 +132,18 @@
   --swatch-size: 0.75rem;
   --check-size: 1.25rem;
 
-  /* ------------------------------------------------------------------ motion
-     Restraint: keyboard-driven changes are instant; only what is sounding moves. */
   --dur-press: 120ms;
   --dur-fast: 160ms;
   --dur-base: 180ms;
   --dur-ripple: 600ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --press-scale: 0.97;
-  --dur-panel: 220ms;      /* tab and track change by pointer */
-  --dur-reveal: 480ms;     /* Home blocks on first scroll into view */
+  --dur-panel: 220ms;
+  --dur-reveal: 480ms;
   --reveal-shift: 14px;
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-/* ------------------------------------------------------------------ mode: large text and high contrast
-   Switched in the Accessibility menu (js/prefs.js). Same palette, stronger values: bigger type
-   and targets, brighter secondary text and borders, a thicker focus outline and ring. */
 :root[data-large] {
   --text-xs: 1rem;
   --text-sm: 1.125rem;
