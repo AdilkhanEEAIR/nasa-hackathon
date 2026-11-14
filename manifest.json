@@ -18,6 +18,10 @@
           "webp": "media/nl/view-2012.6a7997f782.webp",
           "jpg": "media/nl/view-2012.7951c2d49c.jpg"
         },
+        "viewHi": {
+          "webp": "media/nl/view-2012-hi.8f3e0e85a7.webp",
+          "jpg": "media/nl/view-2012-hi.16f4c5f2e0.jpg"
+        },
         "sound": "media/nl/sound-2012.bcc0bfdade.png",
         "sourceFrame": 7,
         "sourceTime": 0.233
@@ -26,6 +30,10 @@
         "view": {
           "webp": "media/nl/view-2013.c14a7dd8b4.webp",
           "jpg": "media/nl/view-2013.81bdc0638e.jpg"
+        },
+        "viewHi": {
+          "webp": "media/nl/view-2013-hi.1c1cb3233f.webp",
+          "jpg": "media/nl/view-2013-hi.d92e01d090.jpg"
         },
         "sound": "media/nl/sound-2013.c0deee7812.png",
         "sourceFrame": 24,
@@ -36,6 +44,10 @@
           "webp": "media/nl/view-2014.0f3a8f54cd.webp",
           "jpg": "media/nl/view-2014.cb66bdb908.jpg"
         },
+        "viewHi": {
+          "webp": "media/nl/view-2014-hi.0f304af785.webp",
+          "jpg": "media/nl/view-2014-hi.c890054ad3.jpg"
+        },
         "sound": "media/nl/sound-2014.6aa89e3bb0.png",
         "sourceFrame": 42,
         "sourceTime": 1.4
@@ -44,6 +56,10 @@
         "view": {
           "webp": "media/nl/view-2015.d9cfd07444.webp",
           "jpg": "media/nl/view-2015.8da460aa91.jpg"
+        },
+        "viewHi": {
+          "webp": "media/nl/view-2015-hi.f00c30be3e.webp",
+          "jpg": "media/nl/view-2015-hi.93e7c8e705.jpg"
         },
         "sound": "media/nl/sound-2015.3806945939.png",
         "sourceFrame": 60,
@@ -54,6 +70,10 @@
           "webp": "media/nl/view-2016.5bd96dd026.webp",
           "jpg": "media/nl/view-2016.d826d96697.jpg"
         },
+        "viewHi": {
+          "webp": "media/nl/view-2016-hi.a0a61d8e32.webp",
+          "jpg": "media/nl/view-2016-hi.bf2ca427ef.jpg"
+        },
         "sound": "media/nl/sound-2016.18f0b64674.png",
         "sourceFrame": 77,
         "sourceTime": 2.567
@@ -62,6 +82,10 @@
         "view": {
           "webp": "media/nl/view-2017.55ad6bffae.webp",
           "jpg": "media/nl/view-2017.1a6d9af862.jpg"
+        },
+        "viewHi": {
+          "webp": "media/nl/view-2017-hi.041968e9dc.webp",
+          "jpg": "media/nl/view-2017-hi.6ec76966a0.jpg"
         },
         "sound": "media/nl/sound-2017.5aba44158b.png",
         "sourceFrame": 95,
@@ -72,6 +96,10 @@
           "webp": "media/nl/view-2018.2b5bb6c7af.webp",
           "jpg": "media/nl/view-2018.2475aea101.jpg"
         },
+        "viewHi": {
+          "webp": "media/nl/view-2018-hi.75d1302977.webp",
+          "jpg": "media/nl/view-2018-hi.5e3d597219.jpg"
+        },
         "sound": "media/nl/sound-2018.7e99068635.png",
         "sourceFrame": 113,
         "sourceTime": 3.767
@@ -80,6 +108,10 @@
         "view": {
           "webp": "media/nl/view-2019.1505d3fbf2.webp",
           "jpg": "media/nl/view-2019.93eb236391.jpg"
+        },
+        "viewHi": {
+          "webp": "media/nl/view-2019-hi.eaf49a4227.webp",
+          "jpg": "media/nl/view-2019-hi.b43592bf56.jpg"
         },
         "sound": "media/nl/sound-2019.6b5bb46cbe.png",
         "sourceFrame": 130,
@@ -90,6 +122,10 @@
           "webp": "media/nl/view-2020.59c9ac83d0.webp",
           "jpg": "media/nl/view-2020.e9938dfe99.jpg"
         },
+        "viewHi": {
+          "webp": "media/nl/view-2020-hi.a04bab2c45.webp",
+          "jpg": "media/nl/view-2020-hi.5831aa360e.jpg"
+        },
         "sound": "media/nl/sound-2020.ed06cdbc2b.png",
         "sourceFrame": 148,
         "sourceTime": 4.933
@@ -98,6 +134,10 @@
         "view": {
           "webp": "media/nl/view-2021.e5dc3ab3fc.webp",
           "jpg": "media/nl/view-2021.99f838943c.jpg"
+        },
+        "viewHi": {
+          "webp": "media/nl/view-2021-hi.2cde555aa5.webp",
+          "jpg": "media/nl/view-2021-hi.d067557eec.jpg"
         },
         "sound": "media/nl/sound-2021.2f64b057f4.png",
         "sourceFrame": 166,
@@ -108,6 +148,10 @@
           "webp": "media/nl/view-2022.c0b82fe5cc.webp",
           "jpg": "media/nl/view-2022.2d3de39c48.jpg"
         },
+        "viewHi": {
+          "webp": "media/nl/view-2022-hi.57fb9aafe5.webp",
+          "jpg": "media/nl/view-2022-hi.f30127160a.jpg"
+        },
         "sound": "media/nl/sound-2022.729dbb7216.png",
         "sourceFrame": 184,
         "sourceTime": 6.133
@@ -116,6 +160,10 @@
         "view": {
           "webp": "media/nl/view-2023.85ad058ec8.webp",
           "jpg": "media/nl/view-2023.6c1c3bf74c.jpg"
+        },
+        "viewHi": {
+          "webp": "media/nl/view-2023-hi.ab520d7f7e.webp",
+          "jpg": "media/nl/view-2023-hi.eee3cde41a.jpg"
         },
         "sound": "media/nl/sound-2023.9694489fe5.png",
         "sourceFrame": 235,
@@ -126,6 +174,10 @@
       "view": {
         "webp": "media/nl/view-change.4629f9b956.webp",
         "jpg": "media/nl/view-change.ffd3c70c28.jpg"
+      },
+      "viewHi": {
+        "webp": "media/nl/view-change-hi.a8ced83d13.webp",
+        "jpg": "media/nl/view-change-hi.66b97ad588.jpg"
       },
       "sound": "media/nl/sound-change.685ba8c6d5.png",
       "channels": [
@@ -145,6 +197,10 @@
     "view": {
       "webp": "media/aerosols/view-2025-08-19T20.2725e72123.webp",
       "jpg": "media/aerosols/view-2025-08-19T20.e011aacc60.jpg"
+    },
+    "viewHi": {
+      "webp": "media/aerosols/view-2025-08-19T20-hi.547f00ec43.webp",
+      "jpg": "media/aerosols/view-2025-08-19T20-hi.98f333035d.jpg"
     },
     "pixels": "media/aerosols/pixels-2025-08-19T20.4fc158f92c.png",
     "legend": "media/aerosols/legend.e3a280ef5b.png",

@@ -181,6 +181,8 @@ def nightlights(manifest: dict) -> None:
         web = to_web(world)
         years[str(year)] = {
             "view": publish_view(web, "nl", str(year)),
+            # Full source resolution, fetched by the site only when zoomed past 1.5x.
+            "viewHi": publish_view(Image.fromarray(world), "nl", f"{year}-hi"),
             "sound": publish_image(Image.fromarray(light_grid(np.asarray(web))), "nl", f"sound-{year}", format="PNG", optimize=True),
             "sourceFrame": idx, "sourceTime": round(idx / 30, 3),
         }
@@ -190,12 +192,14 @@ def nightlights(manifest: dict) -> None:
                 "lon0": -180, "width": WEB_W, "height": WEB_H,
                 "derivedFrom": "night-lights base map, 2012 frame",
             }
-    change = to_web(clean_world(frames[NL_CHANGE_FRAME]))
+    change_world = clean_world(frames[NL_CHANGE_FRAME])
+    change = to_web(change_world)
     manifest["nightlights"] = {
         "source": "NASA SVS 5313", "lon0": -180, "width": WEB_W, "height": WEB_H,
         "years": years,
         "change": {
             "view": publish_view(change, "nl", "change"),
+            "viewHi": publish_view(Image.fromarray(change_world), "nl", "change-hi"),
             "sound": publish_image(Image.fromarray(change_grid(np.asarray(change))), "nl", "sound-change", format="PNG", optimize=True),
             "channels": ["more", "less", "same"],
             "sourceFrame": NL_CHANGE_FRAME, "sourceTime": round(NL_CHANGE_FRAME / 30, 3),
@@ -205,10 +209,12 @@ def nightlights(manifest: dict) -> None:
 
 def aerosols(manifest: dict) -> None:
     print("Aerosols")
-    img = Image.open(AE_IMAGE).convert("RGB").resize((WEB_W, WEB_H), Image.BOX)
+    full = Image.open(AE_IMAGE).convert("RGB")
+    img = full.resize((WEB_W, WEB_H), Image.BOX)
     manifest["aerosols"] = {
         "source": "NASA SVS 5669", "lon0": -180, "width": WEB_W, "height": WEB_H,
         "view": publish_view(img, "aerosols", "2025-08-19T20"),
+        "viewHi": publish_view(full, "aerosols", "2025-08-19T20-hi"),
         # Lossless RGB copy: the aerosol classes are decided from colour in the browser.
         "pixels": publish_image(img, "aerosols", "pixels-2025-08-19T20", format="PNG", optimize=True),
         "legend": publish(AE_LEGEND, "aerosols", "legend"),
