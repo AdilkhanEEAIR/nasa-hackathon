@@ -327,5 +327,43 @@
       ]
     },
     "period": "first frame of the July-August 2024 run"
+  },
+  "river": {
+    "source": "NASA SVS 4960",
+    "class": "visual",
+    "mode": "sweep",
+    "width": 1024,
+    "height": 576,
+    "view": {
+      "webp": "media/river/view-atmos-river-04370.74dd84d008.webp",
+      "jpg": "media/river/view-atmos-river-04370.2ea97779c6.jpg"
+    },
+    "sound": "media/river/sound-atmos-river-04370.cbfd96deee.png",
+    "needle": {
+      "x0": 0.02,
+      "x1": 0.98,
+      "y0": 0.02,
+      "y1": 0.98
+    },
+    "when": "model frame dated 2021-11-29 in the file name"
+  },
+  "currents": {
+    "source": "NASA SVS 5425",
+    "class": "visual",
+    "mode": "sweep",
+    "width": 1920,
+    "height": 1080,
+    "view": {
+      "webp": "media/currents/view-perpetual-ocean2-093.7f1e57d2b3.webp",
+      "jpg": "media/currents/view-perpetual-ocean2-093.8006205845.jpg"
+    },
+    "sound": "media/currents/sound-perpetual-ocean2-093.f9381a7476.png",
+    "needle": {
+      "x0": 0.225,
+      "x1": 0.775,
+      "y0": 0.01,
+      "y1": 0.99
+    },
+    "when": "still of the 'beauty' version"
   }
 }

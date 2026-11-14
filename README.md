@@ -42,10 +42,13 @@ slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 | 02 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
 | 03 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
 | 04 Ocean Temperature, 19 June 2007 | ✅ available |
-| 05 Forest Height, GEDI 2019–2020 (SVS 4950) | ✅ available · **Visual** (needle on a turning globe) — sonifies the picture, not calibrated measurements |
-| 06 Carbon Dioxide, DYAMOND model, Jan–Feb 2020 (SVS 5196) | ✅ available · **Visual** (needle on an orbiting globe) — sonifies the picture, not ppm |
-| 07 Air Quality, GEOS-CF, July 2024 (SVS 5533) | ✅ available · **Visual** (ring inside one pollutant strip) — sonifies the picture, not concentrations; ozone strips silent |
-| 08 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
+| 05 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
+| 06 Forest Height, GEDI 2019–2020 (SVS 4950) | ✅ available · **Visual** (needle on a turning globe) — sonifies the picture, not calibrated measurements |
+| 07 Carbon Dioxide, DYAMOND model, Jan–Feb 2020 (SVS 5196) | ✅ available · **Visual** (needle on an orbiting globe) — sonifies the picture, not ppm |
+| 08 Air Quality, GEOS-CF, July 2024 (SVS 5533) | ✅ available · **Visual** (ring inside one pollutant strip) — sonifies the picture, not concentrations; ozone strips silent |
+| 09 Atmospheric River, MERRA-2 (SVS 4960) | ✅ available · **Visual** (needle sweep across one still frame) |
+| 10 Ocean Currents, Perpetual Ocean 2 (SVS 5425) | ✅ available · **Visual** (needle sweep across one still frame) |
+
 | ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
 | Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
 | Explore mode | ✅ available (E explores point by point, W names the place) |
@@ -94,7 +97,7 @@ change in seven seconds.
 | W | Where am I: year, centre, land or water, light level |
 | S | Save the current scan as a WAV file |
 | T | 10-second sound tutorial: north, east, south, west, dim vs bright |
-| Shift + 1…4 | Choose a track |
+| Shift + 1…9, Shift + 0 | Choose a track (Shift + 0 is track 10) |
 | C | Coastline clicks on/off |
 | Escape | Stop all sound |
 | V | Voice guide on/off (same setting as the Accessibility menu) |
@@ -257,7 +260,8 @@ printed on the frame are painted over. Details and checksums: DATA_NOTES section
 **Two classes of track.** Every track is labelled in the list and in its spoken intro:
 *Data-true* tracks read values back from the visualization's own colour scale; *Visual* tracks
 sonify the picture itself (brightness, hue, motion) and are marked "sonifies the picture, not
-calibrated measurements". Forest Height, Carbon Dioxide and Air Quality are Visual; the others are Data-true.
+calibrated measurements". Forest Height, Carbon Dioxide, Air Quality, Atmospheric River and Ocean Currents are Visual;
+the first five tracks are Data-true.
 
 **Needle mode (Visual, rotating globes).** A fixed vertical needle runs down the middle of the
 globe while the planet turns under it; it reads its pixels from top (north, high notes) to
@@ -265,7 +269,9 @@ bottom (south, low notes) in 16 segments. Where it crosses the phenomenon a shor
 at that height and a point on the needle flashes; ocean and space are silent. Forest Height
 uses wooden knocks: brighter vegetation in the picture knocks louder and quicker. Carbon
 Dioxide uses a low hum that thickens as the plume colour warms. Details: DATA_NOTES sections
-10 and 11.
+10 and 11. Atmospheric River and Ocean Currents are single still frames: the needle sweeps across
+the picture from left to right (water drops for the river, soft sliding tones for the
+currents); DATA_NOTES section 13 explains why only stills were light enough.
 
 ### Sound palette
 

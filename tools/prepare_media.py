@@ -530,6 +530,55 @@ def air(manifest: dict) -> None:
 
 
 
+# ---------------------------------------------------------------- still frames, needle sweep (Visual)
+
+AR_FRAME = SRC / "svs-4960" / "atmos_river.0324_rfm23_2021-11-29_1351.04370_print.jpg"
+PO_FRAME = SRC / "svs-5425" / "perpetual_ocean2_CLOSE_093_clean_noDate_1080p_carousel.jpg"
+
+
+def box_mean(a: np.ndarray, r: int) -> np.ndarray:
+    """Mean over a (2r+1)^2 window (edges clamped), via an integral image."""
+    p = np.pad(a, r, mode="edge").cumsum(0).cumsum(1)
+    p = np.pad(p, ((1, 0), (1, 0)))
+    n = 2 * r + 1
+    return (p[n:, n:] - p[:-n, n:] - p[n:, :-n] + p[:-n, :-n]) / (n * n)
+
+
+def river(manifest: dict) -> None:
+    """Atmospheric river (SVS 4960), one 1024x576 still of the 3D view. Visual: blue intensity
+    (water vapour in the picture) = clamp((B - R - 40) / 140); the yellow label, the white
+    H/L letters, land and the white frame corner read 0."""
+    print("Atmospheric river (SVS 4960), still")
+    img = Image.open(AR_FRAME).convert("RGB")
+    rgb = np.asarray(img).astype(np.float64)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    v = np.clip((b - r - 40) / 140, 0, 1) * (b >= g - 10)
+    manifest["river"] = {
+        "source": "NASA SVS 4960", "class": "visual", "mode": "sweep", "width": img.width, "height": img.height,
+        "view": publish_view(img, "river", "atmos-river-04370"),
+        "sound": publish_image(Image.fromarray(np.round(v * 255).astype(np.uint8)), "river", "sound-atmos-river-04370", format="PNG", optimize=True),
+        "needle": {"x0": 0.02, "x1": 0.98, "y0": 0.02, "y1": 0.98}, "when": "model frame dated 2021-11-29 in the file name",
+    }
+
+
+def currents(manifest: dict) -> None:
+    """Perpetual Ocean 2 (SVS 5425), one 1920x1080 still of the globe. Visual: whiteness of
+    the current streaks, counted only where the surrounding 41x41 px are ocean blue (mean
+    B - R > 35), so snow on land, which has the same white, stays silent."""
+    print("Perpetual Ocean 2 (SVS 5425), still")
+    img = Image.open(PO_FRAME).convert("RGB")
+    rgb = np.asarray(img).astype(np.float64)
+    blue = box_mean(rgb[..., 2] - rgb[..., 0], 20) > 35
+    v = np.clip((rgb.min(axis=2) - 150) / 90, 0, 1) * blue
+    manifest["currents"] = {
+        "source": "NASA SVS 5425", "class": "visual", "mode": "sweep", "width": img.width, "height": img.height,
+        "view": publish_view(img, "currents", "perpetual-ocean2-093"),
+        "sound": publish_image(Image.fromarray(np.round(v * 255).astype(np.uint8)), "currents", "sound-perpetual-ocean2-093", format="PNG", optimize=True),
+        "needle": {"x0": 0.225, "x1": 0.775, "y0": 0.01, "y1": 0.99}, "when": "still of the 'beauty' version",
+    }
+
+
+
 NE_DIR = SRC / "naturalearth"
 
 
@@ -627,6 +676,8 @@ def main() -> None:
     forest(manifest)
     co2(manifest)
     air(manifest)
+    river(manifest)
+    currents(manifest)
     natural_earth(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)

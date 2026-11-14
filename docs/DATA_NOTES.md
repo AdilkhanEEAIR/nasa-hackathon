@@ -521,6 +521,41 @@ comparable with each other, so the ring is meant to stay inside one strip; the p
 darker strips open the filter. Measured offline: Central Africa fires (CO) RMS 0.142 vs a clean
 South Pacific PM2.5 area 0.003 before the track trim.
 
+## 13. Atmospheric river (SVS 4960) and Perpetual Ocean 2 (SVS 5425) — Visual, still frames
+
+**Why still frames.** For 4960 the full-resolution frames are OpenEXR (not on our allowed
+list) and the HD movie is 789 MB (over the 600 MB limit); for 5425 every movie is 115 MB to
+5 GB and the frames are EXR as well. Each page offers light JPEG stills, so each track uses one
+still and a **needle sweep**: the needle moves across the picture from left to right over the
+scan length, reading a precomputed value grid top (high notes) to bottom (low notes).
+
+| File | URL | Size | Downloaded (UTC) | SHA-256 |
+|---|---|---|---|---|
+| `atmos_river.0324_rfm23_2021-11-29_1351.04370_print.jpg` | https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004960/atmos_river.0324_rfm23_2021-11-29_1351.04370_print.jpg | 245,646 B | 2026-11-14 16:28 UTC | `775730587b0d40dc09ae45831d30320347c0f06b87aae62ac70e06e2f4be946b` |
+| `perpetual_ocean2_CLOSE_093_clean_noDate_1080p_carousel.jpg` | https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005425/perpetual_ocean2_CLOSE_093_clean_noDate_1080p_carousel.jpg | 653,329 B | 2026-11-14 16:28 UTC | `9722bc06db465c714e4bdc01782fb019ef4e3e8e9ffc6f312bb5e291099dd266` |
+
+Both: JPEG signature checked; Windows Defender: no threats.
+
+**4960 — A 3D View of an Atmospheric River from an Earth System Model.** Credit: NASA's
+Scientific Visualization Studio; visualizers Greg Shirah, Horace Mitchell (NASA/GSFC), Cindy
+Starr (GST), Kel Elkins (USRA); scientists Allison Collow, Natalie Thomas (UMBC), Michael
+Bosilovich (NASA/GSFC); data MERRA-2. The still (1024×576, frame 4370 of the 2021-11-29
+render) shows the North Pacific in 3D perspective, so it is not georeferenced. Value: blue
+intensity, clamp((B − R − 40) / 140), where B ≥ G − 10 (water vapour in the picture); the
+yellow "atmospheric river" label, the white H/L letters and land read 0 (17 % of the frame
+sounds). Voice: water drops (a sine that springs up an octave in 50 ms).
+
+**5425 — Perpetual Ocean 2: Western Boundary Currents.** Credit: NASA's Scientific Visualization
+Studio; visualizers Greg Shirah, Horace Mitchell (NASA/GSFC); scientists Atousa Saberi
+(NASA/GSFC), Josh Willis (JPL); data ECCO. The still is the 1920×1080 "carousel" image of the
+globe (beauty version). Value: whiteness of current streaks, clamp((min(R,G,B) − 150) / 90),
+counted only where the surrounding 41×41 px are ocean blue (mean B − R > 35), because snow on
+land has the same white (snow b−r median 10 vs Gulf Stream streaks 25, equatorial 60). 2.1 % of
+the frame sounds: the Gulf Stream, the equatorial currents and the Brazil–Falklands confluence
+stand out. Voice: a soft triangle tone sliding gently down (flowing water).
+
+Both are **Visual**: they sonify the picture, not calibrated measurements.
+
 ## 8. Datasets reviewed and rejected (honesty check)
 
 The rule for every track: a pixel colour must translate into a value honestly. Where it

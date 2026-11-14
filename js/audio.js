@@ -395,6 +395,30 @@ export class SonicEngine {
       }
       return;
     }
+    if (voice === 'water' || voice === 'glide') {
+      // water: a droplet, the pitch springs up quickly (atmospheric river);
+      // glide: a soft tone sliding gently down, like water flowing on (ocean currents).
+      const o = ctx.createOscillator();
+      o.type = voice === 'water' ? 'sine' : 'triangle';
+      const g = ctx.createGain();
+      if (voice === 'water') {
+        o.frequency.setValueAtTime(freq, when);
+        o.frequency.exponentialRampToValueAtTime(freq * 1.8, when + 0.05);
+        g.gain.setValueAtTime(0, when);
+        g.gain.linearRampToValueAtTime(1, when + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.0005, when + 0.16);
+      } else {
+        o.frequency.setValueAtTime(freq, when);
+        o.frequency.exponentialRampToValueAtTime(freq * 0.94, when + 0.9);
+        g.gain.setValueAtTime(0, when);
+        g.gain.linearRampToValueAtTime(0.8, when + 0.15);
+        g.gain.exponentialRampToValueAtTime(0.0005, when + 1.0);
+      }
+      o.connect(g).connect(out);
+      o.start(when);
+      o.stop(when + 1.05);
+      return;
+    }
     const parts = voice === 'wood' ? [[1, 1, 0.35], [4, 0.45, 0.06]] : [[1, 1, 0.5]];
     for (const [mul, amp, decay] of parts) {
       const o = ctx.createOscillator();

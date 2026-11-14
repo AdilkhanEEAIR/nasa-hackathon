@@ -284,6 +284,8 @@ export const TRACK_PRESETS = {
   ],
   forest: [],
   co2: [],
+  river: [],
+  currents: [],
   air: [
     { key: '1', name: 'Central Africa fires (CO strip)', lat: -8, lon: 33, radiusKm: 1100 },
     { key: '2', name: 'South Asia haze (PM2.5 strip)', lat: 27, lon: 90, radiusKm: 1000 },
@@ -313,6 +315,8 @@ export const TRACK_SOUND = {
   forest: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
   co2: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
   air: { layers: AIR_LAYERS, fullScale: 0.6, trim: 0.65 },
+  river: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
+  currents: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
 };
 
 /**
@@ -321,7 +325,7 @@ export const TRACK_SOUND = {
  *   visual - the picture itself is sonified (brightness, hue, motion), not calibrated
  *            measurements.
  */
-export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual', co2: 'visual', air: 'visual' };
+export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual', co2: 'visual', air: 'visual', river: 'visual', currents: 'visual' };
 
 /** Needle tracks play a rotating globe: no map centre, no presets, no ring. */
-export const NEEDLE_TRACKS = new Set(['forest', 'co2']);
+export const NEEDLE_TRACKS = new Set(['forest', 'co2', 'river', 'currents']);

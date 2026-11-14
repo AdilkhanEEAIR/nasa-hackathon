@@ -49,6 +49,24 @@ export function needleSegments(rgba, rows, valueFn, n = NEEDLE_SEGMENTS) {
   return out;
 }
 
+/** Mean value per segment down one column of a still's value grid (0..255 per pixel). */
+export function fieldSegments(field, x, y0, y1, n = NEEDLE_SEGMENTS) {
+  const { width, height, values } = field;
+  const col = Math.min(width - 1, Math.max(0, Math.round(x * width)));
+  const top = Math.round(y0 * height);
+  const span = Math.round((y1 - y0) * height);
+  const out = new Float32Array(n);
+  for (let k = 0; k < n; k++) {
+    let sum = 0;
+    let cnt = 0;
+    for (let y = top + Math.floor((k * span) / n); y < top + Math.floor(((k + 1) * span) / n); y++, cnt++) {
+      for (let dx = -1; dx <= 1; dx++) sum += values[y * width + Math.min(width - 1, Math.max(0, col + dx))] / 255;
+    }
+    out[k] = cnt ? sum / (cnt * 3) : 0;
+  }
+  return out;
+}
+
 /** Pitch for a segment: top of the needle (north) is the highest compass degree. */
 export function segmentFreq(k, n = NEEDLE_SEGMENTS) {
   return degreeToFreq(14 - Math.round((k * 14) / (n - 1)));
@@ -71,21 +89,40 @@ export class NeedleScan {
     this._ctx = this._canvas.getContext('2d', { willReadFrequently: true });
   }
 
-  /** `geom`: needle x and its top/bottom on the disk, as fractions of the frame. */
-  start({ video, geom, valueFn, voice = 'wood', slow = 1 }) {
+  /**
+   * Two sources:
+   *   video  a turning globe; the needle stays at geom.x and the picture moves under it;
+   *   field  a still frame's precomputed value grid; the needle sweeps from geom.x0 to
+   *          geom.x1 over `durationS` (a still has no motion of its own), then stops.
+   * `geom` holds the needle's top and bottom (y0, y1) as fractions of the frame.
+   */
+  start({ video = null, field = null, geom, valueFn, voice = 'wood', slow = 1, durationS = 8, onEnd = null }) {
     this.stop();
-    Object.assign(this, { video, geom, valueFn, voice, slow });
+    Object.assign(this, { video, field, geom, valueFn, voice, slow, durationS, onEnd });
     this.last = new Float64Array(NEEDLE_SEGMENTS);
     this.running = true;
     this._noteTimes = [];
+    const t0 = performance.now();
     const tick = () => {
-      if (!this.running || video.readyState < 2) return;
-      const vw = video.videoWidth;
-      const vh = video.videoHeight;
-      const y0 = geom.y0 * vh;
-      this._ctx.drawImage(video, geom.x * vw - 1, y0, 2, (geom.y1 - geom.y0) * vh, 0, 0, 2, SAMPLE_ROWS);
-      const px = this._ctx.getImageData(0, 0, 1, SAMPLE_ROWS).data;
-      const seg = needleSegments(px, SAMPLE_ROWS, valueFn);
+      if (!this.running) return;
+      let seg;
+      let x = geom.x;
+      if (field) {
+        const t = Math.min(1, (performance.now() - t0) / (durationS * 1000));
+        x = geom.x0 + (geom.x1 - geom.x0) * t;
+        seg = fieldSegments(field, x, geom.y0, geom.y1);
+        if (t >= 1) {
+          this.stop();
+          if (this.onEnd) this.onEnd();
+          return;
+        }
+      } else {
+        if (video.readyState < 2) return;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        this._ctx.drawImage(video, geom.x * vw - 1, geom.y0 * vh, 2, (geom.y1 - geom.y0) * vh, 0, 0, 2, SAMPLE_ROWS);
+        seg = needleSegments(this._ctx.getImageData(0, 0, 1, SAMPLE_ROWS).data, SAMPLE_ROWS, valueFn);
+      }
       const now = performance.now();
       this._noteTimes = this._noteTimes.filter((t) => now - t < 1000);
       const struck = [];
@@ -96,7 +133,7 @@ export class NeedleScan {
         this.engine.pluck(segmentFreq(k), 0.25 + 0.6 * Math.min(1, v), this.voice);
         struck.push(k);
       });
-      if (this.onStep) this.onStep({ segments: seg, struck });
+      if (this.onStep) this.onStep({ segments: seg, struck, x });
     };
     this._timer = setInterval(tick, 1000 / 30);
   }

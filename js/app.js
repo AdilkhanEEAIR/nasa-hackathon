@@ -22,7 +22,10 @@ import { NeedleScan, forestValue, co2Value, NEEDLE_SEGMENTS } from './needle.js'
 const NEEDLE_READ = {
   forest: { valueFn: forestValue, voice: 'wood', slow: 1, color: '--data-forest' },
   co2: { valueFn: co2Value, voice: 'drone', slow: 2.2, color: '--data-co2' },
+  river: { voice: 'water', slow: 0.8, color: '--data-salt' },
+  currents: { voice: 'glide', slow: 1.6, color: '--data-cold' },
 };
+const isSweep = () => isNeedle() && state.manifest[state.track].mode === 'sweep';
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
 import { mix, resetTokens } from './theme.js';
@@ -56,14 +59,18 @@ export const TRACKS = [
     intro: 'Lightning: flashes seen by the Lightning Imaging Sensor on the International Space Station, 2017 to 2023, shown as a 10-day window. Each new flash is a sharp crack in its direction; many storms make a low thunder rumble. The sensor only sees up to about 52 degrees north and south, so silence there means no data. Space plays and pauses; Page Up and Page Down jump a month.' },
   { id: 'ocean', title: 'Ocean Temperature', blurb: 'Surface currents coloured by temperature, 19 June 2007.', ready: true,
     intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Temperature has five sounds. Ice-cold water is a pure tone with a slow shimmer. Cold water is soft and hollow. Mild water is reedy. Warm water is rich and flickers faster. Hot water is bright, an octave higher, and flickers fast. Where the current lines are dense the tone slides and swirls: that is moving water. Louder means more sea on the ring; land is silent. Y tells you the temperatures around the ring.' },
+  { id: 'wind', title: 'Near-Surface Wind', blurb: 'Wind 10 m above the surface, 29 Oct 2026 (GEOS-FP).', ready: true,
+    intro: 'Near-Surface Wind: wind speed 10 metres above the surface from NASA\'s GEOS-FP model, 29 October 2026, read from the colour scale from 4 to 34 metres per second. Wind is rushing air: louder and brighter means stronger, and above about 12 metres per second a whistle joins in. Calm air is silent. Y tells you where the wind is strongest around the ring.' },
   { id: 'forest', title: 'Forest Height (GEDI)', blurb: 'Space station lidar, April 2019 to April 2020, on a turning globe.', ready: true,
     intro: 'Forest Height from the GEDI lidar on the International Space Station, April 2019 to April 2020, shown on a turning globe. A fixed needle runs down the middle of the globe, north at the top with high notes, south at the bottom with low notes. Where it crosses vegetation you hear wooden knocks: brighter green and white in the picture, meaning taller vegetation, knocks louder and quicker. Ocean is silent. Space plays and pauses.' },
   { id: 'co2', title: 'Carbon Dioxide (DYAMOND)', blurb: 'CO2 plumes in a model, Jan to Feb 2020, on an orbiting globe.', ready: true,
     intro: 'Carbon Dioxide from the DYAMOND model, January to February 2020, on an orbiting globe. The needle runs down the middle of the globe, north high, south low. Where the picture shows CO2 plumes, yellow to orange to red, you hear a low hum that thickens and brightens as the colour warms. Grey land and dark ocean are silent. Space plays and pauses.' },
   { id: 'air', title: 'Air Quality (GEOS-CF)', blurb: 'Pollution in strips: CO, PM2.5, NOx and ozone, July 2024.', ready: true,
     intro: 'Air Quality from NASA\'s GEOS-CF model, the first frame of a July to August 2024 run. The world map is cut into tall strips, each showing a different pollutant: carbon monoxide, fine particles, nitrogen oxides and ozone. The ring stays inside one strip. Darker in the strip means more of that pollutant in the picture, and you hear it as a hoarse, rasping tone that opens up as it darkens. Ozone strips are silent because their two-tone colours cannot be put in order. Strips cannot be compared with each other.' },
-  { id: 'wind', title: 'Near-Surface Wind', blurb: 'Wind 10 m above the surface, 29 Oct 2026 (GEOS-FP).', ready: true,
-    intro: 'Near-Surface Wind: wind speed 10 metres above the surface from NASA\'s GEOS-FP model, 29 October 2026, read from the colour scale from 4 to 34 metres per second. Wind is rushing air: louder and brighter means stronger, and above about 12 metres per second a whistle joins in. Calm air is silent. Y tells you where the wind is strongest around the ring.' },
+  { id: 'river', title: 'Atmospheric River', blurb: 'A 3D view of a river of water vapour, MERRA-2 (still frame).', ready: true,
+    intro: 'Atmospheric River: one still frame of a 3D view from NASA\'s MERRA-2 reanalysis, a long, narrow river of water vapour flowing towards North America. A needle sweeps across the picture from left to right, top of the picture high, bottom low. Where the picture shows the blue of water vapour you hear water drops, more and louder for stronger blue. Space plays the sweep.' },
+  { id: 'currents', title: 'Ocean Currents (Perpetual Ocean 2)', blurb: 'White streaks of ocean currents on a globe, ECCO model (still frame).', ready: true,
+    intro: 'Ocean Currents from Perpetual Ocean 2: one still frame of a globe where white streaks trace the currents of NASA\'s ECCO ocean model. A needle sweeps across the globe from west to east, north high, south low. Where it crosses bright current streaks you hear soft tones sliding gently down, like flowing water: the Gulf Stream and the equatorial currents stand out. Land and snow are silent. Space plays the sweep.' },
 ];
 
 // Each track has its own centre presets (js/tracks.js); night lights are the starting set.
@@ -229,6 +236,8 @@ function updateDescription() {
   const isLt = state.track === 'lightning';
   const map = classTrack() ? classTrack().map
     : state.track === 'ocean' ? 'Map of sea surface currents on 19 June 2007, coloured by temperature from blue, 0 degrees, to red, 32 degrees Celsius; land is grey.'
+    : state.track === 'river' ? 'Still frame of a 3D view of the North Pacific: a bright blue atmospheric river of water vapour runs towards the North American coast, between a high and a low pressure centre. A needle sweeps across the picture.'
+    : state.track === 'currents' ? 'Still frame of a globe centred on the Americas: white streaks trace ocean currents over blue water, brightest in the Gulf Stream. A needle sweeps across the globe.'
     : state.track === 'air' ? 'Air quality map in tall strips, each a different pollutant: orange carbon monoxide, cream to red fine particles, green nitrogen oxides, grey and violet ozone. Darker within a strip means more.'
     : state.track === 'co2' ? 'Orbiting globe of modelled carbon dioxide, January to February 2020: yellow, orange and red plumes over grey land and a black ocean. A fixed needle runs down the middle.'
     : isNeedle() ? 'Turning globe of GEDI forest height, April 2019 to April 2020: brown and dark green short vegetation, bright green and white tall, blue ocean. A fixed needle runs down the middle.'
@@ -242,6 +251,8 @@ function updateDescription() {
     : state.track === 'wind' ? '29 Oct 2026'
     : state.track === 'co2' ? 'Jan–Feb 2020'
     : state.track === 'air' ? 'Jul 2024'
+    : state.track === 'river' ? 'still frame'
+    : state.track === 'currents' ? 'still frame'
     : isNeedle() ? '2019–2020'
       : isLt ? (lightning && lightning.date) || '2017–2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
@@ -662,6 +673,14 @@ const LEGENDS = {
     [AMBER, 'Louder and brighter: more light'],
     ['--data-land', 'Soft hum: unlit land · silence: water'],
   ],
+  river: [
+    ['--data-salt', 'Stronger blue (water vapour) in the picture: more, louder water drops'],
+    ['--data-nodata', 'Land, labels and dark ocean: silent'],
+  ],
+  currents: [
+    ['--data-cold', 'Brighter current streaks in the picture: more soft sliding tones'],
+    ['--data-nodata', 'Land, snow and space: silent'],
+  ],
   air: [
     ['--data-air', 'Darker in the strip: louder, rougher, more open rasp'],
     ['--data-nodata', 'Clean end of the strip, ozone strips and labels: silent'],
@@ -1011,7 +1030,8 @@ function pointReading(fields) {
 async function whereAmI() {
   if (!requireReadyTrack()) return;
   if (isNeedle()) {
-    announce('This track is a turning globe, not a map: the needle reads the line down the middle of the globe, north at the top. Places are not located here.', { say: 'where' });
+    announce(isSweep() ? 'This track is a still picture, not a map: the needle sweeps across it, top of the picture high. Places are not located here.'
+      : 'This track is a turning globe, not a map: the needle reads the line down the middle of the globe, north at the top. Places are not located here.', { say: 'where' });
     return;
   }
   const fields = await currentFields();
@@ -1312,9 +1332,10 @@ function onKey(e) {
   if ((e.key === ' ' || e.key === 'Enter') && t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'SUMMARY')) return;
 
   // Shift+1..4 selects a track (by physical key, so keyboard layout does not matter).
-  const digit = /^Digit([1-9])$/.exec(e.code);
-  if (e.shiftKey && digit && TRACKS[Number(digit[1]) - 1]) {
-    selectTrack(TRACKS[Number(digit[1]) - 1].id);
+  const digit = /^Digit([0-9])$/.exec(e.code);
+  const trackNo = digit ? (Number(digit[1]) || 10) : 0; // Shift+0 is track 10
+  if (e.shiftKey && digit && TRACKS[trackNo - 1]) {
+    selectTrack(TRACKS[trackNo - 1].id);
     e.preventDefault();
     return;
   }
@@ -1549,12 +1570,18 @@ async function runDemo() {
 // ---------------------------------------------------------------- needle tracks (Visual)
 
 const needle = new NeedleScan(engine, {
-  onStep: ({ segments, struck }) => {
+  onStep: ({ segments, struck, x }) => {
+    if (isSweep()) {
+      const g = state.manifest[state.track].needle;
+      view.setNeedle({ x, y0: g.y0, y1: g.y1 });
+    }
     for (const k of struck) view.needleFlash(k, NEEDLE_SEGMENTS, NEEDLE_READ[state.track].color);
     const motor = Math.max(...segments);
     haptics({ n: segments[0], e: motor, s: segments[segments.length - 1], w: motor });
   },
 });
+
+const sweepFields = {}; // value grids of still frames, by track
 
 function needleVideo() {
   return $('needle-video');
@@ -1563,10 +1590,17 @@ function needleVideo() {
 /** Shows or hides the globe video and the needle when a needle track is chosen or left. */
 function setNeedleTrack(on) {
   const v = needleVideo();
-  document.body.dataset.mode = on ? 'needle' : 'map';
-  v.hidden = !on;
-  if (on) {
-    const entry = state.manifest[state.track];
+  const entry = on ? state.manifest[state.track] : null;
+  const sweep = on && entry.mode === 'sweep';
+  document.body.dataset.mode = !on ? 'map' : sweep ? 'sweep' : 'needle';
+  v.hidden = !on || sweep;
+  if (sweep) {
+    if (needle.running) stopNeedle();
+    v.pause();
+    view.setImage(viewUrl(entry));
+    view.setNeedle({ x: entry.needle.x0, y0: entry.needle.y0, y1: entry.needle.y1 });
+    $('presets').closest('.field').hidden = true;
+  } else if (on) {
     if (v.getAttribute('src') !== entry.video) { v.src = entry.video; v.load(); }
     view.setNeedle(entry.needle);
     $('presets').closest('.field').hidden = true;
@@ -1589,6 +1623,19 @@ async function toggleNeedle() {
   const v = needleVideo();
   if (needle.running) { stopNeedle(); announce('Paused.'); return; }
   const entry = state.manifest[state.track];
+  if (entry.mode === 'sweep') {
+    if (!sweepFields[state.track]) {
+      const img = await loadGrid(entry.sound);
+      sweepFields[state.track] = channelField(img, 0);
+    }
+    setScanButton(true);
+    needle.start({
+      field: sweepFields[state.track], geom: entry.needle, durationS: state.durationS, ...NEEDLE_READ[state.track],
+      onEnd: () => { setScanButton(false); hapticsOff(); announce('Sweep finished.', { say: 'result' }); },
+    });
+    announce('Sweeping the picture from left to right.');
+    return;
+  }
   if (v.readyState < 2) await new Promise((r) => v.addEventListener('loadeddata', r, { once: true }));
   setScanButton(true);
   v.loop = true;
@@ -1599,6 +1646,10 @@ async function toggleNeedle() {
 
 /** Needle "Y": where along the needle the phenomenon is right now. */
 function needleSummary() {
+  if (isSweep()) {
+    announce('This track is a still frame: press Space to sweep the needle across it and hear where the picture is strongest.', { say: 'result' });
+    return;
+  }
   const v = needleVideo();
   if (v.readyState < 2) { announce('The globe is still loading.'); return; }
   const c = document.createElement('canvas');

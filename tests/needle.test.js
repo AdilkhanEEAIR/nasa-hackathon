@@ -33,3 +33,12 @@ test('more of the phenomenon, quicker notes, never more than about 5 per second 
   assert.ok(noteInterval(1) < noteInterval(0.3));
   assert.ok(noteInterval(1) >= 180);
 });
+
+test('still-frame sweep reads the precomputed grid column, top to bottom', async () => {
+  const { fieldSegments } = await import('../js/needle.js');
+  const width = 4; const height = 32;
+  const values = new Uint8Array(width * height);
+  for (let y = 0; y < 8; y++) for (let x = 0; x < width; x++) values[y * width + x] = 255; // bright top quarter
+  const seg = fieldSegments({ width, height, values }, 0.5, 0, 1);
+  assert.ok(seg[0] > 0.9 && seg[1] > 0.9 && seg[15] === 0);
+});
