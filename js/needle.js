@@ -11,16 +11,24 @@ export const NEEDLE_SEGMENTS = 12;
 const SAMPLE_ROWS = 192;          // pixels read along the needle per frame
 
 /**
- * GEDI forest height (SVS 4950) as shown on the globe: brown/dark green = short vegetation,
- * bright green to white = tall. Brightness of non-blue, non-black pixels stands for "taller in
- * the picture". Ocean (blue) and space (black) read 0; brown and sandy ground reads 0.
+ * GEDI forest height (SVS 4950) as shown on the globe. Vegetation is found by its colour, not
+ * its brightness: the globe darkens towards its edge and in shadow, so dark green must count
+ * as much as bright green. Green hues (55 to 115 degrees) with some saturation are vegetation;
+ * brown ground and desert (hue below 55), ocean (blue), ice and the grey no-data stripes (no
+ * saturation) and space (black) read 0. Brighter, paler green stands for taller vegetation in
+ * the palette, so it adds on top, scaled so the darkened edge still sounds.
  */
 export function forestValue(r, g, b) {
-  const m = Math.max(r, g, b);
-  if (m < 40) return 0;                       // space, deep shadow
-  if (b > r + 15 && b >= g - 5) return 0;     // ocean
-  if (g < r) return 0;                        // brown and sandy ground: not vegetation
-  return Math.max(0, Math.min(1, (Math.max(r, g) - 60) / 170));
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 13) return 0;                          // space, deep shadow
+  const sat = (max - min) / max;
+  if (sat < 0.18) return 0;                        // ice, grey no-data stripes, haze
+  const d = max - min;
+  let hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  hue = (hue * 60 + 360) % 360;
+  if (hue < 55 || hue > 115) return 0;             // brown ground and desert, ocean
+  return Math.min(1, 0.45 + 0.55 * Math.min(1, max / 140));
 }
 
 /**

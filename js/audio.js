@@ -470,13 +470,10 @@ export class SonicEngine {
       filter.connect(out);
       let peak = 0.12;
       if (kind === 'wood') {
-        const am = ctx.createGain();
-        am.gain.value = 0.75;
-        lfo(8, 0.25, am.gain);                       // the marimba tremble
-        am.connect(filter);
-        osc('sine', f).connect(am);
-        const hi = ctx.createGain(); hi.gain.value = 0.22; osc('sine', f * 4).connect(hi).connect(am);
-        peak = 0.16;
+        // No continuous tone for forest: the band re-strikes a dry marimba bar (see
+        // setNeedleBand), so it can never blur into the sustained voices of other tracks.
+        filter.frequency.value = 2500;
+        return { out, filter, peak: 0.5, kind, f, next: 0 };
       } else if (kind === 'breath') {
         const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 0.9;
         const ng = ctx.createGain(); ng.gain.value = 2.2;
@@ -503,7 +500,45 @@ export class SonicEngine {
     const b = this.needleBands && this.needleBands[k];
     if (!b || !this.ready) return;
     b.out.gain.setTargetAtTime(level * b.peak * this.trim, when, 0.025);
+    if (b.kind === 'wood') {
+      // Denser vegetation strikes faster: from about 3 to 9 strikes a second.
+      if (level > 0 && when >= b.next) {
+        this._woodStrike(b, level, when);
+        b.next = when + (0.34 - 0.23 * level) * (0.9 + 0.2 * Math.random());
+      }
+      return;
+    }
     b.filter.frequency.setTargetAtTime(500 + 3500 * level, when, 0.025);
+  }
+
+  /** One dry marimba strike: a short knock, the bar's fundamental and its 4th partial. */
+  _woodStrike(b, level, when) {
+    const ctx = this.ctx;
+    const stop = when + 0.3;
+    const part = (mult, gain, decay) => {
+      const o = ctx.createOscillator();
+      o.frequency.value = b.f * mult;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, when);
+      g.gain.linearRampToValueAtTime(gain, when + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0005, when + decay);
+      o.connect(g).connect(b.filter);
+      o.start(when);
+      o.stop(stop);
+    };
+    part(1, 0.8, 0.22);          // the bar: short, no ring
+    part(3.93, 0.3 * (0.5 + level), 0.06);   // marimba overtone, gone almost at once
+    // the mallet's knock: a 10 ms burst of band-passed noise
+    const n = ctx.createBufferSource();
+    n.buffer = this._texture('noise');
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 1800 + b.f; bp.Q.value = 1.2;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.5, when);
+    g.gain.exponentialRampToValueAtTime(0.0005, when + 0.012);
+    n.connect(bp).connect(g).connect(b.filter);
+    n.start(when, Math.random() * 1.5);
+    n.stop(when + 0.03);
   }
 
   clearNeedle() {

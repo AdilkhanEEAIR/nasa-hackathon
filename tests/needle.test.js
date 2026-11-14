@@ -44,3 +44,15 @@ test('still-frame sweep reads the precomputed grid column, top to bottom', async
   const seg = fieldSegments({ width, height, values }, 0.5, 0, 1);
   assert.ok(seg[0] > 0.9 && seg[1] > 0.9 && seg[seg.length - 1] === 0);
 });
+
+test('forest: dark green at the globe edge sounds; desert, ice, no-data grey and ocean stay silent', async () => {
+  const { forestValue: fv, bandLevel: bl } = await import('../js/needle.js');
+  assert.ok(bl(fv(13, 19, 1)) > 0, 'dark green in shadow');
+  assert.ok(bl(fv(57, 59, 24)) > 0, 'dark olive green');
+  assert.ok(fv(163, 168, 91) > fv(57, 59, 24), 'paler, brighter green is taller');
+  assert.equal(fv(51, 43, 19), 0, 'brown desert');
+  assert.equal(fv(230, 232, 235), 0, 'ice');
+  assert.equal(fv(93, 102, 104), 0, 'grey no-data stripe');
+  assert.equal(fv(30, 86, 127), 0, 'ocean');
+  assert.equal(fv(2, 2, 2), 0, 'space');
+});
