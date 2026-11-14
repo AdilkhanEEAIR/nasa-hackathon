@@ -1,6 +1,10 @@
 // Web Audio synthesis. Nothing is pre-recorded: every sound is generated from the values the
 // ring reads off the map. The same graph runs live (AudioContext) or offline
 // (OfflineAudioContext) so "Save scan as WAV" renders exactly what you hear.
+//
+// Each of the 16 ring voices has one or more "layers" (instruments). A layer has its own
+// waveform, octave and filter, so different categories in a map (more vs less light, dust vs
+// smoke) are heard as different instruments while direction stays the same pitch/stereo rule.
 
 import { degreeToFreq, degreeForBearing, panForBearing } from './music.js';
 
@@ -8,9 +12,15 @@ const VOICE_PEAK = 0.16;      // per-voice ceiling; 16 voices then sum safely in
 const LAND_HUM = 0.025;       // quiet bed under unlit land so continents are audible
 const SMOOTH = 0.06;          // seconds; gain glides avoid zipper noise between ring steps
 
+/** Default single instrument (night lights): triangle wave, brightness opens the filter. */
+export const DEFAULT_LAYERS = [
+  { name: 'main', type: 'triangle', octave: 0, cutoffLo: 600, cutoffHi: 4800, peak: 1 },
+];
+
 export class SonicEngine {
-  constructor(voices = 16) {
+  constructor(voices = 16, layers = DEFAULT_LAYERS) {
     this.nVoices = voices;
+    this.layers = layers;
     this.ctx = null;
     this.offline = false;
     this.voices = [];
@@ -40,7 +50,6 @@ export class SonicEngine {
   attach(ctx, { offline = false } = {}) {
     this.ctx = ctx;
     this.offline = offline;
-    this.voices = [];
 
     this.master = ctx.createGain();
     this.master.gain.value = this.volume;
@@ -61,22 +70,43 @@ export class SonicEngine {
     this.bus.connect(this.master);
     this.bus.connect(this.reverb);
 
+    this._buildVoices();
+  }
+
+  /** Switches the instrument set (e.g. when the track changes). */
+  setLayers(layers) {
+    this.layers = layers;
+    if (this.ctx) this._buildVoices();
+  }
+
+  _buildVoices() {
+    const ctx = this.ctx;
+    for (const v of this.voices) {
+      for (const l of v.layers) { try { l.osc.stop(); } catch { /* already stopped */ } }
+      v.pan.disconnect();
+    }
+    this.voices = [];
     for (let k = 0; k < this.nVoices; k++) {
       const bearing = (k * 360) / this.nVoices;
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.value = degreeToFreq(degreeForBearing(bearing));
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 400;
-      filter.Q.value = 0.7;
-      const gain = ctx.createGain();
-      gain.gain.value = 0;
       const pan = ctx.createStereoPanner();
       pan.pan.value = panForBearing(bearing);
-      osc.connect(filter).connect(gain).connect(pan).connect(this.bus);
-      osc.start(0);
-      this.voices.push({ osc, filter, gain, pan, bearing });
+      pan.connect(this.bus);
+      const base = degreeToFreq(degreeForBearing(bearing));
+      const layers = this.layers.map((spec) => {
+        const osc = ctx.createOscillator();
+        osc.type = spec.type;
+        osc.frequency.value = base * 2 ** spec.octave;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = spec.cutoffLo;
+        filter.Q.value = spec.q ?? 0.7;
+        const gain = ctx.createGain();
+        gain.gain.value = 0;
+        osc.connect(filter).connect(gain).connect(pan);
+        osc.start(this.offline ? 0 : ctx.currentTime);
+        return { spec, osc, filter, gain };
+      });
+      this.voices.push({ bearing, pan, layers });
     }
   }
 
@@ -97,24 +127,31 @@ export class SonicEngine {
   }
 
   /**
-   * One ring voice. `gain` 0..1 is the data loudness; `brightness` 0..1 opens the filter so
-   * stronger values also sound brighter; `land` 0..1 is the share of land under the arc.
+   * One ring voice. `gains` maps layer name -> data loudness 0..1 (or pass a single `gain` for
+   * the first layer); `brightness` 0..1 opens the filters; `land` 0..1 is the land share
+   * under the arc (unlit land gets a quiet hum on the first layer).
    */
-  setVoice(k, { gain, brightness, land }, when = this.now) {
-    this.levels[k] = gain;
+  setVoice(k, { gain, gains, brightness = 0, land = 0 }, when = this.now) {
+    const g = gains || { [this.layers[0].name]: gain || 0 };
+    let total = 0;
+    for (const x of Object.values(g)) total = Math.max(total, x);
+    this.levels[k] = total;
     if (!this.ready) return;
     const v = this.voices[k];
-    const hum = land >= 0.5 ? LAND_HUM : 0;
-    const g = Math.max(hum, gain * VOICE_PEAK);
-    const cutoff = gain > 0 ? 600 + 4200 * brightness : 320;
-    v.gain.gain.setTargetAtTime(g, when, SMOOTH);
-    v.filter.frequency.setTargetAtTime(cutoff, when, SMOOTH);
+    v.layers.forEach((l, i) => {
+      const lg = g[l.spec.name] || 0;
+      const hum = i === 0 && total === 0 && land >= 0.5 ? LAND_HUM : 0;
+      const target = Math.max(hum, lg * VOICE_PEAK * (l.spec.peak ?? 1));
+      const cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
+      l.gain.gain.setTargetAtTime(target, when, SMOOTH);
+      l.filter.frequency.setTargetAtTime(cutoff, when, SMOOTH);
+    });
   }
 
   silenceVoices(when = this.now) {
     this.levels.fill(0);
     if (!this.ready) return;
-    for (const v of this.voices) v.gain.gain.setTargetAtTime(0, when, 0.08);
+    for (const v of this.voices) for (const l of v.layers) l.gain.gain.setTargetAtTime(0, when, 0.08);
   }
 
   /** Short tick marking a coastline crossing, placed in the stereo field of its voice. */
@@ -139,7 +176,7 @@ export class SonicEngine {
     src.start(when);
   }
 
-  /** A plucked note. `when` is relative to now for live use (seconds from now). */
+  /** A plucked note. `when` is seconds from now (live); `at` is an absolute context time. */
   note(freq, { when = 0, at = null, duration = 0.6, level = 0.3, pan = 0, type = 'sine', bright = 0.5 } = {}) {
     if (!this.ready) return;
     const ctx = this.ctx;
@@ -161,14 +198,26 @@ export class SonicEngine {
     osc.stop(t + duration + 0.05);
   }
 
-  /** The ring's final note: the value at the centre point. Silence would be ambiguous, so
-   * "nothing here" is a soft low thud rather than no sound at all. */
-  centreNote(level, at = this.now) {
-    if (level > 0.001) {
-      this.note(degreeToFreq(9), { at, duration: 1.8, level: 0.12 + 0.35 * Math.min(1, level), bright: level, type: 'triangle' });
-      this.note(degreeToFreq(14), { at, duration: 1.2, level: 0.05 + 0.15 * Math.min(1, level), bright: level });
-    } else {
+  /**
+   * The ring's final note: the value at the centre point. `kind` lets a track shape it:
+   * 'more' rises, 'less' falls, anything else is a single chord. Silence would be ambiguous,
+   * so "nothing here" is a soft low thud rather than no sound at all.
+   */
+  centreNote(level, at = this.now, kind = null) {
+    if (!(level > 0.001)) {
       this.note(degreeToFreq(0) / 2, { at, duration: 0.5, level: 0.25, bright: 0 });
+      return;
+    }
+    const l = Math.min(1, level);
+    if (kind === 'more') {
+      this.note(degreeToFreq(7), { at, duration: 0.7, level: 0.2 + 0.25 * l, bright: 1, type: 'triangle' });
+      this.note(degreeToFreq(10), { at: at + 0.25, duration: 1.4, level: 0.2 + 0.25 * l, bright: 1, type: 'triangle' });
+    } else if (kind === 'less') {
+      this.note(degreeToFreq(7), { at, duration: 0.7, level: 0.2 + 0.25 * l, bright: 0.15, type: 'sawtooth' });
+      this.note(degreeToFreq(4), { at: at + 0.25, duration: 1.4, level: 0.2 + 0.25 * l, bright: 0.1, type: 'sawtooth' });
+    } else {
+      this.note(degreeToFreq(9), { at, duration: 1.8, level: 0.12 + 0.35 * l, bright: l, type: 'triangle' });
+      this.note(degreeToFreq(14), { at, duration: 1.2, level: 0.05 + 0.15 * l, bright: l });
     }
   }
 

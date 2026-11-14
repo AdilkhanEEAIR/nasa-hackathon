@@ -1,31 +1,55 @@
 // The shrinking-ring sonar: a ring starts far from the chosen centre and contracts onto it.
 // Each of the 16 voices listens to one arc of the ring, so direction is heard as pitch
 // (north high, south low) and stereo position (west left, east right), and the data value on
-// that arc is heard as loudness and brightness.
+// that arc is heard as loudness and brightness, per instrument layer.
 
 import { ringArcs } from './geo.js';
 import { sampleField, gainForLevel, ARC_FULL_SCALE } from './fields.js';
 import { panForBearing } from './music.js';
-import { SonicEngine } from './audio.js';
+import { SonicEngine, DEFAULT_LAYERS } from './audio.js';
 import { encodeWav } from './wav.js';
 
 export const VOICES = 16;
 export const STEP_HZ = 30;
 
-/** Pure part of a scan step: values for every voice at one radius. */
-export function readRing(field, landField, center, radiusKm) {
+/** Accepts one field or a {layerName: field} map; returns the map form. */
+export function asFieldMap(fields) {
+  return fields && fields.values instanceof Uint8Array ? { main: fields } : fields;
+}
+
+/**
+ * Pure part of a scan step: values for every voice at one radius. For each voice: per-layer
+ * mean levels and gains on its arc, the land share, and the strongest level/gain overall.
+ */
+export function readRing(fields, landField, center, radiusKm) {
+  const map = asFieldMap(fields);
+  const names = Object.keys(map);
   const arcs = ringArcs(center, Math.max(radiusKm, 1), VOICES);
   return arcs.map((arc) => {
-    let level = 0;
+    const levels = Object.fromEntries(names.map((n) => [n, 0]));
     let land = 0;
     for (const p of arc.points) {
-      level += sampleField(field, p.lat, p.lon, 1);
+      for (const n of names) levels[n] += sampleField(map[n], p.lat, p.lon, 1);
       if (landField) land += sampleField(landField, p.lat, p.lon, 0);
     }
-    level /= arc.points.length;
+    const gains = {};
+    let level = 0;
+    let gain = 0;
+    for (const n of names) {
+      levels[n] /= arc.points.length;
+      gains[n] = gainForLevel(levels[n]);
+      level = Math.max(level, levels[n]);
+      gain = Math.max(gain, gains[n]);
+    }
     land /= arc.points.length;
-    return { bearing: arc.bearing, points: arc.points, level, land, gain: gainForLevel(level) };
+    return { bearing: arc.bearing, points: arc.points, levels, gains, level, land, gain };
   });
+}
+
+/** Per-layer values at a single point (the centre note). */
+export function readPoint(fields, lat, lon) {
+  const map = asFieldMap(fields);
+  return Object.fromEntries(Object.entries(map).map(([n, f]) => [n, sampleField(f, lat, lon, 1)]));
 }
 
 /**
@@ -52,10 +76,19 @@ export function motorLevels(ring) {
 function applyRing(engine, ring, prevLand, coastClicks, when) {
   const landNow = ring.map((v) => v.land >= 0.5);
   ring.forEach((v, k) => {
-    engine.setVoice(k, { gain: v.gain, brightness: Math.min(1, v.level / ARC_FULL_SCALE), land: v.land }, when);
+    engine.setVoice(k, { gains: v.gains, brightness: Math.min(1, v.level / ARC_FULL_SCALE), land: v.land }, when);
     if (coastClicks && prevLand && prevLand[k] !== landNow[k]) engine.click(panForBearing(v.bearing), when);
   });
   return landNow;
+}
+
+/** Strongest layer at the centre and its level: decides the shape of the final note. */
+function centreOf(fields, center) {
+  const levels = readPoint(fields, center.lat, center.lon);
+  let kind = null;
+  let level = 0;
+  for (const [k, v] of Object.entries(levels)) if (v > level) { level = v; kind = k; }
+  return { kind, level, levels };
 }
 
 export class RingScan {
@@ -68,10 +101,10 @@ export class RingScan {
     this._timer = 0;
   }
 
-  /** `field` and `landField` are value grids (see fields.js); radius in km, duration in s. */
-  start({ field, landField, center, radiusKm, durationS = 8 }) {
+  /** `fields`: one value grid or {layer: grid}; radius in km, duration in s. */
+  start({ fields, landField, center, radiusKm, durationS = 8 }) {
     this.stop(false);
-    this.field = field;
+    this.fields = fields;
     this.landField = landField;
     this.center = center;
     this.radiusKm = radiusKm;
@@ -85,16 +118,16 @@ export class RingScan {
       if (!this.running) return;
       const t = Math.min(1, (performance.now() - this.t0) / (this.durationS * 1000));
       const r = this.radiusKm * (1 - t);
-      const ring = readRing(this.field, this.landField, this.center, r);
+      const ring = readRing(this.fields, this.landField, this.center, r);
       this.prevLand = applyRing(this.engine, ring, this.prevLand, this.coastClicks, this.engine.now);
       if (this.onStep) this.onStep({ t, radiusKm: r, ring });
       if (t >= 1) {
         this.running = false;
         clearInterval(this._timer);
         this.engine.silenceVoices();
-        const centre = sampleField(this.field, this.center.lat, this.center.lon, 1);
-        this.engine.centreNote(centre);
-        if (this.onEnd) this.onEnd({ centreLevel: centre, completed: true });
+        const c = centreOf(this.fields, this.center);
+        this.engine.centreNote(c.level, this.engine.now, c.kind);
+        if (this.onEnd) this.onEnd({ centreLevel: c.level, centreKind: c.kind, completed: true });
       }
     };
     this._timer = setInterval(tick, 1000 / STEP_HZ);
@@ -111,25 +144,26 @@ export class RingScan {
 }
 
 /**
- * Renders a complete scan offline with the same engine and the same step rate as the live
- * scan, and returns a WAV file as an ArrayBuffer.
+ * Renders a complete scan offline with the same engine, instruments and step rate as the
+ * live scan, and returns a WAV file as an ArrayBuffer.
  */
-export async function renderScanWav({ field, landField, center, radiusKm, durationS, coastClicks = true, volume = 0.8 }) {
+export async function renderScanWav({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8 }) {
   const sampleRate = 44100;
-  const tail = 2.4; // let the centre note and the reverb ring out
+  const tail = 2.6; // let the centre note and the reverb ring out
   const ctx = new OfflineAudioContext(2, Math.ceil((durationS + tail) * sampleRate), sampleRate);
-  const engine = new SonicEngine(VOICES);
+  const engine = new SonicEngine(VOICES, layers);
   engine.volume = volume;
   engine.attach(ctx, { offline: true });
   const steps = Math.ceil(durationS * STEP_HZ);
   let prevLand = null;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
-    const ring = readRing(field, landField, center, radiusKm * (1 - t));
+    const ring = readRing(fields, landField, center, radiusKm * (1 - t));
     prevLand = applyRing(engine, ring, prevLand, coastClicks, t * durationS);
   }
   engine.silenceVoices(durationS);
-  engine.centreNote(sampleField(field, center.lat, center.lon, 1), durationS);
+  const c = centreOf(fields, center);
+  engine.centreNote(c.level, durationS, c.kind);
   const buffer = await ctx.startRendering();
   return encodeWav([buffer.getChannelData(0), buffer.getChannelData(1)], sampleRate);
 }
