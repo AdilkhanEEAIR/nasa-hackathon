@@ -236,8 +236,25 @@ export class MapView {
   /** Needle mode: a fixed vertical line on the globe (fractions of the frame), or null. */
   setNeedle(geom) {
     this.needle = geom;
+    this.needleLevels = null;
     if (!geom) this.flashes = [];
     this.draw();
+  }
+
+  /**
+   * Needle band levels (0..1 per band, top first). Shown after `delayMs` (the audio output
+   * latency), so each band lights up when its sound reaches the speakers. `geom` moves the
+   * line (still-frame sweep) at the same moment.
+   */
+  setNeedleLevels(levels, color, delayMs = 0, geom = null) {
+    const show = () => {
+      if (!this.needle) return;
+      if (geom) this.needle = geom;
+      this.needleLevels = levels;
+      this.needleColor = color;
+      this.draw();
+    };
+    if (delayMs > 1) setTimeout(show, delayMs); else show();
   }
 
   /** A note on needle segment k (0 = top) blooms and fades on the line. */
@@ -347,6 +364,23 @@ export class MapView {
       ctx.moveTo(a.x, a.y);
       ctx.lineTo(b.x, b.y);
       ctx.stroke();
+      // Sounding bands: a thick bright stroke on the needle, as bright as the band is loud.
+      const lv = this.needleLevels;
+      if (lv && lv.length) {
+        ctx.strokeStyle = token(this.needleColor || '--data-lights');
+        ctx.lineWidth = num('--overlay-arc-max') * 1.6 * k;
+        lv.forEach((l, i) => {
+          if (l <= 0.02) return;
+          const y0 = a.y + ((b.y - a.y) * i) / lv.length;
+          const y1 = a.y + ((b.y - a.y) * (i + 1)) / lv.length;
+          ctx.globalAlpha = Math.min(1, 0.25 + 0.75 * l);
+          ctx.beginPath();
+          ctx.moveTo(a.x, y0 + 1);
+          ctx.lineTo(b.x, y1 - 1);
+          ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+      }
     }
 
     if (this.ring && this.trail.length) {

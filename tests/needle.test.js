@@ -1,13 +1,13 @@
 // Needle mode (js/needle.js): a fixed line down a turning globe, read north to south.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { forestValue, co2Value, needleSegments, segmentFreq, noteInterval, NEEDLE_SEGMENTS } from '../js/needle.js';
+import { forestValue, co2Value, needleSegments, segmentFreq, bandLevel, NEEDLE_SEGMENTS } from '../js/needle.js';
 
 test('forest picture: ocean and space are silent, brighter vegetation reads higher', () => {
   assert.equal(forestValue(5, 5, 8), 0, 'space');
   assert.equal(forestValue(40, 110, 170), 0, 'ocean blue');
-  const short = forestValue(110, 100, 40);  // brown / olive
-  const tall = forestValue(230, 235, 190);  // pale green to white
+  const short = forestValue(100, 110, 40);  // olive green
+  const tall = forestValue(215, 235, 190);  // pale green to white
   assert.ok(short > 0 && tall > short);
 });
 
@@ -21,7 +21,7 @@ test('CO2 picture: grey land, white desert and dark ocean are silent, warmer plu
 test('segments are read top to bottom and the top sounds highest', () => {
   const rows = 32;
   const px = new Uint8ClampedArray(rows * 4);
-  for (let y = 0; y < rows / 2; y++) px.set([230, 235, 190, 255], y * 4); // vegetation in the north half
+  for (let y = 0; y < rows / 2; y++) px.set([200, 235, 190, 255], y * 4); // vegetation in the north half
   for (let y = rows / 2; y < rows; y++) px.set([40, 110, 170, 255], y * 4); // ocean in the south half
   const seg = needleSegments(px, rows, forestValue);
   assert.equal(seg.length, NEEDLE_SEGMENTS);
@@ -29,11 +29,11 @@ test('segments are read top to bottom and the top sounds highest', () => {
   assert.ok(segmentFreq(0) > segmentFreq(NEEDLE_SEGMENTS - 1), 'north is high');
 });
 
-test('more of the phenomenon, quicker and louder notes, at most about 3 per second per segment', async () => {
-  const { noteLevel } = await import('../js/needle.js');
-  assert.ok(noteInterval(1) < noteInterval(0.3));
-  assert.ok(noteInterval(1) >= 300);
-  assert.ok(noteLevel(1) / noteLevel(0.2) > 4, 'rich parts are clearly louder than thin ones');
+test('band loudness: empty bands are silent, rich bands clearly louder', () => {
+  assert.equal(bandLevel(0), 0);
+  assert.equal(bandLevel(0.05), 0, 'below the floor: silence');
+  assert.ok(bandLevel(1) / bandLevel(0.25) > 3);
+  assert.equal(bandLevel(1), 1);
 });
 
 test('still-frame sweep reads the precomputed grid column, top to bottom', async () => {
@@ -42,5 +42,5 @@ test('still-frame sweep reads the precomputed grid column, top to bottom', async
   const values = new Uint8Array(width * height);
   for (let y = 0; y < 8; y++) for (let x = 0; x < width; x++) values[y * width + x] = 255; // bright top quarter
   const seg = fieldSegments({ width, height, values }, 0.5, 0, 1);
-  assert.ok(seg[0] > 0.9 && seg[1] > 0.9 && seg[15] === 0);
+  assert.ok(seg[0] > 0.9 && seg[1] > 0.9 && seg[seg.length - 1] === 0);
 });

@@ -442,6 +442,87 @@ export class SonicEngine {
     return peak;
   }
 
+  // ---------------------------------------------------------------- needle bands
+  /**
+   * One continuous voice per needle band (top = highest). Each band's loudness and filter
+   * follow its value through setNeedleBand with ~25 ms smoothing, so the sound swells and fades
+   * exactly as things pass under the needle.
+   *   wood    trembling marimba: a sine plus a soft partial 4x up, 8 Hz tremolo
+   *   breath  an exhale: soft band-passed noise over a low tone an octave down
+   *   water   flowing water: band-passed noise whose band slides slowly, over a gliding tone
+   */
+  buildNeedle(freqs, kind) {
+    this.clearNeedle();
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const t0 = this.offline ? 0 : ctx.currentTime;
+    const started = [];
+    const osc = (type, f, detune = 0) => { const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = detune; started.push(o); return o; };
+    const noise = () => { const n = ctx.createBufferSource(); n.buffer = this._texture('noise'); n.loop = true; started.push(n); return n; };
+    const lfo = (rate, depth, target) => { const l = osc('sine', rate * (0.85 + 0.3 * Math.random())); const g = ctx.createGain(); g.gain.value = depth; l.connect(g).connect(target); };
+    this.needleBands = freqs.map((f) => {
+      const out = ctx.createGain();
+      out.gain.value = 0;
+      out.connect(this.bus);
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 600;
+      filter.connect(out);
+      let peak = 0.12;
+      if (kind === 'wood') {
+        const am = ctx.createGain();
+        am.gain.value = 0.75;
+        lfo(8, 0.25, am.gain);                       // the marimba tremble
+        am.connect(filter);
+        osc('sine', f).connect(am);
+        const hi = ctx.createGain(); hi.gain.value = 0.22; osc('sine', f * 4).connect(hi).connect(am);
+        peak = 0.16;
+      } else if (kind === 'breath') {
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 2; bp.Q.value = 0.9;
+        const ng = ctx.createGain(); ng.gain.value = 2.2;
+        noise().connect(bp).connect(ng).connect(filter);
+        const low = ctx.createGain(); low.gain.value = 0.35; osc('sine', f / 2).connect(low).connect(filter);
+        peak = 0.2;
+      } else {
+        const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 3; bp.Q.value = 3.5;
+        lfo(0.6, 500, bp.detune);                     // the water's slow slide
+        const ng = ctx.createGain(); ng.gain.value = 3;
+        noise().connect(bp).connect(ng).connect(filter);
+        const tone = osc('sine', f); lfo(0.4, 30, tone.detune);
+        const tg = ctx.createGain(); tg.gain.value = 0.3; tone.connect(tg).connect(filter);
+        peak = 0.18;
+      }
+      return { out, filter, peak, kind };
+    });
+    for (const n of started) n.start(t0, n.buffer ? Math.random() * n.buffer.duration : undefined);
+    this._needleSources = started;
+  }
+
+  /** Band k to a level 0..1 (loudness and brightness together), smoothed over ~25 ms. */
+  setNeedleBand(k, level, when = this.now) {
+    const b = this.needleBands && this.needleBands[k];
+    if (!b || !this.ready) return;
+    b.out.gain.setTargetAtTime(level * b.peak * this.trim, when, 0.025);
+    b.filter.frequency.setTargetAtTime(500 + 3500 * level, when, 0.025);
+  }
+
+  clearNeedle() {
+    if (this.needleBands) {
+      const when = this.now;
+      for (const b of this.needleBands) b.out.gain.setTargetAtTime(0, when, 0.04);
+      const srcs = this._needleSources || [];
+      const bands = this.needleBands;
+      setTimeout(() => { for (const n of srcs) { try { n.stop(); } catch { /* stopped */ } } for (const b of bands) b.out.disconnect(); }, 300);
+    }
+    this.needleBands = null;
+    this._needleSources = null;
+  }
+
+  /** Output delay to the speakers in ms: the picture is delayed by this much to stay in step. */
+  get outputDelayMs() {
+    return this.ctx ? ((this.ctx.baseLatency || 0) + (this.ctx.outputLatency || 0)) * 1000 : 0;
+  }
+
   /** A plucked note. `when` is seconds from now (live); `at` is an absolute context time. */
   note(freq, { when = 0, at = null, duration = 0.6, level = 0.3, pan = 0, type = 'sine', bright = 0.5 } = {}) {
     if (!this.ready) return;

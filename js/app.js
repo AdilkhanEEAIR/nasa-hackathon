@@ -19,10 +19,10 @@ import { NeedleScan, forestValue, co2Value, NEEDLE_SEGMENTS } from './needle.js'
 
 // How each needle track reads its picture and which voice plays it.
 const NEEDLE_READ = {
-  forest: { valueFn: forestValue, voice: 'wood', slow: 1, color: '--data-forest' },
-  co2: { valueFn: co2Value, voice: 'drone', slow: 2.2, color: '--data-co2' },
-  river: { voice: 'water', slow: 0.8, color: '--data-salt' },
-  currents: { voice: 'glide', slow: 1.6, color: '--data-cold' },
+  forest: { valueFn: forestValue, voice: 'wood', color: '--data-forest' },
+  co2: { valueFn: co2Value, voice: 'breath', color: '--data-co2' },
+  river: { voice: 'water', color: '--data-salt' },
+  currents: { voice: 'water', color: '--data-cold' },
 };
 const isSweep = () => isNeedle() && state.manifest[state.track].mode === 'sweep';
 import { LightningSource } from './lightning.js';
@@ -1675,13 +1675,13 @@ function demoFly(c) {
 // ---------------------------------------------------------------- needle tracks (Visual)
 
 const needle = new NeedleScan(engine, {
-  onStep: ({ segments, struck, x }) => {
-    if (isSweep()) {
-      const g = state.manifest[state.track].needle;
-      view.setNeedle({ x, y0: g.y0, y1: g.y1 });
-    }
-    for (const s of struck) view.needleFlash(s.k, NEEDLE_SEGMENTS, NEEDLE_READ[state.track].color, s.delayMs);
-    if (isSweep()) sweepSums[Math.min(2, Math.floor(((x - state.manifest[state.track].needle.x0) / (state.manifest[state.track].needle.x1 - state.manifest[state.track].needle.x0)) * 3))] += segments.reduce((a, b) => a + b, 0);
+  onStep: ({ segments, levels, x }) => {
+    // The needle lights exactly the bands that sound, as bright as they are loud, delayed by
+    // the audio output latency so light and sound reach the user together.
+    const g = state.manifest[state.track].needle;
+    view.setNeedleLevels(levels, NEEDLE_READ[state.track].color, engine.outputDelayMs, isSweep() ? { x, y0: g.y0, y1: g.y1 } : null);
+    if (!isSweep()) segments.forEach((v, k) => { bandSums[Math.min(2, Math.floor((k * 3) / segments.length))] += v; });
+    if (isSweep() && x !== undefined) sweepSums[Math.min(2, Math.floor(((x - state.manifest[state.track].needle.x0) / (state.manifest[state.track].needle.x1 - state.manifest[state.track].needle.x0)) * 3))] += segments.reduce((a, b) => a + b, 0);
     const motor = Math.max(...segments);
     haptics({ n: segments[0], e: motor, s: segments[segments.length - 1], w: motor });
   },
@@ -1689,6 +1689,7 @@ const needle = new NeedleScan(engine, {
 
 const sweepFields = {}; // value grids of still frames, by track
 let sweepSums = [0, 0, 0]; // what the sweep heard in the left, middle and right third
+let bandSums = [0, 0, 0];  // what a globe scan heard in the north, middle and south third of the needle
 
 function needleVideo() {
   return $('needle-video');
@@ -1699,6 +1700,7 @@ function setNeedleTrack(on) {
   const v = needleVideo();
   const entry = on ? state.manifest[state.track] : null;
   const sweep = on && entry.mode === 'sweep';
+  if (needle.running) stopNeedle();   // a scan never carries over to another track
   document.body.dataset.mode = !on ? 'map' : sweep ? 'sweep' : 'needle';
   v.hidden = !on || sweep;
   if (sweep) {
@@ -1756,7 +1758,20 @@ async function toggleNeedle() {
   setScanButton(true);
   v.loop = true;
   try { await v.play(); } catch (err) { console.error(err); }
-  needle.start({ video: v, geom: entry.needle, ...NEEDLE_READ[state.track] });
+  bandSums = [0, 0, 0];
+  needle.start({
+    video: v, geom: entry.needle, durationS: state.durationS, ...NEEDLE_READ[state.track],
+    onEnd: () => {
+      v.pause();
+      setScanButton(false);
+      hapticsOff();
+      const total = bandSums.reduce((a, b) => a + b, 0);
+      const part = ['northern', 'middle', 'southern'][bandSums.indexOf(Math.max(...bandSums))];
+      const what = state.track === 'forest' ? 'tall vegetation' : 'orange CO2 plumes';
+      announce(total < 1 ? `Scan finished: the needle met almost no ${what}.`
+        : `Scan finished: most ${what} passed the ${part} part of the needle.`, { say: 'result' });
+    },
+  });
   announce('Playing the turning globe; the needle reads north to south.');
 }
 
@@ -1787,7 +1802,7 @@ function needleSummary() {
 }
 
 // Exposed for manual debugging in the browser console only.
-window.earthsonar = { engine, scan, state, view, controller, onControllerMessage };
+window.earthsonar = { engine, scan, state, view, controller, onControllerMessage, get needle() { return needle; } };
 
 // The site shell (js/site.js) imports this module only when the Jukebox or Demo tab opens,
 // so the landing page never downloads player code or map data.

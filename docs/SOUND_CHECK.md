@@ -180,3 +180,22 @@ I" and the scan result name the degrees (the scan result also gives the ring's r
 
 **Check by ear:** keys 5 (Southern Ocean) → 3 (Agulhas) → 4 (Equatorial Pacific) on track 4:
 low hum → middle pad → high ringing; a long, soft fade between them while the ring moves.
+
+## Needle tracks: continuous band voices (measured 14 Nov 2026, local headless Chrome)
+
+The needle is cut into 12 bands. Each band has one continuous voice (top = higher pitch) whose
+loudness follows the pixels under that band on every presented video frame (smoothing time
+constant 25 ms). The needle lights exactly the sounding bands, delayed by the audio output
+latency (about 58 ms here) so light and sound arrive together.
+
+Measurement: every 10 ms we record the band's level (pixel value through the fixed loudness
+curve) and the RMS envelope at that band's voice output; Pearson correlation at the best lag.
+
+| Track | Before (notes, master envelope vs summed value) | After (per band) |
+|---|---|---|
+| Forest Height (6) | 0.50 at 0 ms, no stable lag | 0.94 mean (min 0.93), lag 35 ms; only 2 of 12 bands sounded at 18 s |
+| Carbon Dioxide (7) | 0.18 at 0 ms; 0.83 only with sound 260 ms late | 0.98 mean (min 0.94), lag 33 ms |
+| Ocean Currents (9) | 0.69 at 0 ms; 0.73 at 60 ms | 0.91 mean (min 0.69 in one band), lag 20 ms |
+
+The two rows use different methods (the old code had no per-band voices), so read "before" as
+the reason for the rewrite, not as a like-for-like score.
