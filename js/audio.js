@@ -80,34 +80,74 @@ export class SonicEngine {
   }
 
   _buildVoices() {
-    const ctx = this.ctx;
-    for (const v of this.voices) {
+    for (const v of [...this.voices, this.probe].filter(Boolean)) {
       for (const l of v.layers) { try { l.osc.stop(); } catch { /* already stopped */ } }
       v.pan.disconnect();
     }
     this.voices = [];
     for (let k = 0; k < this.nVoices; k++) {
       const bearing = (k * 360) / this.nVoices;
-      const pan = ctx.createStereoPanner();
-      pan.pan.value = panForBearing(bearing);
-      pan.connect(this.bus);
-      const base = degreeToFreq(degreeForBearing(bearing));
-      const layers = this.layers.map((spec) => {
-        const osc = ctx.createOscillator();
-        osc.type = spec.type;
-        osc.frequency.value = base * 2 ** spec.octave;
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = spec.cutoffLo;
-        filter.Q.value = spec.q ?? 0.7;
-        const gain = ctx.createGain();
-        gain.gain.value = 0;
-        osc.connect(filter).connect(gain).connect(pan);
-        osc.start(this.offline ? 0 : ctx.currentTime);
-        return { spec, osc, filter, gain };
-      });
-      this.voices.push({ bearing, pan, layers });
+      this.voices.push(this._makeVoice(degreeToFreq(degreeForBearing(bearing)), panForBearing(bearing), bearing));
     }
+    // The explore-mode probe: one centred voice whose pitch follows latitude.
+    this.probe = this._makeVoice(degreeToFreq(7), 0, null);
+  }
+
+  _makeVoice(base, panValue, bearing) {
+    const ctx = this.ctx;
+    const pan = ctx.createStereoPanner();
+    pan.pan.value = panValue;
+    pan.connect(this.bus);
+    const layers = this.layers.map((spec) => {
+      const osc = ctx.createOscillator();
+      osc.type = spec.type;
+      osc.frequency.value = base * 2 ** spec.octave;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = spec.cutoffLo;
+      filter.Q.value = spec.q ?? 0.7;
+      const gain = ctx.createGain();
+      gain.gain.value = 0;
+      osc.connect(filter).connect(gain).connect(pan);
+      osc.start(this.offline ? 0 : ctx.currentTime);
+      return { spec, osc, filter, gain };
+    });
+    return { bearing, pan, layers };
+  }
+
+  /** Same loudness/timbre rule as a ring voice, applied to any voice object. */
+  _drive(v, g, brightness, land, when) {
+    let total = 0;
+    for (const x of Object.values(g)) total = Math.max(total, x);
+    v.layers.forEach((l, i) => {
+      const lg = g[l.spec.name] || 0;
+      const hum = i === 0 && total === 0 && land >= 0.5 ? LAND_HUM : 0;
+      const target = Math.max(hum, lg * VOICE_PEAK * (l.spec.peak ?? 1));
+      const cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
+      l.gain.gain.setTargetAtTime(target, when, SMOOTH);
+      l.filter.frequency.setTargetAtTime(cutoff, when, SMOOTH);
+    });
+    return total;
+  }
+
+  /**
+   * Explore mode: a sustained tone at the probe point. Pitch follows latitude (north high,
+   * same law as the ring), loudness and timbre follow the value exactly like a ring voice.
+   */
+  setProbe({ gains, brightness = 0, land = 0, lat = 0 }) {
+    if (!this.ready || !this.probe) return;
+    const when = this.now;
+    const deg = Math.max(0, Math.min(14, Math.round(((lat + 60) / 135) * 14)));
+    const base = degreeToFreq(deg);
+    for (const l of this.probe.layers) l.osc.frequency.setTargetAtTime(base * 2 ** l.spec.octave, when, 0.03);
+    this._drive(this.probe, gains, brightness, land, when);
+    // The probe is louder than one ring voice: it is the only thing sounding.
+    this.probe.pan.pan.setValueAtTime(0, when);
+  }
+
+  silenceProbe() {
+    if (!this.ready || !this.probe) return;
+    for (const l of this.probe.layers) l.gain.gain.setTargetAtTime(0, this.now, 0.06);
   }
 
   _impulse(seconds, decay) {
@@ -137,15 +177,7 @@ export class SonicEngine {
     for (const x of Object.values(g)) total = Math.max(total, x);
     this.levels[k] = total;
     if (!this.ready) return;
-    const v = this.voices[k];
-    v.layers.forEach((l, i) => {
-      const lg = g[l.spec.name] || 0;
-      const hum = i === 0 && total === 0 && land >= 0.5 ? LAND_HUM : 0;
-      const target = Math.max(hum, lg * VOICE_PEAK * (l.spec.peak ?? 1));
-      const cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
-      l.gain.gain.setTargetAtTime(target, when, SMOOTH);
-      l.filter.frequency.setTargetAtTime(cutoff, when, SMOOTH);
-    });
+    this._drive(this.voices[k], g, brightness, land, when);
   }
 
   silenceVoices(when = this.now) {

@@ -11,13 +11,16 @@ import { degreeToFreq, degreeForIndex } from './music.js';
 import { CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange } from './tracks.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
+import { describePlace } from './places.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
 const AMBER = '#ffd56a';
 
 export const TRACKS = [
-  { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true },
-  { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: true },
+  { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true,
+    intro: 'Night Lights, 2012 to 2023: yearly maps of light at night from NASA Black Marble. Warm bell tones are city lights; louder and brighter means more light. A soft muffled hum is unlit land, and silence is water. Page Up and Page Down change the year.' },
+  { id: 'change', title: 'What Changed', blurb: 'More light, less light, no change: 2012 → 2023.', ready: true,
+    intro: 'What Changed: the difference between 2012 and 2023. A high bright sparkle means more light in 2023. A low muffled buzz means less light. A soft quiet tone means little change. Y gives a summary of the ring.' },
   { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: false },
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: false },
 ];
@@ -42,6 +45,8 @@ const state = {
   change: null,        // {more, less, same} value fields from the change map
   land: null,
   busy: false,
+  explore: false,     // explore mode: a sustained probe tone at the centre point
+  probeLand: null,
 };
 
 const engine = new SonicEngine();
@@ -326,6 +331,7 @@ async function toggleScan() {
   }
   if (!requireReadyTrack()) return;
   await ensureSound();
+  if (state.explore) toggleExplore(false);
   if (document.body.dataset.ready !== 'true') {
     pendingScan = true;
     announce('Still loading. The scan starts as soon as the map is ready.', { speak: true });
@@ -356,6 +362,7 @@ async function setYear(year, { speak = true } = {}) {
   showFrame();   // instant: keyboard-driven changes are never animated
   updateDescription();
   if (speak) announce(String(y));
+  updateProbe();
   if (scan.running) {
     // Restart so the ring reads the new year from the outside in, keeping comparisons fair.
     scan.stop(false);
@@ -369,6 +376,7 @@ function setCenter(center, { speak = true } = {}) {
   view.follow(state.center.lat, state.center.lon); // a zoomed map keeps the scan centre in frame
   updateDescription();
   if (speak) announce(`Centre ${centreLabel()}.`);
+  updateProbe();
 }
 
 function applyPreset(p) {
@@ -380,7 +388,10 @@ function applyPreset(p) {
 }
 
 function moveCenter(dLat, dLon) {
-  setCenter({ lat: state.center.lat + dLat, lon: state.center.lon + dLon });
+  // Explore mode moves in finer steps; the spoken centre is skipped so the probe tone is
+  // what you hear while walking (W names the place on demand).
+  const k = state.explore ? 0.5 : 1;
+  setCenter({ lat: state.center.lat + dLat * k, lon: state.center.lon + dLon * k }, { speak: !state.explore });
 }
 
 function setRadius(km) {
@@ -438,7 +449,9 @@ async function selectTrack(id) {
   await currentFields();
   showFrame();
   updateDescription();
-  announce(`Track ${TRACKS.indexOf(t) + 1}: ${t.title}. ${t.blurb} Press Space to scan.`);
+  // Short spoken introduction: what the data is and how each state sounds.
+  announce(`Track ${TRACKS.indexOf(t) + 1}. ${t.intro || `${t.title}. ${t.blurb}`} Press Space to scan.`);
+  updateProbe();
 }
 
 /**
@@ -517,46 +530,101 @@ async function yearSweep() {
   }, (lead + YEARS.length * step + 0.3) * 1000);
 }
 
-/** Ten-second sound tutorial: the compass, then what "brighter" sounds like. */
+/**
+ * Short sound tutorial: each rule is said first, then heard on its own, so speech and the
+ * example note never overlap. Without the voice guide the text goes to the live region and
+ * the notes keep a fixed rhythm.
+ */
 async function tutorial() {
   if (state.busy) return;
   await ensureSound();
   if (scan.running) scan.stop(false);
+  if (state.explore) toggleExplore(false);
   state.busy = true;
   const steps = [
-    { at: 0.3, text: 'Top is north: high notes.', deg: 8, pan: 0, hl: 0 },
-    { at: 1.9, text: 'Right ear is east.', deg: 4, pan: 0.9, hl: 90 },
-    { at: 3.5, text: 'Bottom is south: low notes.', deg: 0, pan: 0, hl: 180 },
-    { at: 5.1, text: 'Left ear is west.', deg: 4, pan: -0.9, hl: 270 },
-    { at: 6.9, text: 'Dim and quiet means little light…', deg: 6, pan: 0, hl: null, level: 0.06, bright: 0.05 },
-    { at: 8.3, text: '…loud and bright means a lot of light.', deg: 6, pan: 0, hl: null, level: 0.4, bright: 1 },
+    { text: 'Top is north: high notes.', deg: 8, pan: 0, hl: 0 },
+    { text: 'Right ear is east.', deg: 4, pan: 0.9, hl: 90 },
+    { text: 'Bottom is south: low notes.', deg: 0, pan: 0, hl: 180 },
+    { text: 'Left ear is west.', deg: 4, pan: -0.9, hl: 270 },
+    { text: 'Quiet and dull means little.', deg: 6, pan: 0, hl: null, level: 0.06, bright: 0.05 },
+    { text: 'Loud and bright means a lot.', deg: 6, pan: 0, hl: null, level: 0.4, bright: 1 },
   ];
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   for (const s of steps) {
-    engine.note(degreeToFreq(s.deg), { when: s.at, duration: 1.2, level: s.level ?? 0.32, pan: s.pan, bright: s.bright ?? 0.6, type: 'triangle' });
-    setTimeout(() => { announce(s.text); dial.setHighlight(s.hl); }, s.at * 1000);
+    if (!state.busy) break; // Escape cancels
+    announce(s.text, { speak: false });
+    dial.setHighlight(s.hl);
+    await (voice.enabled ? voice.sayAsync(s.text) : wait(700));
+    engine.note(degreeToFreq(s.deg), { when: 0.05, duration: 1.1, level: s.level ?? 0.32, pan: s.pan, bright: s.bright ?? 0.6, type: 'triangle' });
+    await wait(1300);
   }
-  setTimeout(() => {
-    dial.setHighlight(null);
-    announce('That is all. Press Space to scan.');
-    state.busy = false;
-  }, 10000);
+  dial.setHighlight(null);
+  if (state.busy) announce('That is the whole rule. Press Space to scan, or E to explore point by point.');
+  state.busy = false;
+}
+
+/** Values at the centre point for the current track: words for "where am I" and the probe. */
+function pointReading(fields) {
+  const c = state.center;
+  if (state.track === 'change') {
+    const levels = readPoint(fields, c.lat, c.lon);
+    return { levels, words: describeChange(dominant(levels)) };
+  }
+  const level = sampleField(fields, c.lat, c.lon, 1);
+  return { levels: { main: level }, words: describeLevel(level) };
 }
 
 async function whereAmI() {
   if (!requireReadyTrack()) return;
   const fields = await currentFields();
-  const onLand = sampleField(state.land, state.center.lat, state.center.lon, 0) >= 0.5;
   const c = state.center;
-  let what;
-  let when;
-  if (state.track === 'change') {
-    what = describeChange(dominant(readPoint(fields, c.lat, c.lon)));
-    when = 'Changes 2012 to 2023';
+  const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
+  const when = state.track === 'change' ? 'Changes 2012 to 2023' : String(state.year);
+  const place = describePlace(c.lat, c.lon, onLand);
+  announce(`${place}. ${onLand ? 'Land' : 'Water'}, ${pointReading(fields).words}. ${when}. `
+    + `${formatLatLon(c.lat, c.lon)}.`);
+}
+
+// ---------------------------------------------------------------- explore mode
+
+/** Sustained probe at the centre point; called whenever the point, year or track changes. */
+async function updateProbe() {
+  if (!state.explore) return;
+  const fields = await currentFields();
+  const c = state.center;
+  const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
+  if (state.probeLand !== null && state.probeLand !== onLand && scan.coastClicks) engine.click(0, engine.now, 0.18);
+  state.probeLand = onLand;
+  const { levels } = pointReading(fields);
+  // A single point carries the full pixel level (0..1), not an arc average, so it maps to
+  // loudness directly with the same curve shape.
+  const gains = Object.fromEntries(Object.entries(levels).map(([k, v]) => [k, v > 0 ? v ** 0.7 : 0]));
+  const peak = Math.max(...Object.values(levels));
+  engine.setProbe({ gains, brightness: peak, land: onLand ? 1 : 0, lat: c.lat });
+  const motor = Math.max(...Object.values(gains));
+  dial.update(new Float32Array(16).fill(motor), { n: motor, e: motor, s: motor, w: motor });
+}
+
+async function toggleExplore(force) {
+  const on = typeof force === 'boolean' ? force : !state.explore;
+  if (on === state.explore) return;
+  if (on) {
+    if (!requireReadyTrack()) return;
+    await ensureSound();
+    if (scan.running) scan.stop(false);
+    state.explore = true;
+    state.probeLand = null;
+    $('btn-explore').setAttribute('aria-pressed', 'true');
+    announce('Explore mode. Arrow keys move the point and you hear the value under it. '
+      + 'Higher pitch is further north. W names the place. E leaves explore mode.');
+    updateProbe();
   } else {
-    what = describeLevel(sampleField(fields, c.lat, c.lon, 1));
-    when = String(state.year);
+    state.explore = false;
+    engine.silenceProbe();
+    dial.clear();
+    $('btn-explore').setAttribute('aria-pressed', 'false');
+    announce('Explore mode off.');
   }
-  announce(`${when}. Centre ${centreLabel()}, ${onLand ? 'land' : 'water'}, ${what}. Ring ${state.radiusKm} kilometres.`);
 }
 
 async function saveWav() {
@@ -613,6 +681,9 @@ function toggleCoast(force) {
 
 function stopAll() {
   if (scan.running) scan.stop(false);
+  state.busy = false; // cancels a running tutorial
+  voice.cancel();
+  if (state.explore) toggleExplore(false);
   engine.stopAll();
   setScanButton(false);
   view.setRing(null);
@@ -705,6 +776,7 @@ function onKey(e) {
     case 'c': case 'C': toggleCoast(); break;
     case 'v': case 'V': toggleVoice(); break;
     case 'w': case 'W': whereAmI(); break;
+    case 'e': case 'E': toggleExplore(); break;
     case 's': case 'S': saveWav(); break;
     case 't': case 'T': tutorial(); break;
     case 'Escape': stopAll(); break;
@@ -728,6 +800,7 @@ function wire() {
   $('btn-stop').addEventListener('click', stopAll);
   $('btn-sweep').addEventListener('click', yearSweep);
   $('btn-where').addEventListener('click', whereAmI);
+  $('btn-explore').addEventListener('click', () => toggleExplore());
   $('btn-wav').addEventListener('click', saveWav);
   $('btn-tutorial').addEventListener('click', tutorial);
   $('btn-prev-year').addEventListener('click', () => setYear(state.year - 1));

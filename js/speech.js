@@ -39,6 +39,22 @@ export class Voice {
     speechSynthesis.speak(u);
   }
 
+  /** Speaks and resolves when finished (or after a timeout, or at once when voice is off). */
+  sayAsync(text, maxMs = 6000) {
+    if (!this.enabled || !this.supported || !text) return Promise.resolve();
+    return new Promise((resolve) => {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      if (this._voice) u.voice = this._voice;
+      u.rate = 1.05;
+      const t = setTimeout(resolve, maxMs);
+      u.onend = () => { clearTimeout(t); resolve(); };
+      u.onerror = () => { clearTimeout(t); resolve(); };
+      speechSynthesis.speak(u);
+    });
+  }
+
   cancel() {
     if (this.supported) speechSynthesis.cancel();
   }
