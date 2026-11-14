@@ -149,3 +149,33 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --press-scale: 0.97;
 }
+
+/* ------------------------------------------------------------------ mode: large text and high contrast
+   Switched in the Accessibility menu (js/prefs.js). Same palette, stronger values: bigger type
+   and targets, brighter secondary text and borders, a thicker focus outline and ring. */
+:root[data-large] {
+  --text-xs: 1rem;
+  --text-sm: 1.125rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5rem;
+  --text-xl: 1.875rem;
+  --text-2xl: 2.5rem;
+  --text-3xl: 3.5rem;
+  --ui-text-muted: var(--gray-200);
+  --ui-text-soft: var(--gray-100);
+  --ui-border: var(--gray-600);
+  --ui-border-strong: var(--gray-400);
+  --focus-width: 5px;
+  --focus-offset: 4px;
+  --target-min: 3.5rem;
+  --check-size: 1.6rem;
+  --overlay-ring: rgba(230, 232, 235, 0.85);
+  --overlay-ring-width: 2.75;
+  --overlay-arc-min: 3;
+  --overlay-arc-max: 7;
+  --overlay-label: rgba(230, 232, 235, 0.95);
+  --overlay-label-size: 16;
+  --dial-voice-width: 10;
+  --dial-letter: var(--gray-100);
+  --dial-caption: var(--gray-200);
+}

@@ -17,7 +17,8 @@ import {
 } from './tracks.js';
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
-import { mix } from './theme.js';
+import { mix, resetTokens } from './theme.js';
+import { prefs, setPref, mayVoiceSpeak } from './prefs.js';
 import { LiveRingScan } from './scan.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
@@ -71,7 +72,9 @@ const state = {
 };
 
 const engine = new SonicEngine();
-const voice = new Voice();
+const voice = new Voice(prefs().voice);
+// The scan is ducked while the guide talks, so speech never covers the data being heard.
+voice.onSpeaking = (on) => engine.setDucked(on);
 let pendingScan = false; // Space pressed before the first data arrived: start when ready
 const view = new MapView({
   world: $('world'),
@@ -143,7 +146,7 @@ const scan = new RingScan(engine, {
     if (completed) {
       view.pulseCentre(centreLevel);
       const what = classTrack() ? classTrack().describe(centreLevel > 0.001 ? centreKind : null) : describeLevel(centreLevel);
-      announce(`Scan finished. At the centre: ${what}.`);
+      announce(`Scan finished. At the centre: ${what}.`, { say: 'result' });
     }
   },
 });
@@ -176,15 +179,17 @@ const liveScan = new LiveRingScan(engine, {
 
 let announceTimer = 0;
 /**
- * Polite live region (cleared first so repeating the same sentence is still read out), and
- * optionally the spoken guide for listeners without a screen reader.
+ * Polite live region (cleared first so repeating the same sentence is still read out). Every
+ * message goes there for the user's own screen reader. The built-in guide speaks a message
+ * only when `say` names one of its kinds ('intro', 'where', 'result'), the guide is on and
+ * the Jukebox is the open tab (see mayVoiceSpeak in js/prefs.js).
  */
-function announce(text, { speak = true } = {}) {
+function announce(text, { say = null } = {}) {
   const el = $('status');
   el.textContent = '';
   clearTimeout(announceTimer);
   announceTimer = setTimeout(() => { el.textContent = text; }, 60);
-  if (speak) voice.say(text);
+  if (mayVoiceSpeak({ voiceOn: voice.enabled, tab: document.body.dataset.tab, kind: say })) voice.say(text);
 }
 
 function describeLevel(level) {
@@ -371,7 +376,7 @@ async function toggleLightning() {
   }
   await currentFields();
   setScanButton(true);
-  announce(`Playing lightning from ${lightning.date}, ring around ${centreLabel()}.`, { speak: false });
+  announce(`Playing lightning from ${lightning.date}, ring around ${centreLabel()}.`);
   try { await v.play(); } catch (err) { console.error(err); }
   liveScan.start({
     getFrame: () => lightning.frame(),
@@ -409,7 +414,7 @@ async function withProgress(label, job) {
   let lastSpoken = 0;
   bar.hidden = false;
   bar.setAttribute('aria-label', `Loading ${label}`);
-  announce(`Loading ${label}…`, { speak: true });
+  announce(`Loading ${label}…`);
   const progress = new Progress((f) => {
     const pct = Math.round(f * 100);
     bar.setAttribute('aria-valuenow', String(pct));
@@ -417,12 +422,12 @@ async function withProgress(label, job) {
     const slow = performance.now() - t0 > 1500;
     if (slow && pct - lastSpoken >= 25 && pct < 100) {
       lastSpoken = pct;
-      announce(`Loading ${label}: ${pct} percent.`, { speak: true });
+      announce(`Loading ${label}: ${pct} percent.`);
     }
   });
   try {
     await job(progress);
-    announce(`${label} ready.`, { speak: performance.now() - t0 > 600 });
+    announce(`${label} ready.`);
   } finally {
     bar.hidden = true;
     fill.style.transform = 'scaleX(0)';
@@ -498,14 +503,14 @@ async function toggleScan() {
   if (state.explore) toggleExplore(false);
   if (document.body.dataset.ready !== 'true') {
     pendingScan = true;
-    announce('Still loading. The scan starts as soon as the map is ready.', { speak: true });
+    announce('Still loading. The scan starts as soon as the map is ready.');
     return;
   }
   if (state.track === 'lightning') { toggleLightning(); return; }
   const fields = await currentFields();
   setScanButton(true);
   const what = classTrack() ? classTrack().when : state.track === 'ocean' ? '19 June 2007' : String(state.year);
-  announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`, { speak: false });
+  announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
   scan.start({
     fields,
     landField: state.land,
@@ -667,7 +672,7 @@ async function selectTrack(id) {
   showFrame();
   updateDescription();
   // Short spoken introduction: what the data is and how each state sounds.
-  announce(`Track ${TRACKS.indexOf(t) + 1}. ${t.intro || `${t.title}. ${t.blurb}`} Press Space to scan.`);
+  announce(`Track ${TRACKS.indexOf(t) + 1}. ${t.intro || `${t.title}. ${t.blurb}`} Press Space to scan.`, { say: 'intro' });
   updateProbe();
 }
 
@@ -687,7 +692,7 @@ async function classSummary() {
   const total = Object.values(m).reduce((a, b) => a + b, 0);
   if (total < 1e-4) {
     engine.centreNote(0);
-    announce(`Inside the ring around ${centreLabel()}: ${ct.describe(null)}.`);
+    announce(`Inside the ring around ${centreLabel()}: ${ct.describe(null)}.`, { say: 'result' });
     return;
   }
   const order = Object.keys(m).filter((k) => m[k] / total >= 0.01).sort((a, b) => m[b] - m[a]);
@@ -706,7 +711,7 @@ async function classSummary() {
   }, order.length * 900 + 100);
   const what = 'of the aerosol signal';
   const parts = order.map((k) => `${Math.round((100 * m[k]) / total)} percent ${ct.names[k]}`);
-  announce(`Inside the ring around ${centreLabel()}, ${what}: ${parts.join(', ')}.`);
+  announce(`Inside the ring around ${centreLabel()}, ${what}: ${parts.join(', ')}.`, { say: 'result' });
 }
 
 /** Pings one year chip in the visual timeline when its note sounds. */
@@ -736,12 +741,12 @@ async function lightningSummary() {
   const total = acc.reduce((a, b) => a + b, 0);
   const date = lightning.date;
   if (!covered.some(Boolean)) {
-    announce(`The ring around ${centreLabel()} is outside the sensor's coverage: no data.`);
+    announce(`The ring around ${centreLabel()} is outside the sensor's coverage: no data.`, { say: 'result' });
     return;
   }
   if (total < 0.002) {
     engine.centreNote(0);
-    announce(`No lightning within the ring around ${centreLabel()} in the 10 days to ${date}.`);
+    announce(`No lightning within the ring around ${centreLabel()} in the 10 days to ${date}.`, { say: 'result' });
     return;
   }
   const names = ['north', 'north-north-east', 'north-east', 'east-north-east', 'east', 'east-south-east', 'south-east', 'south-south-east',
@@ -753,7 +758,7 @@ async function lightningSummary() {
     setTimeout(() => engine.strike(v.pan.pan.value, v.base, Math.min(1, 0.3 + acc[i] / (total + 1e-9))), n * 160);
   });
   const level = total / 4 > LIGHTNING_FULL ? 'a lot of' : total / 4 > LIGHTNING_FULL / 4 ? 'some' : 'a little';
-  announce(`In the 10 days to ${date}: ${level} lightning within the ring around ${centreLabel()}, most of it to the ${names[order[0]]}.`);
+  announce(`In the 10 days to ${date}: ${level} lightning within the ring around ${centreLabel()}, most of it to the ${names[order[0]]}.`, { say: 'result' });
 }
 
 /** Ocean "Y": coldest and warmest directions around the ring and the mean temperature,
@@ -777,7 +782,7 @@ async function oceanSummary() {
   const mean = oceanTemp(cs, ts);
   if (mean === null || !temps.length) {
     engine.centreNote(0);
-    announce(`No ocean within the ring around ${centreLabel()}.`);
+    announce(`No ocean within the ring around ${centreLabel()}.`, { say: 'result' });
     return;
   }
   temps.sort((a, b) => a.t - b.t);
@@ -788,7 +793,7 @@ async function oceanSummary() {
   [lo.t, mean, hi.t].forEach((t, i) => setTimeout(() => engine.setProbe({ gains: bandGains(t), brightness: t / 32, land: 0, lat: state.center.lat }), i * 700));
   setTimeout(() => { engine.silenceProbe(); state.busy = false; updateProbe(); }, 2200);
   announce(`Inside the ring around ${centreLabel()}: sea surface from about ${Math.round(lo.t)} degrees to the ${lo.dir} `
-    + `to about ${Math.round(hi.t)} degrees to the ${hi.dir}; average about ${Math.round(mean)} degrees Celsius.`);
+    + `to about ${Math.round(hi.t)} degrees to the ${hi.dir}; average about ${Math.round(mean)} degrees Celsius.`, { say: 'result' });
 }
 
 async function yearSweep() {
@@ -802,7 +807,7 @@ async function yearSweep() {
   for (const y of YEARS) await loadYear(y);
   const pts = diskPoints(state.center, state.radiusKm, 8, 60);
   const values = YEARS.map((y) => meanOver(state.fields.get(y), pts, 1));
-  announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`, { speak: false });
+  announce(`All years around ${centreLabel()}, 2012 to 2023. Higher note means brighter.`);
   const lead = 0.8;
   const step = 0.55; // under 2 notes per second, so the visual pings stay far below 3 flashes/s
   values.forEach((v, i) => {
@@ -825,7 +830,7 @@ async function yearSweep() {
     const change = first > 0 ? Math.round(((last - first) / first) * 100) : 0;
     const dir = change >= 0 ? `up ${change}` : `down ${Math.abs(change)}`;
     announce(`Brightest year ${YEARS[values.indexOf(max)]}, dimmest ${YEARS[values.indexOf(min)]}. `
-      + `Rendered brightness from 2012 to 2023: ${dir} percent.`);
+      + `Rendered brightness from 2012 to 2023: ${dir} percent.`, { say: 'result' });
     state.busy = false;
   }, (lead + YEARS.length * step + 0.3) * 1000);
 }
@@ -852,9 +857,10 @@ async function tutorial() {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   for (const s of steps) {
     if (!state.busy) break; // Escape cancels
-    announce(s.text, { speak: false });
+    announce(s.text);
     dial.setHighlight(s.hl);
-    await (voice.enabled ? voice.sayAsync(s.text) : wait(700));
+    const talk = mayVoiceSpeak({ voiceOn: voice.enabled, tab: document.body.dataset.tab, kind: 'tutorial' });
+    await (talk ? voice.sayAsync(s.text) : wait(700));
     engine.note(degreeToFreq(s.deg), { when: 0.05, duration: 1.1, level: s.level ?? 0.32, pan: s.pan, bright: s.bright ?? 0.6, type: 'triangle' });
     await wait(1300);
   }
@@ -895,7 +901,7 @@ async function whereAmI() {
       : state.track === 'ocean' ? '19 June 2007' : String(state.year);
   const place = describePlace(c.lat, c.lon, onLand);
   announce(`${place}. ${onLand ? 'Land' : 'Water'}, ${pointReading(fields).words}. ${when}. `
-    + `${formatLatLon(c.lat, c.lon)}.`);
+    + `${formatLatLon(c.lat, c.lon)}.`, { say: 'where' });
 }
 
 // ---------------------------------------------------------------- explore mode
@@ -1028,7 +1034,7 @@ async function saveWav() {
   state.busy = true;
   const btn = $('btn-wav');
   btn.setAttribute('aria-busy', 'true');
-  announce('Rendering the scan to a WAV file…', { speak: false });
+  announce('Rendering the scan to a WAV file…');
   try {
     const wav = await renderScanWav({
       fields: await currentFields(),
@@ -1065,12 +1071,25 @@ async function saveWav() {
   }
 }
 
+/** V and the Jukebox checkbox change the same shared preference as the Accessibility menu. */
 function toggleVoice(force) {
   const on = typeof force === 'boolean' ? force : !voice.enabled;
-  voice.setEnabled(on);
-  $('voice').checked = on;
-  announce(`Voice guide ${on ? 'on' : 'off'}.`, { speak: on });
+  setPref('voice', on);
+  announce(`Voice guide ${on ? 'on' : 'off'}.`);
 }
+
+// Preferences changed anywhere (Accessibility menu, V, the checkbox): follow them here.
+window.addEventListener('earthsonar:prefs', (e) => {
+  const p = e.detail;
+  voice.setEnabled(p.voice);
+  $('voice').checked = p.voice;
+  if (p.changed === 'large') {
+    // The overlay and the dial read tokens from CSS; large mode swaps those tokens.
+    resetTokens();
+    view.draw();
+    dial.draw();
+  }
+});
 
 let labelLayer = null;
 /** Borders and city names (Natural Earth), drawn over the map only; they make no sound. */

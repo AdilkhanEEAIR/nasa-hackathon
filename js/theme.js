@@ -12,6 +12,11 @@ export function token(name) {
   return cache.get(name);
 }
 
+/** Forgets resolved values: called when large-text mode swaps the token set. */
+export function resetTokens() {
+  cache.clear();
+}
+
 /** Numeric token (unitless or px/ms), e.g. num('--overlay-arc-max') -> 4. */
 export function num(name) {
   return parseFloat(token(name));

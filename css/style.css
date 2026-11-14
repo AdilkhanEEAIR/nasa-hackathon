@@ -30,6 +30,28 @@ a:hover { text-decoration-color: var(--ui-accent); }
 }
 main:focus, .panel:focus, .player:focus { outline: none; }
 
+/* ==================================================================== accessibility menu */
+
+.a11y { position: fixed; top: 0; right: 0; z-index: 30; padding: var(--space-2) var(--space-4); }
+.a11y__toggle {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font: inherit; font-size: var(--text-sm); font-weight: var(--weight-medium);
+  min-height: var(--target-min); padding: 0 var(--space-3);
+  color: var(--ui-text); background: var(--ui-surface-2);
+  border: var(--border-width) solid var(--ui-border-strong); border-radius: var(--radius-md); cursor: pointer;
+}
+.a11y__toggle[aria-expanded="true"] { border-color: var(--ui-accent); }
+.a11y__panel {
+  position: absolute; right: var(--space-4); top: calc(100% - var(--space-1));
+  width: min(22rem, calc(100vw - var(--space-6)));
+  padding: var(--space-4); border-radius: var(--radius-md);
+  background: var(--ui-surface); border: var(--border-width) solid var(--ui-border-strong); box-shadow: var(--shadow-1);
+}
+.a11y__title { margin: 0 0 var(--space-2); font-weight: var(--weight-bold); }
+.a11y__panel .check { margin-top: var(--space-3); color: var(--ui-text); font-size: var(--text-md); }
+.a11y__panel .caption { margin: var(--space-1) 0 0 calc(var(--check-size) + var(--space-3)); }
+.site-header__inner { padding-right: calc(var(--space-5) + 10rem); }
+
 .skip {
   position: absolute; left: -9999px; top: 0; z-index: 20;
   background: var(--ui-accent); color: var(--ui-on-accent); padding: var(--space-2) var(--space-4);
@@ -335,4 +357,12 @@ body.demo-mode .readouts { justify-content: center; }
   }
   .button:active, .track:active { transform: none; }
   .chip.ping { transform: none; }
+}
+
+/* Phone: the Accessibility switch keeps its full name; its shortcut hint is dropped. */
+@media (max-width: 720px) {
+  .a11y { padding: var(--space-2); }
+  .a11y__toggle kbd { display: none; }
+  .site-header__inner { padding-right: 8.5rem; }
+  .tab { padding: 0 var(--space-2); }
 }

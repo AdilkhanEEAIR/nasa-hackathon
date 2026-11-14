@@ -8,8 +8,31 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/site.js"></script>
+  <!-- Applies "Large text and high contrast" before first paint (the switch lives in js/site.js). -->
+  <script>try { if (JSON.parse(localStorage.getItem('earthsonar.a11y') || '{}').large === true) document.documentElement.setAttribute('data-large', ''); } catch (e) { /* storage blocked */ }</script>
 </head>
 <body data-tab="home">
+  <!-- First stop for the keyboard and for screen readers: accessibility options. -->
+  <div class="a11y" id="a11y">
+    <button id="a11y-toggle" class="a11y__toggle" type="button" aria-expanded="false" aria-controls="a11y-panel" aria-keyshortcuts="Alt+A">
+      Accessibility<span class="sr-only"> options: voice guide, large text and high contrast. Shortcut Alt plus A.</span>
+      <kbd aria-hidden="true">Alt A</kbd>
+    </button>
+    <div id="a11y-panel" class="a11y__panel" role="group" aria-labelledby="a11y-title" hidden>
+      <p id="a11y-title" class="a11y__title">Accessibility</p>
+      <div class="check">
+        <input id="pref-voice" type="checkbox" aria-describedby="pref-voice-hint">
+        <label for="pref-voice">Voice guide</label>
+      </div>
+      <p id="pref-voice-hint" class="caption">A built-in voice for track intros, "Where am I" and scan results in the Jukebox. Off by default: screen readers already read every message.</p>
+      <div class="check">
+        <input id="pref-large" type="checkbox" aria-describedby="pref-large-hint">
+        <label for="pref-large">Large text and high contrast</label>
+      </div>
+      <p id="pref-large-hint" class="caption">Bigger text and buttons, stronger contrast, a thicker ring and focus outline.</p>
+      <p class="caption">Saved in this browser. Scan sound is the same in every mode.</p>
+    </div>
+  </div>
   <a class="skip" href="#main">Skip to content</a>
 
   <header class="site-header">
@@ -179,10 +202,10 @@
             <label for="labels">Borders and city names <kbd>L</kbd></label>
           </div>
           <div class="field check">
-            <input id="voice" type="checkbox" checked aria-keyshortcuts="V" aria-describedby="voice-hint">
+            <input id="voice" type="checkbox" aria-keyshortcuts="V" aria-describedby="voice-hint">
             <label for="voice">Voice guide <kbd>V</kbd></label>
           </div>
-          <p id="voice-hint" class="caption">Speaks places, years and summaries. Screen-reader users may prefer it off.</p>
+          <p id="voice-hint" class="caption">Speaks track intros, "Where am I" and scan results. Off by default; the same switch as the Accessibility menu.</p>
 
           <div class="field" role="group" aria-labelledby="touch-label">
             <span id="touch-label" class="label">Touch</span>

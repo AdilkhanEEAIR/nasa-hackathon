@@ -4,6 +4,8 @@
 // Tabs follow the WAI-ARIA tabs pattern: role=tablist/tab/tabpanel, roving tabindex, arrow
 // keys and Home/End move between tabs, and each tab has its own address (#home, #jukebox…).
 
+import { prefs, setPref, applyPrefs } from './prefs.js';
+
 const TABS = ['home', 'jukebox', 'demo'];
 // Any other address, including the removed #how, #data and #hardware tabs, opens Home.
 const HEAVY = new Set(['jukebox', 'demo']);
@@ -16,7 +18,7 @@ const panelEl = (id) => document.getElementById(`panel-${id}`);
 // list equal to the real import graph.
 export const PLAYER_MODULES = [
   'app.js', 'audio.js', 'camera.js', 'dial.js', 'fields.js', 'geo.js', 'lightning.js', 'loader.js',
-  'music.js', 'places.js', 'scan.js', 'serial.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
+  'music.js', 'places.js', 'prefs.js', 'scan.js', 'serial.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
 ];
 
 let preloaded = false;
@@ -115,7 +117,40 @@ function wireTabs() {
     panelEl(id).focus();
   });
   window.addEventListener('popstate', () => {
-    if (RETIRED.has(location.hash.slice(1))) history.replaceState(null, '', `${location.pathname}#home`);
+    // ---------------------------------------------------------------- accessibility menu
+// The first focusable element on every page. Alt+A opens it from any tab. Changing a tab is
+// never spoken: the guide's rules live in js/prefs.js and only the Jukebox uses them.
+function wireAccessibility() {
+  const toggle = document.getElementById('a11y-toggle');
+  const panel = document.getElementById('a11y-panel');
+  const boxes = { voice: document.getElementById('pref-voice'), large: document.getElementById('pref-large') };
+  const sync = () => { for (const [k, el] of Object.entries(boxes)) el.checked = prefs()[k]; };
+  const open = (on, { focus = false } = {}) => {
+    panel.hidden = !on;
+    toggle.setAttribute('aria-expanded', String(on));
+    if (on && focus) boxes.voice.focus();
+  };
+  applyPrefs();
+  sync();
+  toggle.addEventListener('click', () => open(panel.hidden));
+  for (const [k, el] of Object.entries(boxes)) el.addEventListener('change', () => setPref(k, el.checked));
+  window.addEventListener('earthsonar:prefs', sync);
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); open(false); toggle.focus(); }
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!panel.hidden && !e.target.closest('#a11y')) open(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyA') {
+      e.preventDefault();
+      open(true, { focus: true });
+    }
+  });
+}
+
+wireAccessibility();
+if (RETIRED.has(location.hash.slice(1))) history.replaceState(null, '', `${location.pathname}#home`);
     const id = tabFromHash();
     if (id) show(id);
   });
@@ -133,6 +168,39 @@ if (new URLSearchParams(location.search).has('demo')) {
   history.replaceState(null, '', `${location.pathname}#demo`);
 }
 wireTabs();
+// ---------------------------------------------------------------- accessibility menu
+// The first focusable element on every page. Alt+A opens it from any tab. Changing a tab is
+// never spoken: the guide's rules live in js/prefs.js and only the Jukebox uses them.
+function wireAccessibility() {
+  const toggle = document.getElementById('a11y-toggle');
+  const panel = document.getElementById('a11y-panel');
+  const boxes = { voice: document.getElementById('pref-voice'), large: document.getElementById('pref-large') };
+  const sync = () => { for (const [k, el] of Object.entries(boxes)) el.checked = prefs()[k]; };
+  const open = (on, { focus = false } = {}) => {
+    panel.hidden = !on;
+    toggle.setAttribute('aria-expanded', String(on));
+    if (on && focus) boxes.voice.focus();
+  };
+  applyPrefs();
+  sync();
+  toggle.addEventListener('click', () => open(panel.hidden));
+  for (const [k, el] of Object.entries(boxes)) el.addEventListener('change', () => setPref(k, el.checked));
+  window.addEventListener('earthsonar:prefs', sync);
+  panel.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); open(false); toggle.focus(); }
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (!panel.hidden && !e.target.closest('#a11y')) open(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyA') {
+      e.preventDefault();
+      open(true, { focus: true });
+    }
+  });
+}
+
+wireAccessibility();
 if (RETIRED.has(location.hash.slice(1))) history.replaceState(null, '', `${location.pathname}#home`);
 show(tabFromHash() || 'home');
 document.body.dataset.shell = 'ready';

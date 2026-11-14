@@ -1,14 +1,12 @@
-// Spoken guide (Web Speech API, English). It speaks navigation only: track intros, years,
-// places, loading and summaries. Data is never spoken, it is heard as sound.
-// It can be turned off (V) for screen-reader users, whose reader already reads the live region.
-
-const KEY = 'earthsonar.voice';
+// Spoken guide (Web Speech API, English). Off by default: it is switched on in the
+// Accessibility menu (or with V in the Jukebox) and the choice lives in js/prefs.js.
+// What it may say is decided by mayVoiceSpeak() in js/prefs.js. Data is never spoken, it is
+// heard as sound; while the guide talks, `onSpeaking` lets the player duck the scan.
 
 export class Voice {
-  constructor() {
-    let saved = null;
-    try { saved = localStorage.getItem(KEY); } catch { /* storage may be blocked */ }
-    this.enabled = saved === null ? true : saved === 'on';
+  constructor(enabled = false) {
+    this.enabled = enabled;
+    this.onSpeaking = null;
     this.supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
     this._voice = null;
     if (this.supported) {
@@ -24,19 +22,26 @@ export class Voice {
 
   setEnabled(on) {
     this.enabled = on;
-    try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch { /* ignore */ }
     if (!on) this.cancel();
+  }
+
+  _utter(text) {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    if (this._voice) u.voice = this._voice;
+    u.rate = 1.05;
+    u.onstart = () => this.onSpeaking && this.onSpeaking(true);
+    const done = () => this.onSpeaking && this.onSpeaking(false);
+    u.addEventListener('end', done);
+    u.addEventListener('error', done);
+    return u;
   }
 
   /** Speaks `text`; by default interrupts what was being said so the newest state wins. */
   say(text, { interrupt = true } = {}) {
     if (!this.enabled || !this.supported || !text) return;
     if (interrupt) speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    if (this._voice) u.voice = this._voice;
-    u.rate = 1.05;
-    speechSynthesis.speak(u);
+    speechSynthesis.speak(this._utter(text));
   }
 
   /** Speaks and resolves when finished (or after a timeout, or at once when voice is off). */
@@ -44,18 +49,16 @@ export class Voice {
     if (!this.enabled || !this.supported || !text) return Promise.resolve();
     return new Promise((resolve) => {
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      if (this._voice) u.voice = this._voice;
-      u.rate = 1.05;
+      const u = this._utter(text);
       const t = setTimeout(resolve, maxMs);
-      u.onend = () => { clearTimeout(t); resolve(); };
-      u.onerror = () => { clearTimeout(t); resolve(); };
+      u.addEventListener('end', () => { clearTimeout(t); resolve(); });
+      u.addEventListener('error', () => { clearTimeout(t); resolve(); });
       speechSynthesis.speak(u);
     });
   }
 
   cancel() {
     if (this.supported) speechSynthesis.cancel();
+    if (this.onSpeaking) this.onSpeaking(false);
   }
 }

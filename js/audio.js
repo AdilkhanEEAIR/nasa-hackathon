@@ -11,6 +11,7 @@ import { degreeToFreq, degreeForBearing, panForBearing } from './music.js';
 const VOICE_PEAK = 0.16;      // per-voice ceiling; 16 voices then sum safely into the limiter
 const LAND_HUM = 0.025;       // quiet bed under unlit land so continents are audible
 const SMOOTH = 0.06;          // seconds; gain glides avoid zipper noise between ring steps
+const DUCK = 0.25;            // mix level (-12 dB) under the spoken guide
 
 /** Default single instrument (night lights): triangle wave, brightness opens the filter. */
 export const DEFAULT_LAYERS = [
@@ -27,6 +28,7 @@ export class SonicEngine {
     this.offline = false;
     this.voices = [];
     this.volume = 0.8;
+    this.ducked = false; // lowered while the spoken guide talks, so speech never covers a scan
     // Per-track loudness trim, so dense maps (every voice active) are not louder than sparse ones.
     this.trim = 1;
     this.levels = new Float32Array(voices); // last requested data gain per voice, for visuals
@@ -272,7 +274,17 @@ export class SonicEngine {
 
   setVolume(v) {
     this.volume = v;
-    if (this.master) this.master.gain.setTargetAtTime(v, this.now, 0.05);
+    if (this.master) this.master.gain.setTargetAtTime(this._masterLevel(), this.now, 0.05);
+  }
+
+  _masterLevel() {
+    return this.volume * (this.ducked ? DUCK : 1);
+  }
+
+  /** Ducks the whole mix under the spoken guide, and restores it when speech ends. */
+  setDucked(on) {
+    this.ducked = !!on;
+    if (this.master && !this.offline) this.master.gain.setTargetAtTime(this._masterLevel(), this.now, on ? 0.05 : 0.25);
   }
 
   /**
