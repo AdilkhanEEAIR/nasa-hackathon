@@ -332,6 +332,62 @@ All lines are neutral grey (R = G = B).
 
 ---
 
+## 6. Ocean temperature (SVS 3912, ECCO2)
+
+- **Frame:** `flat_global_ecco2_2028x1024.25000.jpg` is 2048 × 1024 (despite the name).
+  It is an equirectangular full globe with 180° W at x = 0. Checked on the US west coast at
+  about 122° W, which lands at x ≈ 322 of 2000.
+- **Date:** frame 25000 is 2007-06-19 12:00 UTC, per `flat_ecco2_dates.txt` (2001 lines,
+  frames 23000…, four-hourly steps).
+- **Content:**
+  - surface current streaks coloured by SST;
+  - land is flat grey shaded relief (low saturation);
+  - gaps between streaks are near-black.
+  - There is no text or colorbar in the frame.
+- **Colorbar** (`sst_ecco2_cbar.png`, 310 × 95 RGBA): the bar runs x = 14…291 at y = 30…65,
+  for 0…32 °C. PIL hue falls monotonically from about 161 (blue, 0 °C) through about 85
+  (green, about 10 °C) and about 45 (yellow, about 20 °C) to about 11 (orange-red). The last
+  few red pixels wrap to hue about 250.
+- **Value recovery:** temperature from hue only, by nearest match on the colorbar, so streak
+  brightness does not matter. A pixel counts as ocean flow if saturation ≥ 90 and
+  value ≥ 40 (0–255). Round trip on the colorbar itself: maximum error 1.5 °C.
+- **Coverage:** 27 % of the frame's pixels are flow streaks.
+- **Spot checks:** equatorial Pacific 27.3 °C, Arabian Sea 29.2 °C, Gulf Stream 24.8 °C,
+  North Atlantic at 60° N 8.6 °C, Southern Ocean 1.4 °C. All plausible for June.
+- **Limits:**
+  - one model day only, so no trend;
+  - surface only;
+  - a colour-derived value, about ±1.5 °C;
+  - currents (motion) are not used, because the 292 MB video was deliberately not
+    downloaded.
+
+## 7. Downloads after 14 November 2026
+
+All downloads go through [`tools/fetch_source.py`](../tools/fetch_source.py). Its rules:
+- https only, from svs.gsfc.nasa.gov (plus Natural Earth hosts when explicitly allowed);
+- a redirect to any other host aborts the download;
+- only `.mp4 .png .jpg .txt` (plus `.geojson` for Natural Earth);
+- 400 MB maximum;
+- the content must match the extension (file signature, ffprobe for video, UTF-8 for text);
+- nothing downloaded is ever executed.
+
+Folders were scanned with Microsoft Defender (`MpCmdRun -Scan -ScanType 3`).
+
+| URL | Bytes | Downloaded | SHA-256 | Content check |
+|---|---|---|---|---|
+| https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/flat_global_ecco2_2028x1024.25000.jpg | 1,026,047 | 2026-11-14 10:56 UTC | `dcfd17864c2940f9ce1cf406e866818379991d57b0e900f9b8812f0c7cf72e3c` | JPEG signature OK |
+| https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/sst_ecco2_cbar.png | 8,867 | 2026-11-14 10:56 UTC | `7c4c25f9ca51bb458c100ca4d31f452b8dfdbce8898e2945b7042729d55404c5` | PNG signature OK |
+| https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/flat_ecco2_dates.txt | 50,025 | 2026-11-14 10:56 UTC | `2911a0e01ba21542462283276636f834511527ac45b9e5df76226acc03f743fb` | UTF-8 text OK |
+
+Defender result for `datasets/ecco2`: "found no threats".
+
+Credits for SVS 3912:
+- NASA/Goddard Space Flight Center Scientific Visualization Studio.
+- Animators: Greg Shirah, Horace Mitchell, Eric Sokolowsky.
+- Producer: Michael Starobin.
+- Scientists: Hong Zhang (UCLA), Dimitris Menemenlis (NASA/JPL).
+- Model: ECCO2.
+
 ## 5. Credits for these sources
 
 - **Change in Night Lights between 2012 and 2023 – EIC Version**, SVS ID 5313,

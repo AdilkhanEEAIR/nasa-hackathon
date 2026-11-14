@@ -12,6 +12,7 @@ import {
   CHANGE_LAYERS, CHANGE_COLORS, dominant, describeChange,
   AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
+  OCEAN_LAYERS, oceanFields, oceanTemp, oceanVoice, describeTemp,
 } from './tracks.js';
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
@@ -47,6 +48,8 @@ export const TRACKS = [
     intro: 'Aerosols: tiny particles in the air from the GEOS model, 19 August 2025. Each type has its own sound. Smoke and black carbon crackle like fire. Dust is a dry rustle. Sea salt is soft surf. Sulfate is a buzzing tone. Louder means more. Y gives a summary of the ring.' },
   { id: 'lightning', title: 'Lightning', blurb: 'Six years of storms seen from the space station.', ready: true,
     intro: 'Lightning: flashes seen by the Lightning Imaging Sensor on the International Space Station, 2017 to 2023, shown as a 10-day window. Each new flash is a sharp crack in its direction; many storms make a low thunder rumble. The sensor only sees up to about 52 degrees north and south, so silence there means no data. Space plays and pauses; Page Up and Page Down jump a month.' },
+  { id: 'ocean', title: 'Ocean Temperature', blurb: 'Surface currents coloured by temperature, 19 June 2007.', ready: true,
+    intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Cold water is a dull, dark tone; warm water is bright and rich. Louder means more ocean on the ring. Land is silent. Y tells you the temperatures around the ring.' },
 ];
 
 export const PRESETS = [
@@ -70,6 +73,7 @@ const state = {
   land: null,
   busy: false,
   aerosols: null,      // {smoke, dust, salt, sulfate} value fields
+  ocean: null,         // {cover, temp} value fields
   explore: false,     // explore mode: a sustained probe tone at the centre point
   probeLand: null,
 };
@@ -93,6 +97,7 @@ const dial = new VoiceDial($('dial'));
 /** Colour of a voice in the visuals: the instrument that is loudest on its arc. */
 function voiceColor(v) {
   if (classTrack()) return classTrack().colors[dominant(v.gains)] || AMBER;
+  if (state.track === 'ocean') return tempColor(v.temp);
   return AMBER;
 }
 
@@ -205,12 +210,14 @@ function centreLabel() {
 function updateDescription() {
   const isLt = state.track === 'lightning';
   const map = classTrack() ? classTrack().map
-    : isLt ? `Lightning map${lightning && lightning.date ? ` for the 10 days to ${lightning.date}` : ''}: yellow dots are flashes seen from the space station.`
+    : state.track === 'ocean' ? 'Map of sea surface currents on 19 June 2007, coloured by temperature from blue, 0 degrees, to red, 32 degrees Celsius; land is grey.'
+    : isLt ?`Lightning map${lightning && lightning.date ? ` for the 10 days to ${lightning.date}` : ''}: yellow dots are flashes seen from the space station.`
       : `Night lights map for ${state.year}.`;
   $('overlay').setAttribute('aria-label', `${map} Ring centre: ${centreLabel()}. Ring size ${state.radiusKm} kilometres.`);
   $('centre-readout').textContent = state.center.name || formatLatLon(state.center.lat, state.center.lon);
   $('year-readout').textContent = state.track === 'change' ? '2012 → 2023'
     : state.track === 'aerosols' ? '19 Aug 2025'
+    : state.track === 'ocean' ? '19 Jun 2007'
       : isLt ? (lightning && lightning.date) || '2017–2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
   $('when-label').textContent = state.track === 'nightlights' ? 'Year' : 'Date';
@@ -241,6 +248,7 @@ function trackImageUrl() {
 function currentEntry() {
   if (state.track === 'change') return state.manifest.nightlights.change;
   if (state.track === 'aerosols') return state.manifest.aerosols;
+  if (state.track === 'ocean') return state.manifest.ocean;
   return state.manifest.nightlights.years[String(state.year)];
 }
 
@@ -333,6 +341,17 @@ async function currentFields() {
     if (!state.aerosols) await withProgress('Aerosols', (p) => loadAerosols(p));
     return state.aerosols;
   }
+  if (state.track === 'ocean') {
+    if (!state.ocean) {
+      await withProgress('Ocean Temperature', async (p) => {
+        const entry = state.manifest.ocean;
+        const [img] = await Promise.all([loadGrid(entry.sound, p.part('sound-ocean')), prefetchView(viewUrl(entry))]);
+        p.finish('sound-ocean');
+        state.ocean = oceanFields(img);
+      });
+    }
+    return state.ocean;
+  }
   if (state.track === 'lightning') {
     if (!lightning) lightning = new LightningSource($('map-video'), state.manifest.lightning);
     if (!lightning.ready) await withProgress('Lightning', (p) => lightning.load(p));
@@ -343,7 +362,20 @@ async function currentFields() {
   return state.fields.get(state.year);
 }
 
+/** How arc values become sound on the current track (see scan.js defaultVoice). */
+function currentMapVoice() {
+  return state.track === 'ocean' ? (v) => oceanVoice(v) : undefined;
+}
+
+/** Blue (cold) to red (warm) for the ocean visuals, matching the source colorbar's ends. */
+function tempColor(t) {
+  if (t === null || t === undefined) return '#4a5568';
+  const x = Math.max(0, Math.min(1, t / 32));
+  return `hsl(${Math.round(225 - 225 * x)}, 85%, 58%)`;
+}
+
 function currentLayers() {
+  if (state.track === 'ocean') return OCEAN_LAYERS;
   if (state.track === 'lightning') return LIGHTNING_LAYERS;
   return classTrack() ? classTrack().layers : DEFAULT_LAYERS;
 }
@@ -506,6 +538,7 @@ async function toggleScan() {
     radiusKm: state.radiusKm,
     durationS: state.durationS,
     fullScale: classTrack() ? classTrack().fullScale : undefined,
+    mapVoice: currentMapVoice(),
   });
 }
 
@@ -578,6 +611,11 @@ const LEGENDS = {
     [CHANGE_COLORS.less, 'Orange, less light: low muffled buzz'],
     [CHANGE_COLORS.same, 'White, little change: soft quiet tone'],
   ],
+  ocean: [
+    [tempColor(2), 'Cold water: dull, dark tone'],
+    [tempColor(28), 'Warm water: bright, rich tone'],
+    ['#4a5568', 'Land: silent'],
+  ],
   lightning: [
     ['#ffe04d', 'New flash: sharp crack in its direction'],
     ['#b7c0cf', 'Many storms: low thunder rumble'],
@@ -617,7 +655,8 @@ async function selectTrack(id) {
   if (liveScan.running) { liveScan.stop(); $('map-video').pause(); setScanButton(false); }
   state.track = id;
   const isLt = id === 'lightning';
-  engine.trim = classTrack() ? classTrack().trim : isLt ? LIGHTNING_TRIM : 1;
+  // Open ocean fills every voice at once: measured RMS 0.13-0.18 before trim, ~0.09 after.
+  engine.trim = classTrack() ? classTrack().trim : isLt ? LIGHTNING_TRIM : id === 'ocean' ? 0.55 : 1;
   engine.setLayers(currentLayers());
   renderTracks();
   renderLegend();
@@ -721,8 +760,43 @@ async function lightningSummary() {
   announce(`In the 10 days to ${date}: ${level} lightning within the ring around ${centreLabel()}, most of it to the ${names[order[0]]}.`);
 }
 
+/** Track 5's "Y": coldest and warmest directions around the ring and the mean temperature,
+ * heard as a sweep of the ocean tone from the coldest to the warmest side. */
+async function oceanSummary() {
+  await ensureSound();
+  if (scan.running) scan.stop(false);
+  const f = await currentFields();
+  const names = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+  const temps = [];
+  let cs = 0;
+  let ts = 0;
+  for (const k of [0.33, 0.66, 1]) {
+    readRing(f, null, state.center, state.radiusKm * k).forEach((v, i) => {
+      cs += v.levels.cover;
+      ts += v.levels.temp;
+      const t = oceanTemp(v.levels.cover, v.levels.temp);
+      if (t !== null) temps.push({ t, dir: names[Math.round(v.bearing / 45) % 8] });
+    });
+  }
+  const mean = oceanTemp(cs, ts);
+  if (mean === null || !temps.length) {
+    engine.centreNote(0);
+    announce(`No ocean within the ring around ${centreLabel()}.`);
+    return;
+  }
+  temps.sort((a, b) => a.t - b.t);
+  const lo = temps[0];
+  const hi = temps[temps.length - 1];
+  state.busy = true;
+  [lo.t, mean, hi.t].forEach((t, i) => setTimeout(() => engine.setProbe({ gains: { sea: 0.8 }, brightness: t / 32, land: 0, lat: state.center.lat }), i * 700));
+  setTimeout(() => { engine.silenceProbe(); state.busy = false; updateProbe(); }, 2200);
+  announce(`Inside the ring around ${centreLabel()}: sea surface from about ${Math.round(lo.t)} degrees to the ${lo.dir} `
+    + `to about ${Math.round(hi.t)} degrees to the ${hi.dir}; average about ${Math.round(mean)} degrees Celsius.`);
+}
+
 async function yearSweep() {
   if (classTrack()) { classSummary(); return; }
+  if (state.track === 'ocean') { oceanSummary(); return; }
   if (state.track === 'lightning') { lightningSummary(); return; }
   if (state.busy || !requireReadyTrack()) return;
   await ensureSound();
@@ -799,6 +873,11 @@ function pointReading(fields) {
     const levels = readPoint(fields, c.lat, c.lon);
     return { levels, words: classTrack().describe(dominant(levels)) };
   }
+  if (state.track === 'ocean') {
+    const cover = sampleField(fields.cover, c.lat, c.lon, 2);
+    const t = oceanTemp(cover, sampleField(fields.temp, c.lat, c.lon, 2));
+    return { levels: { sea: t === null ? 0 : 1 }, words: describeTemp(t), temp: t };
+  }
   if (state.track === 'lightning') {
     if (Math.abs(c.lat) > LIGHTNING_COVERAGE_LAT) return { levels: { rumble: 0 }, words: 'outside the sensor coverage, no data' };
     const level = sampleField(fields.rumble, c.lat, c.lon, 2);
@@ -814,7 +893,8 @@ async function whereAmI() {
   const c = state.center;
   const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
   const when = classTrack() ? classTrack().when
-    : state.track === 'lightning' ? `10 days to ${lightning.date}` : String(state.year);
+    : state.track === 'lightning' ? `10 days to ${lightning.date}`
+      : state.track === 'ocean' ? '19 June 2007' : String(state.year);
   const place = describePlace(c.lat, c.lon, onLand);
   announce(`${place}. ${onLand ? 'Land' : 'Water'}, ${pointReading(fields).words}. ${when}. `
     + `${formatLatLon(c.lat, c.lon)}.`);
@@ -830,12 +910,19 @@ async function updateProbe() {
   const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
   if (state.probeLand !== null && state.probeLand !== onLand && scan.coastClicks) engine.click(0, engine.now, 0.18);
   state.probeLand = onLand;
-  const { levels } = pointReading(fields);
+  const pr = pointReading(fields);
+  const { levels } = pr;
   // A single point carries the full pixel level (0..1), not an arc average, so it maps to
   // loudness directly with the same curve shape.
   const gains = Object.fromEntries(Object.entries(levels).map(([k, v]) => [k, v > 0 ? v ** 0.7 : 0]));
   const peak = Math.max(...Object.values(levels));
-  engine.setProbe({ gains, brightness: peak, land: onLand ? 1 : 0, lat: c.lat });
+  const isOcean = state.track === 'ocean';
+  engine.setProbe({
+    gains,
+    brightness: isOcean ? (pr.temp ?? 0) / 32 : peak,
+    land: onLand && !isOcean ? 1 : 0, // the ocean track keeps land silent
+    lat: c.lat,
+  });
   const motor = Math.max(...Object.values(gains));
   dial.update(new Float32Array(16).fill(motor), { n: motor, e: motor, s: motor, w: motor });
   haptics({ n: motor, e: motor, s: motor, w: motor });
@@ -953,12 +1040,13 @@ async function saveWav() {
       durationS: state.durationS,
       fullScale: classTrack() ? classTrack().fullScale : undefined,
       trim: engine.trim,
+      mapVoice: currentMapVoice(),
       coastClicks: scan.coastClicks,
       volume: engine.volume,
     });
     const place = (state.center.name || formatLatLon(state.center.lat, state.center.lon))
       .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const what = classTrack() ? classTrack().slug : `nightlights-${state.year}`;
+    const what = classTrack() ? classTrack().slug : state.track === 'ocean' ? 'ocean-2007-06-19' : `nightlights-${state.year}`;
     const name = `earthsonar-${what}-${place}.wav`;
     const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
     const a = document.createElement('a');
@@ -1061,8 +1149,8 @@ function onKey(e) {
   if ((e.key === ' ' || e.key === 'Enter') && t && (t.tagName === 'BUTTON' || t.tagName === 'A' || t.tagName === 'SUMMARY')) return;
 
   // Shift+1..4 selects a track (by physical key, so keyboard layout does not matter).
-  const digit = /^Digit([1-4])$/.exec(e.code);
-  if (e.shiftKey && digit) {
+  const digit = /^Digit([1-9])$/.exec(e.code);
+  if (e.shiftKey && digit && TRACKS[Number(digit[1]) - 1]) {
     selectTrack(TRACKS[Number(digit[1]) - 1].id);
     e.preventDefault();
     return;

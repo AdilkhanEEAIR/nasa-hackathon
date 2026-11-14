@@ -19,6 +19,7 @@ The site is a jukebox: pick a track, press Space.
 | 02 What Changed, 2012 → 2023 | ✅ available |
 | 03 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
 | 04 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
+| 05 Ocean Temperature, 19 June 2007 | ✅ available |
 | Voice guide and explore mode | ✅ available (V toggles the voice, E explores point by point) |
 | Tactile controller (Arduino, 4 vibration motors) | ✅ site link ready (tested against an emulated board; real hardware test pending) |
 
@@ -98,7 +99,7 @@ Each item below is from the challenge's Objectives and Potential Considerations.
 | Strict translation vs musicality | Strict, fixed mapping from value to loudness; musicality comes only from the scale and the timbre. | ✅ |
 | Computer vision, ML, synthesizers, DAWs | Custom computer vision and a browser synthesizer. No ML and no DAW. | ✅ (partly, by choice) |
 | Document the process and the "why" | This README, [DATA_NOTES](docs/DATA_NOTES.md) and commented code. | ✅ |
-| Emotional impact: urgency or beauty | Year sweeps make the human footprint at night audible. Aerosols will make the planet's connected air audible (Saharan dust crossing the Atlantic). We do not claim climate trends that these frames do not show. | partial |
+| Emotional impact: urgency or beauty | Year sweeps make the human footprint at night audible. Aerosols make the planet's connected air audible (Saharan dust crossing the Atlantic). Ocean Temperature makes the warm tropics and cold polar seas, and their boundaries, audible. **What these tracks do not show:** none of them is a climate trend. Ocean Temperature is one model day (19 June 2007), so it cannot tell you whether the ocean is warming. We do not claim climate trends that these frames do not show. | partial |
 
 ---
 
@@ -185,6 +186,26 @@ EarthSonar reads every frame at 1024 × 512 as it plays.
 - Each dot is a detection kept on screen for a 10-day rolling window (SVS's rendering). It is
   not a single real-time strike.
 
+**Ocean Temperature (ECCO2 model, 19 June 2007)**
+
+The frame shows surface current streaks, coloured by sea surface temperature on a fixed
+0–32 °C colorbar.
+
+| What is read | Rule | Sound |
+|---|---|---|
+| Ocean flow pixel | saturation ≥ 90 and value ≥ 40 (PIL HSV, 0–255); grey land and dark gaps fail | — |
+| Temperature | **hue** matched to the official colorbar (`sst_ecco2_cbar.png`), so the brightness of a streak does not change it. Round trip on the colorbar itself: error ≤ 1.5 °C | Filter brightness: 0 °C is dull and dark (220 Hz low-pass), 32 °C is bright and rich (4.2 kHz) |
+| Ocean on an arc | share of flow pixels on the arc; full loudness at 50 % | Loudness |
+| Land | no flow lines | **Silent** (no land hum on this track) |
+
+- **Spot checks on the recovered values:** equatorial Pacific 27 °C, Arabian Sea 29 °C,
+  Gulf Stream 25 °C, North Atlantic at 60° N 9 °C, Southern Ocean 1 °C.
+- **Y:** the coldest and warmest directions in the ring and the mean, played as a sweep from
+  cold to warm.
+- **What this track is:** one frame of a model simulation, a snapshot of where water is warm
+  or cold on one day. **What it is not:** a measurement series or a warming trend, and not
+  data below the surface. Values come from rendered colours and are approximate (about ±1.5 °C).
+
 ### Sound palette
 
 One law for every track:
@@ -221,6 +242,7 @@ Loudness is matched in two steps, both measured from offline renders:
 | Change in Night Lights between 2012 and 2023 – EIC Version | [5313](https://svs.gsfc.nasa.gov/5313/) | One frame per year from the first, inset-free pass (frames 7 … 235), and the change map (frame 400). |
 | GEOS Aerosols | [5669](https://svs.gsfc.nasa.gov/5669/) | The single frame 2025-08-19 20:00 UTC and its legend. |
 | Lightning Events Detected from the ISS 2017–2023 | [5011](https://svs.gsfc.nasa.gov/5011/) | The Science On a Sphere movie, re-encoded at 30 fps, with per-frame dates from the official `labels.txt`. |
+| Global Sea Surface Currents and Temperature | [3912](https://svs.gsfc.nasa.gov/3912/) | One flat 2048 × 1024 frame (frame 25000, 2007-06-19 12:00 UTC per `flat_ecco2_dates.txt`) and the SST colorbar. |
 
 - All frame indices, crop boxes and map georeferences were measured from the pixels and are
   documented in [`docs/DATA_NOTES.md`](docs/DATA_NOTES.md).
@@ -374,6 +396,14 @@ not work.
   - Visualizers: Joseph V. Ardizzone, Helen-Nicole Kostis.
   - Scientist: Lesley Ott.
   - Data: GEOS-FP 2 km Replay, DOI 10.5281/zenodo.21893141.
+- **Global Sea Surface Currents and Temperature**, NASA SVS ID 3912,
+  https://svs.gsfc.nasa.gov/3912/.
+  - Credit: NASA/Goddard Space Flight Center Scientific Visualization Studio.
+  - Animators: Greg Shirah (NASA/GSFC), Horace Mitchell (NASA/GSFC), Eric Sokolowsky
+    (Global Science and Technology, Inc.).
+  - Producer: Michael Starobin (HTSI).
+  - Scientists: Hong Zhang (UCLA), Dimitris Menemenlis (NASA/JPL Caltech).
+  - Data: ECCO2 (MIT/JPL, MITgcm).
 - **Lightning Events Detected from the International Space Station (ISS) 2017–2023**, NASA SVS
   ID 5011, https://svs.gsfc.nasa.gov/5011/.
   - Credit: NASA's Scientific Visualization Studio.
