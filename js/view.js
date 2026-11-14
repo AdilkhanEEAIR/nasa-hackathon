@@ -215,6 +215,21 @@ export class MapView {
     if (this.flashes.length) this._animateFlashes();
   }
 
+  /** Needle mode: a fixed vertical line on the globe (fractions of the frame), or null. */
+  setNeedle(geom) {
+    this.needle = geom;
+    if (!geom) this.flashes = [];
+    this.draw();
+  }
+
+  /** A note on needle segment k (0 = top) blooms and fades on the line. */
+  needleFlash(k, n, color) {
+    if (!this.needle || reducedMotion()) return;
+    const g = this.needle;
+    this.flashes.push({ u: g.x, v: g.y0 + ((k + 0.5) / n) * (g.y1 - g.y0), color, t0: performance.now() });
+    this._animateFlashes();
+  }
+
   /** Lets flashes finish fading after the ring has stopped moving. */
   _animateFlashes() {
     if (this._flashRaf) return;
@@ -302,6 +317,19 @@ export class MapView {
 
     if (this.labels) this._drawLabels();
 
+    if (this.needle) {
+      const g = this.needle;
+      const a = mapToScreen(g.x, g.y0, this.cam, this.W, this.H);
+      const b = mapToScreen(g.x, g.y1, this.cam, this.W, this.H);
+      ctx.lineCap = 'round';
+      ctx.lineWidth = num('--overlay-ring-width') * 1.6 * k;
+      ctx.strokeStyle = token('--overlay-ring');
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+
     if (this.ring && this.trail.length) {
       ctx.lineWidth = num('--overlay-ring-width') * k;
       ctx.strokeStyle = token('--overlay-trail');
@@ -343,7 +371,7 @@ export class MapView {
         // Ease-out: a quick bloom, then a long fade, like a plucked note.
         const t = (now - f.t0) / dur;
         const e = 1 - (1 - t) ** 3;
-        const q = this._project(f);
+        const q = f.u !== undefined ? mapToScreen(f.u, f.v, this.cam, this.W, this.H) : this._project(f);
         ctx.globalAlpha = 0.85 * (1 - e);
         ctx.fillStyle = f.color && f.color.startsWith('#') ? f.color : token(f.color || '--data-lights');
         ctx.beginPath();
@@ -353,7 +381,7 @@ export class MapView {
       ctx.globalAlpha = 1;
     }
 
-    if (this.center) {
+    if (this.center && !this.needle) {
       const c = this._project(this.center);
       ctx.lineWidth = 1.5 * k;
       ctx.strokeStyle = token('--overlay-marker');

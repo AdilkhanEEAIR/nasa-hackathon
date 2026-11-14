@@ -13,8 +13,9 @@ import {
   AEROSOL_LAYERS, AEROSOL_COLORS, AEROSOL_NAMES, aerosolFields, describeAerosol,
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
   oceanFields, oceanTemp, describeTemp, oceanBandWeights, OCEAN_CALM, OCEAN_DENSE,
-  TRACK_PRESETS, TRACK_SOUND, TRACK_CLASS, windFields, describeWind, WIND_RANGE_MS,
+  TRACK_PRESETS, TRACK_SOUND, TRACK_CLASS, windFields, describeWind, WIND_RANGE_MS, NEEDLE_TRACKS,
 } from './tracks.js';
+import { NeedleScan, forestValue, NEEDLE_SEGMENTS } from './needle.js';
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
 import { mix, resetTokens } from './theme.js';
@@ -37,6 +38,7 @@ const CLASS_TRACKS = {
   },
 };
 const classTrack = () => CLASS_TRACKS[state.track] || null;
+const isNeedle = () => NEEDLE_TRACKS.has(state.track);
 
 export const TRACKS = [
   { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true,
@@ -47,6 +49,8 @@ export const TRACKS = [
     intro: 'Lightning: flashes seen by the Lightning Imaging Sensor on the International Space Station, 2017 to 2023, shown as a 10-day window. Each new flash is a sharp crack in its direction; many storms make a low thunder rumble. The sensor only sees up to about 52 degrees north and south, so silence there means no data. Space plays and pauses; Page Up and Page Down jump a month.' },
   { id: 'ocean', title: 'Ocean Temperature', blurb: 'Surface currents coloured by temperature, 19 June 2007.', ready: true,
     intro: 'Ocean Temperature: sea surface currents from the ECCO2 ocean model, 19 June 2007, coloured by temperature from 0 to 32 degrees Celsius. Temperature has five sounds. Ice-cold water is a pure tone with a slow shimmer. Cold water is soft and hollow. Mild water is reedy. Warm water is rich and flickers faster. Hot water is bright, an octave higher, and flickers fast. Where the current lines are dense the tone slides and swirls: that is moving water. Louder means more sea on the ring; land is silent. Y tells you the temperatures around the ring.' },
+  { id: 'forest', title: 'Forest Height (GEDI)', blurb: 'Space station lidar, April 2019 to April 2020, on a turning globe.', ready: true,
+    intro: 'Forest Height from the GEDI lidar on the International Space Station, April 2019 to April 2020, shown on a turning globe. A fixed needle runs down the middle of the globe, north at the top with high notes, south at the bottom with low notes. Where it crosses vegetation you hear wooden knocks: brighter green and white in the picture, meaning taller vegetation, knocks louder and quicker. Ocean is silent. Space plays and pauses.' },
   { id: 'wind', title: 'Near-Surface Wind', blurb: 'Wind 10 m above the surface, 29 Oct 2026 (GEOS-FP).', ready: true,
     intro: 'Near-Surface Wind: wind speed 10 metres above the surface from NASA\'s GEOS-FP model, 29 October 2026, read from the colour scale from 4 to 34 metres per second. Wind is rushing air: louder and brighter means stronger, and above about 12 metres per second a whistle joins in. Calm air is silent. Y tells you where the wind is strongest around the ring.' },
 ];
@@ -213,6 +217,7 @@ function updateDescription() {
   const isLt = state.track === 'lightning';
   const map = classTrack() ? classTrack().map
     : state.track === 'ocean' ? 'Map of sea surface currents on 19 June 2007, coloured by temperature from blue, 0 degrees, to red, 32 degrees Celsius; land is grey.'
+    : isNeedle() ? 'Turning globe of GEDI forest height, April 2019 to April 2020: brown and dark green short vegetation, bright green and white tall, blue ocean. A fixed needle runs down the middle.'
     : state.track === 'wind' ? 'Map of near-surface wind speed on 29 October 2026: dark is calm, blue to yellow is moderate, orange to dark red is strong; land without colour is calm.'
     : isLt ?`Lightning map${lightning && lightning.date ? ` for the 10 days to ${lightning.date}` : ''}: yellow dots are flashes seen from the space station.`
       : `Night lights map for ${state.year}.`;
@@ -221,8 +226,13 @@ function updateDescription() {
   $('year-readout').textContent = state.track === 'aerosols' ? '19 Aug 2025'
     : state.track === 'ocean' ? '19 Jun 2007'
     : state.track === 'wind' ? '29 Oct 2026'
+    : isNeedle() ? '2019–2020'
       : isLt ? (lightning && lightning.date) || '2017–2023' : String(state.year);
   $('radius-readout').textContent = `${state.radiusKm} km`;
+  if (isNeedle()) {
+    $('centre-readout').textContent = 'needle, north to south';
+    $('radius-readout').textContent = '—';
+  }
   $('when-label').textContent = state.track === 'nightlights' ? 'Year' : 'Date';
   markTimeline(classTrack() || isLt ? null : state.year);
 }
@@ -263,7 +273,7 @@ const HI_RES_FROM = 1.5;
  * needed, and swapped in when it has arrived (so zooming never shows a blank map).
  */
 function showFrame({ fade = false } = {}) {
-  if (!state.manifest || state.track === 'lightning') return; // the video is its own frame
+  if (!state.manifest || state.track === 'lightning' || isNeedle()) return; // the video is its own frame
   const entry = currentEntry();
   const low = viewUrl(entry);
   const hi = entry.viewHi ? entry.viewHi[viewExt] : null;
@@ -341,6 +351,7 @@ async function currentFields() {
     }
     return state.ocean;
   }
+  if (isNeedle()) return null; // the needle reads the video directly
   if (state.track === 'wind') {
     if (!state.wind) {
       await withProgress('Near-Surface Wind', async (p) => {
@@ -512,6 +523,7 @@ function requireReadyTrack() {
 }
 
 async function toggleScan() {
+  if (isNeedle()) { await ensureSound(); toggleNeedle(); return; }
   if (scan.running) {
     scan.stop();
     announce('Scan stopped.');
@@ -622,6 +634,10 @@ const LEGENDS = {
     [AMBER, 'Louder and brighter: more light'],
     ['--data-land', 'Soft hum: unlit land · silence: water'],
   ],
+  forest: [
+    ['--data-forest', 'Brighter (taller) vegetation in the picture: louder, quicker wooden knocks'],
+    ['--data-nodata', 'Ocean and space: silent'],
+  ],
   wind: [
     ['--data-wind-calm', 'Light wind: soft, low rush of air'],
     ['--data-wind-strong', 'Strong wind: loud, bright rush with a whistle'],
@@ -678,9 +694,10 @@ async function selectTrack(id, { fade = false } = {}) {
   renderTracks();
   renderLegend();
   renderPresets();
+  setNeedleTrack(isNeedle());
   // A centre still sitting on a preset moves to this track's first preset, where its data has
   // contrast (an ocean ring centred on India would be half silent).
-  if (state.centreFromPreset) applyPreset(currentPresets()[0], { speak: false });
+  if (state.centreFromPreset && currentPresets().length) applyPreset(currentPresets()[0], { speak: false });
   $('track-title').textContent = t.title;
   document.body.dataset.track = id;
   $('map-video').hidden = !isLt;
@@ -689,9 +706,10 @@ async function selectTrack(id, { fade = false } = {}) {
   $('year').disabled = !yearsOnly;
   // WAV export renders offline from still frames; the lightning video has no such path.
   const wav = $('btn-wav');
-  if (isLt) { wav.setAttribute('aria-disabled', 'true'); wav.setAttribute('aria-describedby', 'wav-note'); }
+  const videoTrack = isLt || NEEDLE_TRACKS.has(id);
+  if (videoTrack) { wav.setAttribute('aria-disabled', 'true'); wav.setAttribute('aria-describedby', 'wav-note'); }
   else { wav.removeAttribute('aria-disabled'); wav.removeAttribute('aria-describedby'); }
-  $('wav-note').hidden = !isLt;
+  $('wav-note').hidden = !videoTrack;
   $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
   await currentFields();
   showFrame({ fade });
@@ -826,6 +844,7 @@ async function yearSweep() {
   if (classTrack()) { classSummary(); return; }
   if (state.track === 'ocean') { oceanSummary(); return; }
   if (state.track === 'wind') { windSummary(); return; }
+  if (isNeedle()) { needleSummary(); return; }
   if (state.track === 'lightning') { lightningSummary(); return; }
   if (state.busy || !requireReadyTrack()) return;
   await ensureSound();
@@ -949,6 +968,10 @@ function pointReading(fields) {
 
 async function whereAmI() {
   if (!requireReadyTrack()) return;
+  if (isNeedle()) {
+    announce('This track is a turning globe, not a map: the needle reads the line down the middle of the globe, north at the top. Places are not located here.', { say: 'where' });
+    return;
+  }
   const fields = await currentFields();
   const c = state.center;
   const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
@@ -992,6 +1015,7 @@ async function updateProbe() {
 async function toggleExplore(force) {
   const on = typeof force === 'boolean' ? force : !state.explore;
   if (on === state.explore) return;
+  if (on && isNeedle()) { announce('Explore mode needs a map; this track is a turning globe.'); return; }
   if (on) {
     if (!requireReadyTrack()) return;
     await ensureSound();
@@ -1082,7 +1106,7 @@ async function toggleController() {
 
 async function saveWav() {
   if (state.busy || !requireReadyTrack()) return;
-  if (state.track === 'lightning') {
+  if (state.track === 'lightning' || isNeedle()) {
     // Offline rendering needs every video frame decoded in advance; not built yet.
     announce($('wav-note').textContent);
     return;
@@ -1170,6 +1194,7 @@ function toggleCoast(force) {
 function stopAll() {
   if (scan.running) scan.stop(false);
   if (liveScan.running) { liveScan.stop(); $('map-video').pause(); }
+  if (needle.running) stopNeedle();
   state.busy = false; // cancels a running tutorial
   voice.cancel();
   if (state.explore) toggleExplore(false);
@@ -1477,6 +1502,78 @@ async function runDemo() {
     if (st.caption) caption(st.caption);
     await scenes[st.scene](st);
   }));
+}
+
+// ---------------------------------------------------------------- needle tracks (Visual)
+
+const needle = new NeedleScan(engine, {
+  onStep: ({ segments, struck }) => {
+    for (const k of struck) view.needleFlash(k, NEEDLE_SEGMENTS, '--data-forest');
+    const motor = Math.max(...segments);
+    haptics({ n: segments[0], e: motor, s: segments[segments.length - 1], w: motor });
+  },
+});
+
+function needleVideo() {
+  return $('needle-video');
+}
+
+/** Shows or hides the globe video and the needle when a needle track is chosen or left. */
+function setNeedleTrack(on) {
+  const v = needleVideo();
+  document.body.dataset.mode = on ? 'needle' : 'map';
+  v.hidden = !on;
+  if (on) {
+    const entry = state.manifest[state.track];
+    if (v.getAttribute('src') !== entry.video) { v.src = entry.video; v.load(); }
+    view.setNeedle(entry.needle);
+    $('presets').closest('.field').hidden = true;
+  } else {
+    if (needle.running) stopNeedle();
+    v.pause();
+    view.setNeedle(null);
+    $('presets').closest('.field').hidden = false;
+  }
+}
+
+function stopNeedle() {
+  needle.stop();
+  needleVideo().pause();
+  setScanButton(false);
+  hapticsOff();
+}
+
+async function toggleNeedle() {
+  const v = needleVideo();
+  if (needle.running) { stopNeedle(); announce('Paused.'); return; }
+  const entry = state.manifest[state.track];
+  if (v.readyState < 2) await new Promise((r) => v.addEventListener('loadeddata', r, { once: true }));
+  setScanButton(true);
+  v.loop = true;
+  try { await v.play(); } catch (err) { console.error(err); }
+  needle.start({ video: v, geom: entry.needle, valueFn: forestValue, voice: 'wood' });
+  announce('Playing the turning globe; the needle reads north to south.');
+}
+
+/** Needle "Y": where along the needle the phenomenon is right now. */
+function needleSummary() {
+  const v = needleVideo();
+  if (v.readyState < 2) { announce('The globe is still loading.'); return; }
+  const c = document.createElement('canvas');
+  c.width = 2; c.height = 192;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const g = state.manifest[state.track].needle;
+  ctx.drawImage(v, g.x * v.videoWidth - 1, g.y0 * v.videoHeight, 2, (g.y1 - g.y0) * v.videoHeight, 0, 0, 2, 192);
+  const px = ctx.getImageData(0, 0, 1, 192).data;
+  const thirds = [0, 1, 2].map((t) => {
+    let s = 0;
+    for (let y = t * 64; y < (t + 1) * 64; y++) s += forestValue(px[y * 4], px[y * 4 + 1], px[y * 4 + 2]);
+    return s / 64;
+  });
+  const names = ['the north', 'the middle', 'the south'];
+  const best = thirds.indexOf(Math.max(...thirds));
+  if (Math.max(...thirds) < 0.05) { announce('The needle is over ocean right now: silent.', { say: 'result' }); return; }
+  announce(`On the needle right now, the brightest vegetation in the picture is in ${names[best]} of the globe.`, { say: 'result' });
 }
 
 // Exposed for manual debugging in the browser console only.

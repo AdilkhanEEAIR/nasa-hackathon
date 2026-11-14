@@ -120,6 +120,7 @@ const LEGENDS = {
   lightning: ['data-flash', 'data-rumble', 'data-nodata'],
   nightlights: ['data-lights', 'data-land'],
   wind: ['data-wind-calm', 'data-wind-strong', 'data-nodata'],
+  forest: ['data-forest', 'data-nodata'],
 };
 
 test('data colours in each legend stay distinguishable with colour-vision deficiencies', () => {

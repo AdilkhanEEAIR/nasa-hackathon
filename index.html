@@ -80,12 +80,13 @@
 
       <div class="home-grid">
         <section class="reveal" aria-labelledby="home-tracks">
-          <h2 id="home-tracks" class="section-title">Five tracks</h2>
+          <h2 id="home-tracks" class="section-title">Six tracks</h2>
           <ol class="track-chips">
             <li><span class="track-chips__swatch" style="background: var(--data-lights)" aria-hidden="true"></span>Night Lights 2012–2023</li>
             <li><span class="track-chips__swatch" style="background: var(--data-dust)" aria-hidden="true"></span>Aerosols</li>
             <li><span class="track-chips__swatch" style="background: var(--data-flash)" aria-hidden="true"></span>Lightning from the space station</li>
             <li><span class="track-chips__swatch" style="background: var(--data-cold)" aria-hidden="true"></span>Ocean Temperature</li>
+            <li><span class="track-chips__swatch" style="background: var(--data-forest)" aria-hidden="true"></span>Forest Height <span class="track-chips__class">Visual</span></li>
             <li><span class="track-chips__swatch" style="background: var(--data-wind-strong)" aria-hidden="true"></span>Near-Surface Wind</li>
           </ol>
         </section>
@@ -133,7 +134,7 @@
             <button id="btn-wav" type="button" class="button" aria-keyshortcuts="S">Save as WAV <kbd>S</kbd></button>
             <button id="btn-stop" type="button" class="button button--quiet button--stop" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
           </div>
-          <p id="wav-note" class="note note--warn" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2 and 4 can be saved.</p>
+          <p id="wav-note" class="note note--warn" hidden>Save as WAV is not available on video tracks (lightning, forest height): it would need every video frame decoded in advance. Map tracks can be saved.</p>
 
           <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
 
@@ -143,6 +144,7 @@
               <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
               <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
               <video id="map-video" class="map-img map-video" muted playsinline preload="none" aria-hidden="true" hidden></video>
+              <video id="needle-video" class="map-img map-video" muted playsinline preload="auto" aria-hidden="true" hidden></video>
             </div>
             <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
                     aria-label="Night lights map. Loading."></canvas>
@@ -219,7 +221,7 @@
         <span><kbd>←↑↓→</kbd> move</span>
         <span><kbd>PgUp</kbd><kbd>PgDn</kbd> year</span>
         <span><kbd>1</kbd>–<kbd>5</kbd> places</span>
-        <span><kbd>⇧1</kbd>–<kbd>⇧5</kbd> tracks</span>
+        <span><kbd>⇧1</kbd>–<kbd>⇧6</kbd> tracks</span>
         <span><kbd>Y</kbd> summary</span>
         <span><kbd>W</kbd> where</span>
         <span><kbd>E</kbd> explore</span>
@@ -252,6 +254,7 @@
         <li><a href="https://svs.gsfc.nasa.gov/5669/">GEOS Aerosols</a>, SVS 5669. NASA GMAO and NASA SVS: Joseph V. Ardizzone, Helen-Nicole Kostis; scientist Lesley Ott.</li>
         <li><a href="https://svs.gsfc.nasa.gov/5011/">Lightning Events Detected from the ISS 2017–2023</a>, SVS 5011. NASA SVS: Michala Garrison, Greg Shirah, Kel Elkins, Alex Kekesi. Data: LIS on ISS, NASA GHRC DAAC.</li>
         <li><a href="https://svs.gsfc.nasa.gov/3912/">Global Sea Surface Currents and Temperature</a>, SVS 3912. NASA/GSFC SVS: Greg Shirah, Horace Mitchell, Eric Sokolowsky. Data: ECCO2.</li>
+        <li><a href="https://svs.gsfc.nasa.gov/4950/">GEDI Forest Height</a>, SVS 4950. NASA's Scientific Visualization Studio: Kel Elkins (USRA), Horace Mitchell, Greg Shirah (NASA/GSFC); scientists Temilola Fatoyinbo (NASA/GSFC), Atticus Stovall (University of Maryland). Data: GEDI L2B RH100. Visual track: sonifies the picture, not calibrated heights.</li>
         <li><a href="https://svs.gsfc.nasa.gov/5148/">GEOS-FP Near-Surface Wind Speed</a>, SVS 5148. NASA's Global Modeling and Assimilation Office; visualizer Joseph V. Ardizzone (NASA/GSFC). Data: GEOS-FP. NASA SVS page tagged Earth Information Center, not in the EIC gallery list (checked 14 Nov 2026). Agency logos on the frame are painted over.</li>
         <li>Map labels (key L, visual only, never sonified): <a href="https://www.naturalearthdata.com">Natural Earth</a>, public domain.</li>
       </ul>

@@ -278,6 +278,8 @@ output { color: var(--ui-text); font-weight: var(--weight-medium); margin-left: 
 .map-img.instant { transition: none; }
 .map-video { opacity: 1; object-fit: fill; background: var(--ui-bg-sunken); }
 body[data-track="lightning"] .map-img:not(.map-video) { visibility: hidden; }
+body[data-mode="needle"] .map-img:not(#needle-video) { visibility: hidden; }
+.track-chips__class { font-size: var(--text-xs); color: var(--ui-text-muted); border: var(--border-width) dashed var(--ui-border-strong); border-radius: var(--radius-sm); padding: 0 var(--space-1); }
 .overlay { cursor: crosshair; touch-action: none; }
 .zoom-badge {
   position: absolute; right: var(--space-3); bottom: var(--space-2); z-index: 2; margin: 0;

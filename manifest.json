@@ -267,5 +267,17 @@
       40
     ],
     "readableFromMs": 3.6
+  },
+  "forest": {
+    "source": "NASA SVS 4950",
+    "class": "visual",
+    "mode": "needle",
+    "video": "media/forest/gedi-globe-720p30.451cae2f5c.mp4",
+    "needle": {
+      "x": 0.5,
+      "y0": 0.025,
+      "y1": 0.975
+    },
+    "period": "April 2019 - April 2020"
   }
 }

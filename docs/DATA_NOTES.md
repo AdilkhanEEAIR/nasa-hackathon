@@ -439,6 +439,31 @@ opens the band upward; above about 12 m/s a narrow whistle joins in. Measured of
 (`tools/sound_report.mjs`): North Atlantic storm centroid 3094 Hz, Southern Ocean westerlies
 2865 Hz, Atlantic trade winds 1886 Hz, equatorial calm 988 Hz (and nearly silent).
 
+## 10. Forest height (SVS 4950, GEDI) — Visual track, needle mode
+
+**Source.** GEDI Forest Height, https://svs.gsfc.nasa.gov/4950/. Credit: NASA's Scientific
+Visualization Studio; visualizers Kel Elkins (USRA), Horace Mitchell and Greg Shirah
+(NASA/GSFC); scientists Temilola Fatoyinbo (NASA/GSFC) and Atticus Stovall (University of
+Maryland); data GEDI L2B RH100 (relative height), April 2019 to April 2020.
+
+| File | URL | Size | Downloaded (UTC) | SHA-256 |
+|---|---|---|---|---|
+| `GEDI_global_w_colorbar_1080p60.mp4` | https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/GEDI_global_w_colorbar_1080p60.mp4 | 18.57 MB | 2026-11-14 16:16 | see `datasets/downloads.json` |
+
+ffprobe: H.264 1920×1080, 60 fps, 51.5 s, 3089 frames. Windows Defender: no threats.
+
+**Why Visual, not Data-true.** The globe is shaded and the heights are exaggerated in 3D, so
+the rendered colour also carries light and relief; the colorbar's numbers cannot be read back
+honestly. We therefore sonify the picture: brightness of non-blue, non-black pixels ("brighter
+green and white = taller in the picture"), with no metres claimed.
+
+**Needle.** The globe turns once in about 50 s and always fills the frame: disk centre x = 960
+of 1920, lit from y = 23 to 1056 (measured on frames 0, 900, 1800, 2700). A fixed needle at
+x = 0.5, y = 0.025–0.975 reads 192 pixels per tick in 16 segments, north at the top (high
+notes). A segment with vegetation plays a wooden knock (marimba-like: a sine plus a fast-fading
+partial at 4×), louder and quicker for brighter vegetation; at most 24 knocks per second.
+Web copy: 1280×720, 30 fps, H.264, 2.93 MB.
+
 ## 8. Datasets reviewed and rejected (honesty check)
 
 The rule for every track: a pixel colour must translate into a value honestly. Where it

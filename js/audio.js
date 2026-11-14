@@ -363,6 +363,31 @@ export class SonicEngine {
     osc.stop(when + 0.16);
   }
 
+  /**
+   * One short struck note for needle tracks. 'wood' is a marimba-like knock: a sine with a
+   * quickly fading partial four times higher and a tiny click, all at the needle pitch.
+   */
+  pluck(freq, level = 0.5, voice = 'wood', when = this.now) {
+    if (!this.ready) return;
+    const ctx = this.ctx;
+    const out = ctx.createGain();
+    out.gain.value = level * this.trim * 0.35;
+    out.connect(this.bus);
+    const parts = voice === 'wood' ? [[1, 1, 0.35], [4, 0.45, 0.06]] : [[1, 1, 0.5]];
+    for (const [mul, amp, decay] of parts) {
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = freq * mul;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, when);
+      g.gain.linearRampToValueAtTime(amp, when + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0005, when + decay);
+      o.connect(g).connect(out);
+      o.start(when);
+      o.stop(when + decay + 0.05);
+    }
+  }
+
   /** A plucked note. `when` is seconds from now (live); `at` is an absolute context time. */
   note(freq, { when = 0, at = null, duration = 0.6, level = 0.3, pan = 0, type = 'sine', bright = 0.5 } = {}) {
     if (!this.ready) return;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   dominant, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
   oceanTemp, oceanVoice, describeTemp, OCEAN_BANDS, OCEAN_LAYERS, oceanBandWeights, oceanBand,
-  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS, TRACK_CLASS, windVoice, windFields, describeWind, WIND_RANGE_MS,
+  OCEAN_CALM, OCEAN_DENSE, TRACK_PRESETS, TRACK_CLASS, NEEDLE_TRACKS, windVoice, windFields, describeWind, WIND_RANGE_MS,
 } from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
@@ -63,6 +63,7 @@ test('ocean: dense current lines give more motion, calm water little', () => {
 
 test('every track has its own presets with keys 1..n', () => {
   for (const [track, list] of Object.entries(TRACK_PRESETS)) {
+    if (NEEDLE_TRACKS.has(track)) { assert.equal(list.length, 0, `${track}: a globe has no map centre`); continue; }
     assert.ok(list.length >= 4 && list.length <= 5, track);
     assert.deepEqual(list.map((p) => p.key), list.map((_, i) => String(i + 1)), track);
     for (const p of list) assert.ok(Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180 && p.radiusKm >= 250, `${track} ${p.name}`);

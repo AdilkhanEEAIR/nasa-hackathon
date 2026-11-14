@@ -80,6 +80,7 @@
   --data-rumble: var(--dp-neutral);
   --data-nodata: var(--dp-nodata);
   --data-tactile: var(--dp-sky);
+  --data-forest: var(--dp-green);
   --data-wind-calm: var(--dp-neutral);
   --data-wind-strong: var(--dp-orange);
 

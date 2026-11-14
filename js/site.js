@@ -22,7 +22,7 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 // list equal to the real import graph.
 export const PLAYER_MODULES = [
   'app.js', 'audio.js', 'camera.js', 'demo-plan.js', 'dial.js', 'fields.js', 'geo.js', 'lightning.js', 'loader.js',
-  'music.js', 'places.js', 'prefs.js', 'scan.js', 'serial.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
+  'music.js', 'needle.js', 'places.js', 'prefs.js', 'scan.js', 'serial.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
 ];
 
 let preloaded = false;

@@ -443,6 +443,28 @@ def wind(manifest: dict) -> None:
 
 
 
+# ---------------------------------------------------------------- forest height (SVS 4950), needle
+
+GE_SRC = SRC / "svs-4950" / "GEDI_global_w_colorbar_1080p60.mp4"
+# Globe disk, measured on frames 0, 900, 1800 and 2700: centre x = 960 of 1920, lit from
+# y = 23 to 1056 of 1080. The needle runs down x = 0.5 inside that span.
+GE_NEEDLE = {"x": 0.5, "y0": 0.025, "y1": 0.975}
+
+
+def forest(manifest: dict) -> None:
+    print("Forest height (SVS 4950), needle")
+    out = tmp("gedi-globe-720p30.mp4")
+    run(["ffmpeg", "-v", "error", "-y", "-i", str(GE_SRC), "-vf", "fps=30,scale=1280:720:flags=lanczos",
+         "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-pix_fmt", "yuv420p", "-an",
+         "-movflags", "+faststart", str(out)])
+    manifest["forest"] = {
+        "source": "NASA SVS 4950", "class": "visual", "mode": "needle",
+        "video": publish(out, "forest", "gedi-globe-720p30"),
+        "needle": GE_NEEDLE, "period": "April 2019 - April 2020",
+    }
+
+
+
 NE_DIR = SRC / "naturalearth"
 
 
@@ -537,6 +559,7 @@ def main() -> None:
     lightning(manifest)
     ocean(manifest)
     wind(manifest)
+    forest(manifest)
     natural_earth(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)
