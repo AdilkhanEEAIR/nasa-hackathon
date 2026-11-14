@@ -30,9 +30,9 @@ test('each scan finishes before the next scene starts', () => {
   }
 });
 
-test('the demo plays all four tracks', () => {
+test('the demo plays both track classes: Data-true maps and a Visual needle', () => {
   const scenes = DEMO_STEPS.map((s) => s.scene).join();
-  for (const t of ['india2012', 'india2023', 'aerosols', 'ocean', 'lightning']) assert.ok(scenes.includes(t), t);
+  for (const t of ['india2012', 'india2023', 'aerosols', 'ocean', 'wind', 'forest']) assert.ok(scenes.includes(t), t);
   for (const t of ['nightlights', 'aerosols', 'lightning', 'ocean']) assert.ok(TRACK_PRESETS[t], t);
   assert.ok(Object.values(DEMO_CENTRES).every((c) => c.radiusKm >= 250 && c.zoom >= 1));
 });

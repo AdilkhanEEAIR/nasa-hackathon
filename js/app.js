@@ -1488,15 +1488,14 @@ async function prepareDemo() {
   await loadYear(2012);
   await loadYear(2023);
   const keep = state.track;
-  for (const id of ['aerosols', 'ocean', 'lightning']) { state.track = id; await currentFields(); }
+  for (const id of ['aerosols', 'ocean', 'wind']) { state.track = id; await currentFields(); }
   state.track = keep;
-  const vid = $('map-video');
-  const seeked = new Promise((r) => {
-    vid.addEventListener('seeked', r, { once: true });
-    setTimeout(r, 3000); // never hang the demo on a missed event
-  });
-  lightning.seekTo(DEMO_LIGHTNING_AT);
-  if (vid.seeking) await seeked;
+  // The forest globe video, so the needle scene starts at once.
+  const nv = needleVideo();
+  if (nv.getAttribute('src') !== state.manifest.forest.video) { nv.src = state.manifest.forest.video; nv.preload = 'auto'; nv.load(); }
+  if (nv.readyState < 2) await Promise.race([new Promise((r) => nv.addEventListener('loadeddata', r, { once: true })), new Promise((r) => setTimeout(r, 4000))]);
+  // (The lightning scene is kept in the scene list but is not in the 28-second plan; if it
+  // is ever put back, preload the video and seek it to DEMO_LIGHTNING_AT here.)
   start.disabled = false;
   start.textContent = 'Start the 28-second demo';
   $('demo-status').textContent = 'Ready. Turn your sound on, then press the button.';
@@ -1541,6 +1540,18 @@ async function runDemo() {
       demoCentre(DEMO_CENTRES.gulf);
       await demoScan(st.scanS);
     },
+    wind: async (st) => {
+      if (scan.running) scan.stop(false);
+      await selectTrack('wind');
+      demoCentre(DEMO_CENTRES.gale);
+      await demoScan(st.scanS);
+    },
+    forest: async () => {
+      if (scan.running) scan.stop(false);
+      view.resetCamera();
+      await selectTrack('forest');
+      await toggleNeedle();
+    },
     lightning: async () => {
       if (scan.running) scan.stop(false);
       await selectTrack('lightning');
@@ -1550,6 +1561,7 @@ async function runDemo() {
     },
     end: () => {
       if (liveScan.running) toggleLightning();
+      if (needle.running) stopNeedle();
       view.resetCamera();
       engine.centreNote(0.6);
     },
