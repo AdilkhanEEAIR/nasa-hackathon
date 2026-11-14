@@ -66,7 +66,8 @@ export function meanOver(field, points, r = 1) {
 // Measured arc means on the preset regions: median ~0.005, 90th percentile 0.006-0.07.
 export const ARC_FULL_SCALE = 0.08;
 
-export function gainForLevel(level) {
+/** `full` is the arc level heard at full loudness: fixed per track, never per frame. */
+export function gainForLevel(level, full = ARC_FULL_SCALE) {
   if (!(level > 0)) return 0;
-  return Math.min(1, level / ARC_FULL_SCALE) ** 0.7;
+  return Math.min(1, level / full) ** 0.7;
 }

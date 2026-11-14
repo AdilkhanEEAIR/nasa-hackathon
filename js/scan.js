@@ -21,7 +21,7 @@ export function asFieldMap(fields) {
  * Pure part of a scan step: values for every voice at one radius. For each voice: per-layer
  * mean levels and gains on its arc, the land share, and the strongest level/gain overall.
  */
-export function readRing(fields, landField, center, radiusKm) {
+export function readRing(fields, landField, center, radiusKm, full = ARC_FULL_SCALE) {
   const map = asFieldMap(fields);
   const names = Object.keys(map);
   const arcs = ringArcs(center, Math.max(radiusKm, 1), VOICES);
@@ -37,12 +37,12 @@ export function readRing(fields, landField, center, radiusKm) {
     let gain = 0;
     for (const n of names) {
       levels[n] /= arc.points.length;
-      gains[n] = gainForLevel(levels[n]);
+      gains[n] = gainForLevel(levels[n], full);
       level = Math.max(level, levels[n]);
       gain = Math.max(gain, gains[n]);
     }
     land /= arc.points.length;
-    return { bearing: arc.bearing, points: arc.points, levels, gains, level, land, gain };
+    return { bearing: arc.bearing, points: arc.points, levels, gains, level, land, gain, full };
   });
 }
 
@@ -76,7 +76,7 @@ export function motorLevels(ring) {
 function applyRing(engine, ring, prevLand, coastClicks, when) {
   const landNow = ring.map((v) => v.land >= 0.5);
   ring.forEach((v, k) => {
-    engine.setVoice(k, { gains: v.gains, brightness: Math.min(1, v.level / ARC_FULL_SCALE), land: v.land }, when);
+    engine.setVoice(k, { gains: v.gains, brightness: Math.min(1, v.level / v.full), land: v.land }, when);
     if (coastClicks && prevLand && prevLand[k] !== landNow[k]) engine.click(panForBearing(v.bearing), when);
   });
   return landNow;
@@ -102,13 +102,14 @@ export class RingScan {
   }
 
   /** `fields`: one value grid or {layer: grid}; radius in km, duration in s. */
-  start({ fields, landField, center, radiusKm, durationS = 8 }) {
+  start({ fields, landField, center, radiusKm, durationS = 8, fullScale = ARC_FULL_SCALE }) {
     this.stop(false);
     this.fields = fields;
     this.landField = landField;
     this.center = center;
     this.radiusKm = radiusKm;
     this.durationS = durationS;
+    this.fullScale = fullScale;
     this.t0 = performance.now();
     this.prevLand = null;
     this.running = true;
@@ -118,7 +119,7 @@ export class RingScan {
       if (!this.running) return;
       const t = Math.min(1, (performance.now() - this.t0) / (this.durationS * 1000));
       const r = this.radiusKm * (1 - t);
-      const ring = readRing(this.fields, this.landField, this.center, r);
+      const ring = readRing(this.fields, this.landField, this.center, r, this.fullScale);
       this.prevLand = applyRing(this.engine, ring, this.prevLand, this.coastClicks, this.engine.now);
       if (this.onStep) this.onStep({ t, radiusKm: r, ring });
       if (t >= 1) {
@@ -147,18 +148,19 @@ export class RingScan {
  * Renders a complete scan offline with the same engine, instruments and step rate as the
  * live scan, and returns a WAV file as an ArrayBuffer.
  */
-export async function renderScanWav({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8 }) {
+export async function renderScanWav({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8, fullScale = ARC_FULL_SCALE, trim = 1 }) {
   const sampleRate = 44100;
   const tail = 2.6; // let the centre note and the reverb ring out
   const ctx = new OfflineAudioContext(2, Math.ceil((durationS + tail) * sampleRate), sampleRate);
   const engine = new SonicEngine(VOICES, layers);
   engine.volume = volume;
+  engine.trim = trim;
   engine.attach(ctx, { offline: true });
   const steps = Math.ceil(durationS * STEP_HZ);
   let prevLand = null;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
-    const ring = readRing(fields, landField, center, radiusKm * (1 - t));
+    const ring = readRing(fields, landField, center, radiusKm * (1 - t), fullScale);
     prevLand = applyRing(engine, ring, prevLand, coastClicks, t * durationS);
   }
   engine.silenceVoices(durationS);

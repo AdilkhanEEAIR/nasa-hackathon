@@ -25,6 +25,8 @@ export class SonicEngine {
     this.offline = false;
     this.voices = [];
     this.volume = 0.8;
+    // Per-track loudness trim, so dense maps (every voice active) are not louder than sparse ones.
+    this.trim = 1;
     this.levels = new Float32Array(voices); // last requested data gain per voice, for visuals
   }
 
@@ -93,26 +95,79 @@ export class SonicEngine {
     this.probe = this._makeVoice(degreeToFreq(7), 0, null);
   }
 
+  /**
+   * Looping texture buffers for noise-based instruments, built once per context:
+   *   noise   - white noise (dust: a dry rustle once band-passed high)
+   *   surf    - soft low noise swelling twice every 8 s (sea salt: surf)
+   *   crackle - sparse random clicks over a low rumble (smoke and fire)
+   */
+  _texture(kind) {
+    this._textures = this._textures || {};
+    if (this._textures[kind]) return this._textures[kind];
+    const rate = this.ctx.sampleRate;
+    const secs = kind === 'surf' ? 8 : kind === 'crackle' ? 3 : 2;
+    const n = Math.floor(secs * rate);
+    const buf = this.ctx.createBuffer(1, n, rate);
+    const d = buf.getChannelData(0);
+    let lp = 0;
+    let brown = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.random() * 2 - 1;
+      if (kind === 'noise') d[i] = w * 0.6;
+      else if (kind === 'surf') {
+        lp += 0.08 * (w - lp);
+        const swell = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n / 2));
+        d[i] = lp * 2.2 * (0.15 + 0.85 * swell * swell);
+      } else {
+        brown = (brown + 0.02 * w) * 0.995;
+        d[i] = brown * 1.6;
+      }
+    }
+    if (kind === 'crackle') {
+      // ~30 crackles per second: short decaying bursts of random strength.
+      const count = Math.floor(secs * 30);
+      for (let c = 0; c < count; c++) {
+        const start = Math.floor(Math.random() * (n - 400));
+        const len = 60 + Math.floor(Math.random() * 300);
+        const amp = 0.3 + Math.random() * 0.7;
+        for (let i = 0; i < len; i++) d[start + i] += amp * (Math.random() * 2 - 1) * (1 - i / len) ** 2;
+      }
+    }
+    this._textures[kind] = buf;
+    return buf;
+  }
+
   _makeVoice(base, panValue, bearing) {
     const ctx = this.ctx;
     const pan = ctx.createStereoPanner();
     pan.pan.value = panValue;
     pan.connect(this.bus);
+    const t0 = this.offline ? 0 : ctx.currentTime;
     const layers = this.layers.map((spec) => {
-      const osc = ctx.createOscillator();
-      osc.type = spec.type;
-      osc.frequency.value = base * 2 ** spec.octave;
+      let osc;
+      const source = spec.source || 'osc';
+      if (source === 'osc') {
+        osc = ctx.createOscillator();
+        osc.type = spec.type;
+        osc.frequency.value = base * 2 ** spec.octave;
+      } else {
+        osc = ctx.createBufferSource();
+        osc.buffer = this._texture(source);
+        osc.loop = true;
+      }
       const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = spec.cutoffLo;
+      filter.type = spec.filter || 'lowpass';
+      filter.frequency.value = spec.pitchFilter ? base * 2 ** spec.octave : spec.cutoffLo;
       filter.Q.value = spec.q ?? 0.7;
       const gain = ctx.createGain();
       gain.gain.value = 0;
       osc.connect(filter).connect(gain).connect(pan);
-      osc.start(this.offline ? 0 : ctx.currentTime);
+      // Random start offsets decorrelate the 16 copies of a noise texture.
+      if (source === 'osc') osc.start(t0);
+      else osc.start(t0, Math.random() * osc.buffer.duration);
       return { spec, osc, filter, gain };
     });
-    return { bearing, pan, layers };
+    return { bearing, pan, layers, base };
   }
 
   /** Same loudness/timbre rule as a ring voice, applied to any voice object. */
@@ -122,8 +177,15 @@ export class SonicEngine {
     v.layers.forEach((l, i) => {
       const lg = g[l.spec.name] || 0;
       const hum = i === 0 && total === 0 && land >= 0.5 ? LAND_HUM : 0;
-      const target = Math.max(hum, lg * VOICE_PEAK * (l.spec.peak ?? 1));
-      const cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
+      const target = Math.max(hum, lg * VOICE_PEAK * (l.spec.peak ?? 1) * this.trim);
+      let cutoff;
+      if (l.spec.pitchFilter) {
+        // Noise instruments: the filter centre carries the compass pitch, so "north is high"
+        // holds for them too; a stronger value opens the band a little.
+        cutoff = v.base * 2 ** l.spec.octave * (1 + brightness * (l.spec.brightMul ?? 0.5));
+      } else {
+        cutoff = lg > 0 ? l.spec.cutoffLo + (l.spec.cutoffHi - l.spec.cutoffLo) * brightness : 320;
+      }
       l.gain.gain.setTargetAtTime(target, when, SMOOTH);
       l.filter.frequency.setTargetAtTime(cutoff, when, SMOOTH);
     });
@@ -139,7 +201,10 @@ export class SonicEngine {
     const when = this.now;
     const deg = Math.max(0, Math.min(14, Math.round(((lat + 60) / 135) * 14)));
     const base = degreeToFreq(deg);
-    for (const l of this.probe.layers) l.osc.frequency.setTargetAtTime(base * 2 ** l.spec.octave, when, 0.03);
+    this.probe.base = base;
+    for (const l of this.probe.layers) {
+      if (l.osc.frequency) l.osc.frequency.setTargetAtTime(base * 2 ** l.spec.octave, when, 0.03);
+    }
     this._drive(this.probe, gains, brightness, land, when);
     // The probe is louder than one ring voice: it is the only thing sounding.
     this.probe.pan.pan.setValueAtTime(0, when);

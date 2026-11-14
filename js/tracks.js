@@ -25,7 +25,7 @@ export const CHANGE_LAYERS = [
   // More light: clean, bright, an octave up — it "sparkles".
   { name: 'more', type: 'triangle', octave: 1, cutoffLo: 2500, cutoffHi: 6500, peak: 1 },
   // Less light: buzzy but muffled, an octave down — it "sinks".
-  { name: 'less', type: 'sawtooth', octave: -1, cutoffLo: 450, cutoffHi: 1100, peak: 1 },
+  { name: 'less', type: 'sawtooth', octave: -1, cutoffLo: 450, cutoffHi: 1100, peak: 1.15 },
   // No change: soft sine at the compass pitch, quieter so change stands out.
   { name: 'same', type: 'sine', octave: 0, cutoffLo: 1500, cutoffHi: 2500, peak: 0.45 },
 ];
@@ -48,6 +48,45 @@ export function describeChange(kind) {
   if (kind === 'less') return 'less light in 2023 than in 2012';
   if (kind === 'same') return 'lit, little change';
   return 'dark, no lights';
+}
+
+/**
+ * Aerosols (SVS 5669). Classes come from the lossless sound grid written by
+ * tools/prepare_media.py: R = amount, G = class id * 50 (1 smoke/black carbon, 2 dust,
+ * 3 sea salt, 4 sulfate). Each class is its own instrument, recognisable without a legend.
+ */
+export const AEROSOL_CLASSES = ['smoke', 'dust', 'salt', 'sulfate'];
+
+// Peaks are loudness-matched: each instrument at full value renders at about the same RMS as
+// the night-lights tone (measured offline), so no phenomenon is louder just because of its timbre.
+export const AEROSOL_LAYERS = [
+  // Smoke / black carbon: crackling fire over a low rumble.
+  { name: 'smoke', source: 'crackle', filter: 'lowpass', octave: 3, q: 0.8, pitchFilter: true, brightMul: 1.5, peak: 2.95 },
+  // Dust: a dry, high rustle (band-passed noise).
+  { name: 'dust', source: 'noise', filter: 'bandpass', octave: 4, q: 1.6, pitchFilter: true, brightMul: 0.4, peak: 3.7 },
+  // Sea salt: soft surf, low and slowly swelling.
+  { name: 'salt', source: 'surf', filter: 'lowpass', octave: 2, q: 0.5, pitchFilter: true, brightMul: 0.8, peak: 4.2 },
+  // Sulfate: a buzzing tone (square wave) at the compass pitch.
+  { name: 'sulfate', type: 'square', octave: 0, cutoffLo: 500, cutoffHi: 1800, peak: 0.65 },
+];
+
+export const AEROSOL_COLORS = { smoke: '#ff6a3d', dust: '#c99cff', salt: '#5fb7e0', sulfate: '#6ef04a' };
+
+export const AEROSOL_NAMES = { smoke: 'smoke and black carbon', dust: 'dust', salt: 'sea salt', sulfate: 'sulfate' };
+
+/** Splits the aerosol sound grid (RGBA pixels) into one value field per class. */
+export function aerosolFields(img, lon0 = -180) {
+  const { width, height, data } = img;
+  const fields = Object.fromEntries(AEROSOL_CLASSES.map((c) => [c, new Uint8Array(width * height)]));
+  for (let i = 0, p = 0; i < width * height; i++, p += 4) {
+    const cls = Math.round(data[p + 1] / 50);
+    if (cls >= 1 && cls <= 4) fields[AEROSOL_CLASSES[cls - 1]][i] = data[p];
+  }
+  return Object.fromEntries(Object.entries(fields).map(([k, values]) => [k, { width, height, lon0, values }]));
+}
+
+export function describeAerosol(kind) {
+  return kind ? `mostly ${AEROSOL_NAMES[kind]}` : 'clear of the four aerosol types';
 }
 
 export { LIGHT_FLOOR };
