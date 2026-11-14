@@ -5,7 +5,7 @@ into live sound. A ring of sound sweeps in from far away toward any place you ch
 can *hear* where the lights, dust, smoke or lightning are around it. It is built first for
 blind and low-vision people and works with the keyboard alone.
 
-**Live site:** https://adilkhaneeair.github.io/nasa-hackathon/
+**Live site:** https://earthsonar.vercel.app
 
 NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · Bishkek
 

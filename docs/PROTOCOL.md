@@ -7,7 +7,7 @@ The EarthSonar controller is an Arduino with:
 - one push button,
 - four vibration motors.
 
-It talks to the EarthSonar web page over a USB cable through the browser's
+It talks to the EarthSonar web page (https://earthsonar.vercel.app) over a USB cable through the browser's
 [Web Serial API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API). The
 connection needs no server, no Wi-Fi and no drivers beyond the standard Arduino USB serial.
 
