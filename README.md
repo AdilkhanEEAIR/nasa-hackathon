@@ -9,14 +9,18 @@ blind and low-vision people and works with the keyboard alone.
 
 NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · Bishkek
 
-| Mode | Status |
+![EarthSonar during a ring scan around China, 2023](docs/screenshots/desktop-scan.jpg)
+
+The site is a jukebox: pick a track, press Space.
+
+| Track | Status |
 |---|---|
-| Night lights by year, 2012–2023 | ✅ available |
-| What changed, 2012 → 2023 | in progress |
-| Voice guide and explore mode | in progress |
-| Aerosols (dust, black carbon, sea salt, sulfate) | in progress |
-| Lightning from the ISS, 2017–2023 | in progress |
-| Tactile controller (Arduino, 4 vibration motors) | firmware and protocol ready; site link in progress |
+| 01 Night Lights 2012–2023 | ✅ available |
+| 02 What Changed, 2012 → 2023 | coming next |
+| 03 Aerosols (dust, black carbon, sea salt, sulfate) | coming next |
+| 04 Lightning from the ISS, 2017–2023 | coming next |
+| Voice guide and explore mode | coming next |
+| Tactile controller (Arduino, 4 vibration motors) | firmware and protocol ready; site link coming next |
 
 ---
 
@@ -54,9 +58,11 @@ change in seven seconds.
 | + / − | Bigger / smaller ring |
 | Y | Play all years |
 | W | Where am I: year, centre, land or water, light level |
+| S | Save the current scan as a WAV file |
+| T | 10-second sound tutorial: north, east, south, west, dim vs bright |
+| Shift + 1…4 | Choose a track |
 | C | Coastline clicks on/off |
 | Escape | Stop all sound |
-| ? / H | Help |
 
 Sound starts after the first key press or click, because browsers require a user gesture.
 Every action is also a labelled button, so screen-reader users can work by Tab alone.
@@ -73,6 +79,7 @@ Each item below is from the challenge's Objectives and Potential Considerations.
 | Generate dynamic sonifications from NASA's EIC visual frames | Sound is synthesized live (Web Audio) from the pixels of EIC frames as the ring moves. There are no pre-recorded tracks. | ✅ |
 | Select or experience a specific EIC visualization alongside its soundscape | The map is shown with the moving ring; you choose the year, place and ring size. More visualizations are being added as modes. | ✅ night lights; others in progress |
 | An interactive tool that actively translates the visual data into sound | The whole site is interactive: move, scan, compare years. | ✅ |
+| …or a curated collection of original, generated audio files | **Save scan as WAV** renders any scan (track, year, place, ring size) offline with the same synthesis engine and downloads it, so listeners can build their own playlist of Earth sounds. | ✅ |
 | Use computer vision on color palettes, shapes and pixel densities | Brightness thresholds, light-pixel density along each arc of the ring, hue classes for the change map and aerosol types, dot detection for lightning ([DATA_NOTES](docs/DATA_NOTES.md)). | ✅ brightness and density; color classes in progress |
 | Map them to pitch, tempo, instrumentation | Pitch = direction (or value in year sweeps), loudness and filter brightness = value, one instrument per aerosol type, tempo = lightning activity. | ✅ pitch, loudness; instruments and tempo in progress |
 | ML, open-source synthesis frameworks, or custom data-driven rulesets | A **custom, documented ruleset** (below). We chose transparent rules over ML, so every sound can be traced to a pixel value. | ✅ (no ML, by choice) |
@@ -160,7 +167,18 @@ so equal pixel values always give equal sounds.
   navigation; screen-reader testing is ongoing.
 - A live status region announces every change. The map has a text description that updates
   with the year and centre.
-- Large controls (44 px), visible focus, high contrast.
+- Large controls (48 px), visible focus, high contrast, keyboard hints always on screen, and a
+  10-second sound tutorial (T).
+- **Motion shows only what is sounding:**
+  - the shrinking ring, with loud arcs drawn thicker;
+  - 16 voice bars around a compass, and four N/E/S/W bars for the vibration motors;
+  - a year chip that lights up as its note plays;
+  - one ripple at the centre when the final note sounds.
+- Changes you make from the keyboard are instant, never animated. Only transform and opacity
+  are animated, or a separate canvas is drawn over the map.
+- Nothing flashes more than about twice per second.
+- With `prefers-reduced-motion`, all transitions become instant and the ripple becomes a static
+  mark. The sound is identical.
 - Designed for blind and low-vision users. Our user tests are blindfolded tests with sighted
   volunteers; results will be added here only as measured.
 
