@@ -322,23 +322,39 @@ body[data-mode="sweep"] .map-video { display: none; }
 
 /* ==================================================================== demo mode */
 
-.demo-caption {
-  width: min(100%, calc(72vh * 16 / 9)); max-width: none; min-height: 2.6em; margin: var(--space-4) auto 0;
-  padding: 0 var(--space-4);
-  text-align: center; font-size: var(--text-xl); font-weight: var(--weight-medium); line-height: 1.3;
-  color: var(--ui-text);
-}
+.demo-caption, .demo-card, .demo-progress { display: none; }
+
+/* Cinema mode: no header, panels or buttons; the map fills the screen at 16:9, large English
+   subtitles at the bottom, a thin progress line, and title/end cards. */
 body.demo-mode .site-header, body.demo-mode .site-footer, body.demo-mode .keybar,
 body.demo-mode #panel-demo, body.demo-mode .jukebox-head, body.demo-mode .tracks,
 body.demo-mode .instruments, body.demo-mode .transport, body.demo-mode .status,
-body.demo-mode .timeline, body.demo-mode .legend, body.demo-mode .note { display: none !important; }
+body.demo-mode .timeline, body.demo-mode .now, body.demo-mode .note,
+body.demo-mode .zoom-badge { display: none !important; }
 body.demo-mode #panel-jukebox[hidden] { display: block !important; }
-body.demo-mode .panel--jukebox { max-width: none; padding: var(--space-4) var(--space-5); }
-body.demo-mode .layout { grid-template-columns: minmax(0, 1fr); }
-body.demo-mode .stage { width: min(100%, calc(72vh * 16 / 9)); margin: 0 auto; }
-body.demo-mode .now { text-align: center; }
-body.demo-mode .now .eyebrow { display: none; }
-body.demo-mode .readouts { justify-content: center; }
+body.demo-mode { overflow: hidden; background: var(--ui-bg-sunken); }
+body.demo-mode .stage {
+  position: fixed; left: 50%; top: 50%; z-index: 40; border-radius: 0;
+  width: min(100vw, calc(100vh * 16 / 9)); transform: translate(-50%, -50%);
+}
+body.demo-mode .demo-caption {
+  display: block; position: fixed; left: 50%; bottom: 7vh; z-index: 45; margin: 0;
+  max-width: 90vw; transform: translateX(-50%); padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-md); background: var(--ui-scrim); color: var(--ui-text);
+  font-size: clamp(1.4rem, 3.4vw, 3rem); font-weight: var(--weight-bold); line-height: 1.2; text-align: center;
+}
+body.demo-mode .demo-caption[hidden] { display: none; }
+body.demo-mode .demo-card {
+  display: grid; place-content: center; position: fixed; inset: 0; z-index: 46; text-align: center;
+  background: var(--ui-scrim); padding: var(--space-6);
+}
+body.demo-mode .demo-card[hidden] { display: none; }
+.demo-card p { margin: 0 auto; max-width: none; }
+.demo-card__name { font-size: clamp(2.6rem, 8vw, 6.5rem); font-weight: var(--weight-bold); letter-spacing: -0.02em; color: var(--ui-text); }
+.demo-card__line { font-size: clamp(1.2rem, 3vw, 2.4rem); color: var(--ui-accent); margin-top: var(--space-3) !important; }
+.demo-card__small { display: grid; gap: var(--space-1); margin-top: var(--space-5) !important; font-size: clamp(0.9rem, 1.8vw, 1.4rem); color: var(--ui-text-soft); }
+body.demo-mode .demo-progress { display: block; position: fixed; left: 0; right: 0; bottom: 0; height: 4px; z-index: 47; background: var(--ui-border); }
+.demo-progress span { display: block; height: 100%; background: var(--ui-accent); transform: scaleX(0); transform-origin: left center; }
 
 /* ==================================================================== footer */
 
@@ -385,8 +401,7 @@ body.demo-mode .readouts { justify-content: center; }
   .jukebox-head { margin-bottom: var(--space-3); }
     .keybar { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; gap: var(--space-4); }
   .keybar > span { flex: none; }
-    .demo-caption { font-size: var(--text-md); }
-}
+  }
 
 /* ==================================================================== reduced motion
    Everything still works and sounds the same; transitions become instant and the

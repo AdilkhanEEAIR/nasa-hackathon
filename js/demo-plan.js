@@ -1,36 +1,46 @@
-// The 28-second demo as data: when each scene starts, what it plays and the English subtitle.
-// js/app.js runs it; tests/demo.test.js checks the timing (exactly 28 s, every subtitle on
-// screen long enough to read, every scan finished before the next scene).
+// The 28-second demo as data, built for a recording under the 30-second limit: a title, three
+// scenes (night lights, aerosols, lightning) and an end card. js/app.js runs it in "cinema"
+// mode; tests/demo.test.js checks the timing: exactly 28 s, subtitles of at most 8 words that
+// stay at least 2.5 s, the first note within 2 s, every scan finished before the next scene.
+
+import { BRAND } from './brand.js';
 
 export const DEMO_LENGTH_MS = 28000;
 
-export const DEMO_STEPS = [
-  { at: 0, scene: 'intro',
-    caption: 'EarthSonar: NASA Earth maps you can hear, made for blind and low-vision people.' },
-  { at: 2900, scene: 'rule',
-    caption: 'High notes = north. Right ear = east. Louder = more.' },
-  { at: 5400, scene: 'india2012', scanS: 2.4,
-    caption: 'Night lights, India 2012: sparse, quiet lights.' },
-  { at: 8100, scene: 'india2023', scanS: 2.4,
-    caption: 'India 2023: louder, brighter — map lights grew about 2.5 times.' },
-  { at: 10800, scene: 'aerosols', scanS: 2.8,
-    caption: 'Aerosols: Saharan dust rustles, smoke crackles, sea salt sounds like surf.' },
-  { at: 13900, scene: 'ocean', scanS: 3.0,
-    caption: 'Ocean, Gulf Stream: warm water flickers fast and bright, cold water shimmers slow.' },
-  { at: 17200, scene: 'wind', scanS: 2.9,
-    caption: 'Wind, 29 Oct 2026: a storm rushes louder and brighter, and whistles.' },
-  { at: 20400, scene: 'forest',
-    caption: 'Visual track: a needle reads a turning globe; forests knock like wood.' },
-  { at: 23800, scene: 'end',
-    caption: 'earthsonar.vercel.app — nine tracks, keyboard-only, screen-reader friendly. Data: NASA SVS.' },
-  { at: DEMO_LENGTH_MS, scene: 'stop', caption: '' },
+/**
+ * Scenes. At `at` the camera flies onto the place (no sound yet); the ring scan of `scanS`
+ * seconds starts at `soundAt`. The previous scene's final chord bridges each change.
+ */
+export const DEMO_SCENES = [
+  { at: 0, scene: 'title' },
+  { at: 150, scene: 'nightlights', soundAt: 1100, scanS: 8.4 },
+  { at: 9800, scene: 'aerosols', soundAt: 10400, scanS: 8.0 },
+  { at: 18700, scene: 'lightning', soundAt: 19200, scanS: 6.6 },
+  { at: 26000, scene: 'end' },
+  { at: DEMO_LENGTH_MS, scene: 'stop' },
 ];
+
+// Subtitles: English only, at most 8 words, each on screen at least 2.5 s.
+export const DEMO_CAPTIONS = [
+  { at: 1000, text: 'Night lights, Europe 2023.' },
+  { at: 3700, text: 'Louder and brighter means more light.' },
+  { at: 6600, text: 'High notes north, right ear east.' },
+  { at: 10000, text: 'Aerosols over West and Central Africa.' },
+  { at: 13300, text: 'Dust rustles, smoke crackles.' },
+  { at: 16200, text: 'Two particle types, two different sounds.' },
+  { at: 19000, text: 'Lightning seen from the space station.' },
+  { at: 22300, text: 'The ring closes slowly on the storms.' },
+  { at: 26000, text: '' },
+];
+
+export const DEMO_CARDS = {
+  title: { name: BRAND.name, line: BRAND.tagline, small: [] },
+  end: { name: BRAND.name, line: BRAND.url, small: [BRAND.event, BRAND.audience] },
+};
 
 // Where each scene listens: centre, ring size and how close the camera frames it.
 export const DEMO_CENTRES = {
-  india: { name: 'India', lat: 22.5, lon: 79.0, radiusKm: 1500, zoom: 2.6 },
-  sahara: { name: 'West Africa', lat: 14, lon: 0, radiusKm: 2500, zoom: 2 },
-  gulf: { name: 'Gulf Stream', lat: 38, lon: -68, radiusKm: 1200, zoom: 2.4 },
+  europe: { name: 'Europe', lat: 48.5, lon: 9.0, radiusKm: 1500, zoom: 2.4 },
+  africa: { name: 'West and Central Africa', lat: 6, lon: 13, radiusKm: 2000, zoom: 2.1 },
   storms: { name: 'Central Africa', lat: 6, lon: 20, radiusKm: 2000, zoom: 2.2 },
-  gale: { name: 'North Atlantic storm', lat: 60, lon: -36, radiusKm: 1200, zoom: 2.2 },
 };

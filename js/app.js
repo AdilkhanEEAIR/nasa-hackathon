@@ -33,7 +33,7 @@ import { LiveRingScan } from './scan.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
 import { describePlace } from './places.js';
-import { DEMO_LENGTH_MS, DEMO_STEPS, DEMO_CENTRES } from './demo-plan.js';
+import { DEMO_LENGTH_MS, DEMO_SCENES, DEMO_CAPTIONS, DEMO_CARDS, DEMO_CENTRES } from './demo-plan.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
 const AMBER = '--data-lights'; // design-token name (css/tokens.css), resolved at draw time
@@ -179,7 +179,7 @@ const scan = new RingScan(engine, {
 const LIGHTNING_FULL = 0.04;
 // Measured live against the night-lights scan (analyser on the master bus): RMS 0.022 vs
 // 0.073, so the lightning track is lifted to match.
-const LIGHTNING_TRIM = 2.5;
+const LIGHTNING_TRIM = 3.2; // re-measured in the demo: 0.068 RMS at 2.5 vs 0.084-0.097 for the map scenes
 let lightning = null; // LightningSource, created when the lightning track is first chosen
 
 const liveScan = new LiveRingScan(engine, {
@@ -1512,12 +1512,6 @@ async function demoScan(durationS) {
   });
 }
 
-function demoCentre(c) {
-  state.radiusKm = c.radiusKm;
-  setCenter(c, { speak: false });
-  // Framed close enough that the ring and its voices read on a recorded video.
-  view.focus(c.lat, c.lon, c.zoom);
-}
 
 let demoPrepared = null;
 let demoTimers = [];
@@ -1541,14 +1535,15 @@ async function prepareDemo() {
   await loadYear(2012);
   await loadYear(2023);
   const keep = state.track;
-  for (const id of ['aerosols', 'ocean', 'wind']) { state.track = id; await currentFields(); }
+  for (const id of ['aerosols', 'lightning']) { state.track = id; await currentFields(); }
   state.track = keep;
-  // The forest globe video, so the needle scene starts at once.
-  const nv = needleVideo();
-  if (nv.getAttribute('src') !== state.manifest.forest.video) { nv.src = state.manifest.forest.video; nv.preload = 'auto'; nv.load(); }
-  if (nv.readyState < 2) await Promise.race([new Promise((r) => nv.addEventListener('loadeddata', r, { once: true })), new Promise((r) => setTimeout(r, 4000))]);
-  // (The lightning scene is kept in the scene list but is not in the 28-second plan; if it
-  // is ever put back, preload the video and seek it to DEMO_LIGHTNING_AT here.)
+  // The lightning video, parked on a stormy July 2019 frame so its scene starts without a
+  // black frame.
+  const vid = $('map-video');
+  vid.preload = 'auto';
+  const seeked = new Promise((r) => { vid.addEventListener('seeked', r, { once: true }); setTimeout(r, 4000); });
+  lightning.seekTo(DEMO_LIGHTNING_AT);
+  if (vid.seeking) await seeked;
   start.disabled = false;
   start.textContent = 'Start the 28-second demo';
   $('demo-status').textContent = 'Ready. Turn your sound on, then press the button.';
@@ -1571,65 +1566,77 @@ export async function openDemo() {
 async function runDemo() {
   const voiceWas = voice.enabled;
   voice.enabled = false; // subtitles carry the words; speech would fight the timing
+  const durationWas = state.durationS;
   const t0 = performance.now();
   const at = (ms, fn) => setTimeout(fn, Math.max(0, ms - (performance.now() - t0)));
-  // What each scene does; timing and subtitles live in js/demo-plan.js.
+  const later = (ms, fn) => demoTimers.push(at(ms, fn));
+  const progress = $('demo-progress');
+  const tickProgress = () => {
+    if (!document.body.classList.contains('demo-mode')) return;
+    progress.style.transform = `scaleX(${Math.min(1, (performance.now() - t0) / DEMO_LENGTH_MS)})`;
+    requestAnimationFrame(tickProgress);
+  };
+  requestAnimationFrame(tickProgress);
+  // What each scene does; timing, captions and cards live in js/demo-plan.js.
   const scenes = {
-    intro: async () => {
+    title: () => { card(DEMO_CARDS.title); },
+    nightlights: async (st) => {
       await selectTrack('nightlights');
-      demoCentre(DEMO_CENTRES.india);
-      await setYear(2012, { speak: false });
+      await setYear(2023, { speak: false });
+      demoFly(DEMO_CENTRES.europe);
+      later(st.soundAt, () => { card(null); demoScan(st.scanS); });
     },
-    rule: () => {
-      engine.note(degreeToFreq(8), { duration: 0.6, level: 0.3, type: 'triangle' });
-      engine.note(degreeToFreq(4), { when: 0.7, duration: 0.6, level: 0.3, pan: 0.9, type: 'triangle' });
+    aerosols: async (st) => {
+      await selectTrack('aerosols');
+      demoFly(DEMO_CENTRES.africa);
+      later(st.soundAt, () => demoScan(st.scanS));
     },
-    india2012: (st) => demoScan(st.scanS),
-    india2023: async (st) => { await setYear(2023, { speak: false }); await demoScan(st.scanS); },
-    aerosols: async (st) => { await selectTrack('aerosols'); demoCentre(DEMO_CENTRES.sahara); await demoScan(st.scanS); },
-    ocean: async (st) => {
-      if (scan.running) scan.stop(false);
-      await selectTrack('ocean');
-      demoCentre(DEMO_CENTRES.gulf);
-      await demoScan(st.scanS);
-    },
-    wind: async (st) => {
-      if (scan.running) scan.stop(false);
-      await selectTrack('wind');
-      demoCentre(DEMO_CENTRES.gale);
-      await demoScan(st.scanS);
-    },
-    forest: async () => {
-      if (scan.running) scan.stop(false);
-      view.resetCamera();
-      await selectTrack('forest');
-      await toggleNeedle();
-    },
-    lightning: async () => {
+    lightning: async (st) => {
       if (scan.running) scan.stop(false);
       await selectTrack('lightning');
-      demoCentre(DEMO_CENTRES.storms);
-      state.durationS = 3;
-      await toggleLightning();
+      seekLightning(0, DEMO_LIGHTNING_AT);
+      demoFly(DEMO_CENTRES.storms);
+      later(st.soundAt, async () => { state.durationS = st.scanS; await startLightning('scan'); });
+      // The ring's last second over the storm centre is sparse: its centre chord bridges to the end card.
+      later(st.soundAt + st.scanS * 1000 - 1100, () => engine.centreNote(0.55));
     },
     end: () => {
-      if (liveScan.running) toggleLightning();
-      if (needle.running) stopNeedle();
+      if (liveScan.running) stopLightning();
       view.resetCamera();
-      engine.centreNote(0.6);
+      card(DEMO_CARDS.end);
+      engine.centreNote(0.7);
     },
     stop: () => {
       stopAll();
+      card(null);
       view.resetCamera();
+      state.durationS = durationWas;
       voice.enabled = voiceWas;
       endDemoMode();
       document.body.dataset.demoDone = 'true';
     },
   };
-  demoTimers = DEMO_STEPS.map((st) => at(st.at, async () => {
-    if (st.caption) caption(st.caption);
-    await scenes[st.scene](st);
-  }));
+  demoTimers = [
+    ...DEMO_SCENES.map((st) => at(st.at, () => scenes[st.scene](st))),
+    ...DEMO_CAPTIONS.map((c) => at(c.at, () => caption(c.text))),
+  ];
+}
+
+/** Title and end cards over the map (cinema mode). */
+function card(c) {
+  const el = $('demo-card');
+  el.hidden = !c;
+  if (!c) return;
+  el.querySelector('.demo-card__name').textContent = c.name;
+  el.querySelector('.demo-card__line').textContent = c.line;
+  el.querySelector('.demo-card__small').innerHTML = (c.small || []).map((t) => `<span>${t}</span>`).join('');
+}
+
+/** The camera glides onto the place before the sound starts (instant with reduced motion). */
+function demoFly(c) {
+  state.radiusKm = c.radiusKm;
+  setCenter(c, { speak: false });
+  view.flyTo(c.lat, c.lon, c.zoom, 650);
 }
 
 // ---------------------------------------------------------------- needle tracks (Visual)

@@ -82,6 +82,24 @@ export class MapView {
     this.setCamera({ s, cu: m.u, cv: m.v });
   }
 
+  /** Glides the camera to a place (ease-out); instant with prefers-reduced-motion. */
+  flyTo(lat, lon, s, ms = 600) {
+    const m = geoToMap(lat, lon);
+    const to = clampCamera({ s, cu: m.u, cv: m.v });
+    if (reducedMotion() || ms <= 0) { this.setCamera(to); return; }
+    const from = { ...this.cam };
+    const t0 = performance.now();
+    cancelAnimationFrame(this._flyRaf);
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / ms);
+      const e = 1 - (1 - t) ** 3;
+      // Zoom moves in log space so it feels even; position follows linearly.
+      this.setCamera({ s: from.s * (to.s / from.s) ** e, cu: from.cu + (to.cu - from.cu) * e, cv: from.cv + (to.cv - from.cv) * e });
+      if (t < 1) this._flyRaf = requestAnimationFrame(step);
+    };
+    this._flyRaf = requestAnimationFrame(step);
+  }
+
   /** Keeps a geographic point in frame (used when the ring centre moves). */
   follow(lat, lon) {
     const m = geoToMap(lat, lon);
