@@ -90,6 +90,48 @@ export function describeAerosol(kind) {
 }
 
 /**
+ * Ocean temperature (SVS 3912, ECCO2 model, 19 June 2007). The lossless grid written by
+ * tools/prepare_media.py holds R = flow line present, G = temperature 0..32 deg C read from the
+ * colorbar by hue (brightness of the streaks does not change the value).
+ */
+export const OCEAN_RANGE_C = 32;
+
+export function oceanFields(img, lon0 = -180) {
+  const { width, height, data } = img;
+  const cover = new Uint8Array(width * height);
+  const temp = new Uint8Array(width * height);
+  for (let i = 0, p = 0; i < cover.length; i++, p += 4) {
+    if (data[p] > 127) { cover[i] = 255; temp[i] = data[p + 1]; }
+  }
+  return { cover: { width, height, lon0, values: cover }, temp: { width, height, lon0, values: temp } };
+}
+
+/** Mean temperature (deg C) where flow lines exist, from arc/point means of cover and temp. */
+export function oceanTemp(coverMean, tempMean) {
+  return coverMean > 0.02 ? (tempMean / coverMean) * OCEAN_RANGE_C : null;
+}
+
+export const OCEAN_LAYERS = [
+  // One instrument whose colour carries temperature: cold water is a dull, dark tone; warm
+  // water opens the filter into a bright, rich sawtooth. Land is silent.
+  { name: 'sea', type: 'sawtooth', octave: 0, cutoffLo: 220, cutoffHi: 4200, peak: 0.9 },
+];
+
+/** Ring voice -> sound for the ocean track: loudness = share of ocean flow on the arc,
+ * brightness = its mean temperature on a fixed 0..32 deg C scale. */
+export function oceanVoice(v, full = 0.5) {
+  const cover = v.levels.cover || 0;
+  const t = oceanTemp(cover, v.levels.temp || 0);
+  const gain = cover > 0 ? Math.min(1, cover / full) ** 0.7 : 0;
+  return { gains: { sea: t === null ? 0 : gain }, brightness: t === null ? 0 : t / OCEAN_RANGE_C, land: 0, temp: t };
+}
+
+export function describeTemp(t) {
+  if (t === null || t === undefined) return 'no ocean flow here';
+  return `sea surface about ${Math.round(t)} degrees Celsius`;
+}
+
+/**
  * Lightning (SVS 5011). Dots are yellow (median RGB 138,130,21); the base map, lines and
  * coverage shading are neutral grey (R = G = B), so "yellowness" separates them cleanly
  * (DATA_NOTES 3.3): R > 90, G > 70, B < G - 40.

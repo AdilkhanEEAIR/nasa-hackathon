@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   changeClass, dominant, describeChange, CHANGE_LAYERS, lightningLevel, strikeRate, LIGHTNING_COVERAGE_LAT,
+  oceanTemp, oceanVoice, describeTemp,
 } from '../js/tracks.js';
 import { readRing } from '../js/scan.js';
 import { buildField } from '../js/fields.js';
@@ -39,6 +40,18 @@ test('change layers are three distinct instruments', () => {
   assert.deepEqual(names, ['more', 'less', 'same']);
   const sig = new Set(CHANGE_LAYERS.map((l) => `${l.type}/${l.octave}`));
   assert.equal(sig.size, 3);
+});
+
+test('ocean: temperature from cover/temp means, land silent, warm is brighter', () => {
+  assert.equal(oceanTemp(0, 0), null);
+  assert.ok(Math.abs(oceanTemp(0.5, 0.5 * (24 / 32)) - 24) < 1e-9);
+  const land = oceanVoice({ levels: { cover: 0, temp: 0 } });
+  assert.equal(land.gains.sea, 0);
+  const cold = oceanVoice({ levels: { cover: 0.5, temp: 0.5 * (2 / 32) } });
+  const warm = oceanVoice({ levels: { cover: 0.5, temp: 0.5 * (29 / 32) } });
+  assert.equal(cold.gains.sea, warm.gains.sea, 'same amount of ocean, same loudness');
+  assert.ok(warm.brightness > cold.brightness, 'warm water sounds brighter');
+  assert.match(describeTemp(24.4), /about 24 degrees/);
 });
 
 test('lightning: yellow dots count, grey map and lines never do', () => {

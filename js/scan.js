@@ -72,11 +72,21 @@ export function motorLevels(ring) {
   return out;
 }
 
-/** Feeds one ring reading to an engine at time `when`; returns the land state for clicks. */
-function applyRing(engine, ring, prevLand, coastClicks, when) {
+/** Default voice mapping: per-layer gains, brightness from the strongest level. */
+export const defaultVoice = (v) => ({ gains: v.gains, brightness: Math.min(1, v.level / v.full), land: v.land });
+
+/**
+ * Feeds one ring reading to an engine at time `when`; returns the land state for clicks.
+ * `mapVoice` lets a track decide how arc values become gains and brightness.
+ */
+function applyRing(engine, ring, prevLand, coastClicks, when, mapVoice = defaultVoice) {
   const landNow = ring.map((v) => v.land >= 0.5);
   ring.forEach((v, k) => {
-    engine.setVoice(k, { gains: v.gains, brightness: Math.min(1, v.level / v.full), land: v.land }, when);
+    const m = mapVoice(v);
+    v.gains = m.gains;
+    v.gain = Math.max(0, ...Object.values(m.gains));
+    if (m.temp !== undefined) v.temp = m.temp;
+    engine.setVoice(k, m, when);
     if (coastClicks && prevLand && prevLand[k] !== landNow[k]) engine.click(panForBearing(v.bearing), when);
   });
   return landNow;
@@ -102,7 +112,8 @@ export class RingScan {
   }
 
   /** `fields`: one value grid or {layer: grid}; radius in km, duration in s. */
-  start({ fields, landField, center, radiusKm, durationS = 8, fullScale = ARC_FULL_SCALE }) {
+  start({ fields, landField, center, radiusKm, durationS = 8, fullScale = ARC_FULL_SCALE, mapVoice = defaultVoice }) {
+    this.mapVoice = mapVoice;
     this.stop(false);
     this.fields = fields;
     this.landField = landField;
@@ -120,7 +131,7 @@ export class RingScan {
       const t = Math.min(1, (performance.now() - this.t0) / (this.durationS * 1000));
       const r = this.radiusKm * (1 - t);
       const ring = readRing(this.fields, this.landField, this.center, r, this.fullScale);
-      this.prevLand = applyRing(this.engine, ring, this.prevLand, this.coastClicks, this.engine.now);
+      this.prevLand = applyRing(this.engine, ring, this.prevLand, this.coastClicks, this.engine.now, this.mapVoice);
       if (this.onStep) this.onStep({ t, radiusKm: r, ring });
       if (t >= 1) {
         this.running = false;
@@ -208,7 +219,7 @@ export class LiveRingScan {
  * Renders a complete scan offline with the same engine, instruments and step rate as the
  * live scan, and returns a WAV file as an ArrayBuffer.
  */
-export async function renderScanWav({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8, fullScale = ARC_FULL_SCALE, trim = 1 }) {
+export async function renderScanWav({ fields, landField, center, radiusKm, durationS, layers = DEFAULT_LAYERS, coastClicks = true, volume = 0.8, fullScale = ARC_FULL_SCALE, trim = 1, mapVoice = defaultVoice }) {
   const sampleRate = 44100;
   const tail = 2.6; // let the centre note and the reverb ring out
   const ctx = new OfflineAudioContext(2, Math.ceil((durationS + tail) * sampleRate), sampleRate);
@@ -221,7 +232,7 @@ export async function renderScanWav({ fields, landField, center, radiusKm, durat
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     const ring = readRing(fields, landField, center, radiusKm * (1 - t), fullScale);
-    prevLand = applyRing(engine, ring, prevLand, coastClicks, t * durationS);
+    prevLand = applyRing(engine, ring, prevLand, coastClicks, t * durationS, mapVoice);
   }
   engine.silenceVoices(durationS);
   const c = centreOf(fields, center);
