@@ -12,33 +12,32 @@
   <script>try { if (JSON.parse(localStorage.getItem('earthsonar.a11y') || '{}').large === true) document.documentElement.setAttribute('data-large', ''); } catch (e) { /* storage blocked */ }</script>
 </head>
 <body data-tab="home">
-  <!-- First stop for the keyboard and for screen readers: accessibility options. -->
-  <div class="a11y" id="a11y">
-    <button id="a11y-toggle" class="a11y__toggle" type="button" aria-expanded="false" aria-controls="a11y-panel" aria-keyshortcuts="Alt+A">
-      Accessibility<span class="sr-only"> options: voice guide, large text and high contrast. Shortcut Alt plus A.</span>
-      <kbd aria-hidden="true">Alt A</kbd>
-    </button>
-    <div id="a11y-panel" class="a11y__panel" role="group" aria-labelledby="a11y-title" hidden>
-      <p id="a11y-title" class="a11y__title">Accessibility</p>
-      <div class="check">
-        <input id="pref-voice" type="checkbox" aria-describedby="pref-voice-hint">
-        <label for="pref-voice">Voice guide</label>
-      </div>
-      <p id="pref-voice-hint" class="caption">A built-in voice for track intros, "Where am I" and scan results in the Jukebox. Off by default: screen readers already read every message.</p>
-      <div class="check">
-        <input id="pref-large" type="checkbox" aria-describedby="pref-large-hint">
-        <label for="pref-large">Large text and high contrast</label>
-      </div>
-      <p id="pref-large-hint" class="caption">Bigger text and buttons, stronger contrast, a thicker ring and focus outline.</p>
-      <p class="caption">Saved in this browser. Scan sound is the same in every mode.</p>
-    </div>
-  </div>
-  <a class="skip" href="#main">Skip to content</a>
-
   <header class="site-header">
     <div class="site-header__inner">
-      <a class="brand" href="#home">EarthSonar</a>
-      <nav aria-label="Sections">
+      <!-- First stop for the keyboard and for screen readers: accessibility options. -->
+      <div class="a11y" id="a11y">
+        <button id="a11y-toggle" class="a11y__toggle" type="button" aria-expanded="false" aria-controls="a11y-panel" aria-keyshortcuts="Alt+A">
+          Accessibility<span class="sr-only"> options: voice guide, large text and high contrast. Shortcut Alt plus A.</span>
+          <kbd aria-hidden="true">Alt A</kbd>
+        </button>
+        <div id="a11y-panel" class="a11y__panel" role="group" aria-labelledby="a11y-title" hidden>
+          <p id="a11y-title" class="a11y__title">Accessibility</p>
+          <div class="check">
+            <input id="pref-voice" type="checkbox" aria-describedby="pref-voice-hint">
+            <label for="pref-voice">Voice guide</label>
+          </div>
+          <p id="pref-voice-hint" class="caption">A built-in voice for track intros, "Where am I" and scan results in the Jukebox. Off by default: screen readers already read every message.</p>
+          <div class="check">
+            <input id="pref-large" type="checkbox" aria-describedby="pref-large-hint">
+            <label for="pref-large">Large text and high contrast</label>
+          </div>
+          <p id="pref-large-hint" class="caption">Bigger text and buttons, stronger contrast, a thicker ring and focus outline.</p>
+          <p class="caption">Saved in this browser. Scan sound is the same in every mode.</p>
+        </div>
+      </div>
+      <a class="skip" href="#main">Skip to content</a>
+      <a class="brand" href="#home"><span class="brand__mark" aria-hidden="true"></span>EarthSonar</a>
+      <nav class="site-nav" aria-label="Sections">
         <div class="tabs" id="tabs" role="tablist" aria-label="EarthSonar sections">
           <button class="tab" role="tab" id="tab-home" data-tab="home" aria-controls="panel-home" aria-selected="true">Home</button>
           <button class="tab" role="tab" id="tab-jukebox" data-tab="jukebox" aria-controls="panel-jukebox" aria-selected="false" tabindex="-1">Jukebox</button>
@@ -54,50 +53,44 @@
     <section class="panel panel--home" id="panel-home" role="tabpanel" aria-labelledby="tab-home" tabindex="-1">
       <div class="hero">
         <div class="hero__text">
-          <p class="eyebrow">NASA Space Apps Challenge 2026 · The Earth Information Jukebox</p>
+          <p class="eyebrow">NASA Space Apps Challenge 2026</p>
           <h1 class="display">Hear the planet change.</h1>
-          <p class="lede">EarthSonar turns NASA Earth Information Center visualizations into sound you can navigate, built first for blind and low-vision people.</p>
+          <p class="lede">NASA Earth visualizations turned into sound you can steer. Built for blind and low-vision listeners.</p>
           <div class="actions">
-            <a class="button button--primary" href="#jukebox">Open the jukebox</a>
-            <a class="button button--secondary" href="#demo">Watch the demo</a>
+            <a class="button button--primary button--large" href="#jukebox">Open the jukebox</a>
+            <a class="button button--secondary button--large" href="#demo">Watch the demo</a>
           </div>
         </div>
         <figure class="hero__figure">
-          <img data-src="media/nl/view-2023.85ad058ec8.webp" width="1920" height="1080" decoding="async" alt="NASA night-lights map of the world, 2023, with a ring of sound closing in on India.">
-          <svg class="hero__ring" viewBox="0 0 160 90" aria-hidden="true" focusable="false">
-            <circle cx="115" cy="33.75" r="12" />
-            <circle cx="115" cy="33.75" r="1.4" class="dot" />
-          </svg>
+          <img data-src="media/nl/view-2023.85ad058ec8.webp" width="1920" height="1080" decoding="async" alt="NASA night-lights map of the world, 2023. A ring of sound closes in on one city region after another; its arcs light up where it crosses lights.">
+          <canvas id="hero-canvas" class="hero__canvas" aria-hidden="true"></canvas>
+          <figcaption class="hero__caption">
+            <span class="hero__live"><span class="hero__dot" aria-hidden="true"></span>Night lights 2023 · ring around <strong id="hero-place">India</strong></span>
+            <button id="hero-listen" type="button" class="button button--small">Hear this ring</button>
+          </figcaption>
         </figure>
       </div>
 
-      <div class="cards">
-        <section class="card" aria-labelledby="home-tracks">
-          <h2 id="home-tracks" class="card__title">Four tracks</h2>
-          <ol class="plain-list numbered">
-            <li>Night Lights 2012–2023</li>
-            <li>Aerosols</li>
-            <li>Lightning from the space station</li>
-            <li>Ocean Temperature</li>
+      <ul class="rule-strip reveal" aria-label="The rule for every sound">
+        <li><strong>High notes</strong> come from the north</li>
+        <li><strong>Right ear</strong> is east</li>
+        <li><strong>Louder</strong> means more</li>
+        <li><strong>Timbre</strong> says what it is</li>
+      </ul>
+
+      <div class="home-grid">
+        <section class="reveal" aria-labelledby="home-tracks">
+          <h2 id="home-tracks" class="section-title">Four tracks</h2>
+          <ol class="track-chips">
+            <li><span class="track-chips__swatch" style="background: var(--data-lights)" aria-hidden="true"></span>Night Lights 2012–2023</li>
+            <li><span class="track-chips__swatch" style="background: var(--data-dust)" aria-hidden="true"></span>Aerosols</li>
+            <li><span class="track-chips__swatch" style="background: var(--data-flash)" aria-hidden="true"></span>Lightning from the space station</li>
+            <li><span class="track-chips__swatch" style="background: var(--data-cold)" aria-hidden="true"></span>Ocean Temperature</li>
           </ol>
         </section>
-        <section class="card" aria-labelledby="home-rule">
-          <h2 id="home-rule" class="card__title">One rule for every sound</h2>
-          <dl class="rule-list">
-            <div><dt>Pitch</dt><dd>north is high, south is low</dd></div>
-            <div><dt>Stereo</dt><dd>west in the left ear, east in the right</dd></div>
-            <div><dt>Loudness</dt><dd>how much is there</dd></div>
-            <div><dt>Timbre</dt><dd>what it is: lights, dust, storms, warm water</dd></div>
-          </dl>
-        </section>
-        <section class="card" aria-labelledby="home-access">
-          <h2 id="home-access" class="card__title">Accessible by design</h2>
-          <ul class="plain-list">
-            <li>Works with the keyboard alone</li>
-            <li>Screen reader and spoken guide</li>
-            <li>Optional controller you can feel</li>
-            <li>Every sound follows a published rule</li>
-          </ul>
+        <section class="reveal" aria-labelledby="home-access">
+          <h2 id="home-access" class="section-title">Made to work without a screen</h2>
+          <p class="home-copy">Keyboard only, live updates for screen readers, an optional voice guide, and a controller you can feel.</p>
         </section>
       </div>
     </section>
@@ -137,9 +130,9 @@
             <button id="btn-where" type="button" class="button" aria-keyshortcuts="W">Where am I? <kbd>W</kbd></button>
             <button id="btn-explore" type="button" class="button" aria-pressed="false" aria-keyshortcuts="E">Explore <kbd>E</kbd></button>
             <button id="btn-wav" type="button" class="button" aria-keyshortcuts="S">Save as WAV <kbd>S</kbd></button>
-            <button id="btn-stop" type="button" class="button button--quiet" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
+            <button id="btn-stop" type="button" class="button button--quiet button--stop" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
           </div>
-          <p id="wav-note" class="note" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2 and 4 can be saved.</p>
+          <p id="wav-note" class="note note--warn" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2 and 4 can be saved.</p>
 
           <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
 

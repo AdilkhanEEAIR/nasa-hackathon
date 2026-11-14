@@ -1,4 +1,6 @@
 /* EarthSonar design tokens — the only place where raw colours, sizes and timings live.
+   Mood: a night sky over Earth. Deep blue base, one yellow accent, red only for stop and
+   warnings. (Colour mood only: no agency logos, emblems or lettering are used anywhere.)
    Three layers: primitives (raw values) -> semantic (purpose) -> component (where used).
    Interface colours and data colours are separate sets and never stand in for each other.
    tests/tokens.test.js fails if a colour literal appears anywhere else in the site. */
@@ -6,63 +8,73 @@
 :root {
   color-scheme: dark;
 
-  /* ------------------------------------------------------------------ primitives: neutrals
-     Cool-tinted greys (hue ~215); never pure black or pure white. */
-  --gray-950: #0B0E12;
-  --gray-900: #0E1116;
-  --gray-850: #161B22;
-  --gray-800: #1C222B;
-  --gray-700: #2A313C;
-  --gray-600: #3A4350;
-  --gray-400: #9AA4B2;
-  --gray-200: #C9CED6;
-  --gray-100: #E6E8EB;
+  /* ------------------------------------------------------------------ primitives: blues
+     Deep night-sky blues (hue ~220): the background sits well below the brand blue, never
+     black. Mist tones for text are blue-tinted, never pure white. */
+  --navy-950: #050E22;
+  --navy-900: #08183A;
+  --navy-850: #0D2250;
+  --navy-800: #132C63;
+  --navy-700: #24427C;
+  --navy-600: #3A5A96;
+  --blue-500: #0B3D91;   /* the brand tone: selected and hovered planes only */
+  --mist-400: #A3B4D2;
+  --mist-200: #C8D3E8;
+  --mist-100: #EAF0FA;
 
-  /* ------------------------------------------------------------------ primitives: accent
-     One warm amber, like city lights at night. Used sparingly. */
-  --amber-400: #EBBE6E;
-  --amber-500: #E0A84A;
-  --amber-950: #1A1206;
+  /* ------------------------------------------------------------------ primitives: accents
+     Yellow is the one main accent (primary action, selected tab, focus). Red is rare and
+     only marks stop, recording and warnings. Both are softened from full saturation and
+     never fill large areas. */
+  --sun-400: #F6D684;
+  --sun-500: #EFC457;
+  --sun-ink: #071330;
+  --red-500: #F0604A;
 
   /* ------------------------------------------------------------------ primitives: data
-     Muted versions of the Okabe–Ito colour-blind-safe set, balanced in lightness so no
-     category shouts. Checked for deuteranopia and protanopia in tests/tokens.test.js. */
-  --dp-yellow: #D8C27F;
-  --dp-orange: #D98C5F;
-  --dp-purple: #BC84AE;
-  --dp-sky: #9CC9E8;
-  --dp-green: #5FA38A;
-  --dp-blue: #6F9CC6;
-  --dp-neutral: #CDD2DA;
-  --dp-quiet: #7E8794;
-  --dp-nodata: #4A5260;
-  --dp-flash: #F1ECDA;
+     Muted, colour-blind-checked set, balanced in lightness and kept clear of the interface
+     red, blue and yellow (tests/tokens.test.js checks contrast on the blue background,
+     deuteranopia, protanopia and tritanopia). Cold water is cyan, not interface blue; warm
+     water is a soft salmon, not interface red or yellow. */
+  --dp-yellow: #E6CB7C;
+  --dp-orange: #E5915F;
+  --dp-pink: #CD8FC4;
+  --dp-sky: #9DD0EE;
+  --dp-green: #6DB896;
+  --dp-cyan: #7CCBDA;
+  --dp-salmon: #E6957F;
+  --dp-neutral: #CED6E4;
+  --dp-quiet: #8794AE;
+  --dp-nodata: #56688C;
+  --dp-flash: #F4ECD6;
 
   /* ------------------------------------------------------------------ semantic: interface */
-  --ui-bg: var(--gray-900);
-  --ui-bg-sunken: var(--gray-950);
-  --ui-surface: var(--gray-850);
-  --ui-surface-2: var(--gray-800);
-  --ui-border: var(--gray-700);
-  --ui-border-strong: var(--gray-600);
-  --ui-text: var(--gray-100);
-  --ui-text-muted: var(--gray-400);
-  --ui-text-soft: var(--gray-200);
-  --ui-accent: var(--amber-500);
-  --ui-accent-hover: var(--amber-400);
-  --ui-on-accent: var(--amber-950);
-  --ui-focus: var(--amber-500);
-  --ui-scrim: rgba(11, 14, 18, 0.82);
+  --ui-bg: var(--navy-900);
+  --ui-bg-sunken: var(--navy-950);
+  --ui-surface: var(--navy-850);
+  --ui-surface-2: var(--navy-800);
+  --ui-border: var(--navy-700);
+  --ui-border-strong: var(--navy-600);
+  --ui-brand: var(--blue-500);
+  --ui-text: var(--mist-100);
+  --ui-text-muted: var(--mist-400);
+  --ui-text-soft: var(--mist-200);
+  --ui-accent: var(--sun-500);
+  --ui-accent-hover: var(--sun-400);
+  --ui-on-accent: var(--sun-ink);
+  --ui-focus: var(--sun-500);
+  --ui-danger: var(--red-500);
+  --ui-scrim: rgba(5, 14, 34, 0.82);
 
   /* ------------------------------------------------------------------ semantic: data */
   --data-lights: var(--dp-yellow);
   --data-land: var(--dp-quiet);
   --data-smoke: var(--dp-orange);
-  --data-dust: var(--dp-purple);
+  --data-dust: var(--dp-pink);
   --data-salt: var(--dp-sky);
   --data-sulfate: var(--dp-green);
-  --data-cold: var(--dp-blue);
-  --data-warm: var(--dp-orange);
+  --data-cold: var(--dp-cyan);
+  --data-warm: var(--dp-salmon);
   --data-flash: var(--dp-yellow);
   --data-strike: var(--dp-flash);
   --data-rumble: var(--dp-neutral);
@@ -70,12 +82,17 @@
   --data-tactile: var(--dp-sky);
 
   /* ------------------------------------------------------------------ component: map overlay
-     Thin and translucent: the NASA map stays the main thing on screen. */
-  --overlay-ring: rgba(230, 232, 235, 0.42);
-  --overlay-marker: var(--gray-100);
-  --overlay-label: rgba(230, 232, 235, 0.82);
-  --overlay-label-halo: rgba(11, 14, 18, 0.7);
-  --overlay-border: rgba(230, 232, 235, 0.28);
+     Thin and translucent: the NASA map stays the main thing on screen. The trail keeps a few
+     fading copies of the ring behind it; note flashes bloom and fade where a voice gets loud. */
+  --overlay-ring: rgba(234, 240, 250, 0.45);
+  --overlay-marker: var(--mist-100);
+  --overlay-label: rgba(234, 240, 250, 0.85);
+  --overlay-label-halo: rgba(5, 14, 34, 0.72);
+  --overlay-border: rgba(234, 240, 250, 0.28);
+  --overlay-trail: rgba(234, 240, 250, 0.16);
+  --overlay-trail-count: 6;
+  --overlay-flash-size: 10;
+  --dur-flash: 520ms;
   --overlay-ring-width: 1.25;
   --overlay-arc-min: 1.5;
   --overlay-arc-max: 4;
@@ -84,10 +101,10 @@
   --overlay-label-size: 12;
 
   /* ------------------------------------------------------------------ component: voice dial */
-  --dial-guide: var(--gray-700);
-  --dial-letter: var(--gray-200);
-  --dial-caption: var(--gray-400);
-  --dial-bar-track: var(--gray-800);
+  --dial-guide: var(--navy-700);
+  --dial-letter: var(--mist-200);
+  --dial-caption: var(--mist-400);
+  --dial-bar-track: var(--navy-800);
   --dial-voice-width: 7;
 
   /* ------------------------------------------------------------------ typography
@@ -100,6 +117,7 @@
   --text-xl: 1.625rem;    /* 26 */
   --text-2xl: 2.25rem;    /* 36 */
   --text-3xl: 3.25rem;    /* 52 */
+  --text-4xl: 4.5rem;     /* 72: the Home headline */
   --leading-tight: 1.15;
   --leading-body: 1.6;
   --weight-regular: 400;
@@ -127,7 +145,7 @@
   --border-width: 1px;
   --focus-width: 3px;
   --focus-offset: 3px;
-  --shadow-1: 0 1px 2px rgba(4, 7, 12, 0.5), 0 6px 20px rgba(4, 7, 12, 0.32);
+  --shadow-1: 0 1px 2px rgba(2, 6, 18, 0.55), 0 8px 24px rgba(2, 6, 18, 0.4);
 
   /* ------------------------------------------------------------------ component: layout */
   --layout-tracks: 16rem;
@@ -138,7 +156,6 @@
   --loadbar-height: 3px;
   --swatch-size: 0.75rem;
   --check-size: 1.25rem;
-  --hero-ring-width: 0.6;
 
   /* ------------------------------------------------------------------ motion
      Restraint: keyboard-driven changes are instant; only what is sounding moves. */
@@ -148,6 +165,10 @@
   --dur-ripple: 600ms;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --press-scale: 0.97;
+  --dur-panel: 220ms;      /* tab and track change by pointer */
+  --dur-reveal: 480ms;     /* Home blocks on first scroll into view */
+  --reveal-shift: 14px;
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /* ------------------------------------------------------------------ mode: large text and high contrast
@@ -161,21 +182,23 @@
   --text-xl: 1.875rem;
   --text-2xl: 2.5rem;
   --text-3xl: 3.5rem;
-  --ui-text-muted: var(--gray-200);
-  --ui-text-soft: var(--gray-100);
-  --ui-border: var(--gray-600);
-  --ui-border-strong: var(--gray-400);
+  --text-4xl: 4.75rem;
+  --ui-text-muted: var(--mist-200);
+  --ui-text-soft: var(--mist-100);
+  --ui-border: var(--navy-600);
+  --ui-border-strong: var(--mist-400);
   --focus-width: 5px;
   --focus-offset: 4px;
   --target-min: 3.5rem;
   --check-size: 1.6rem;
-  --overlay-ring: rgba(230, 232, 235, 0.85);
+  --overlay-ring: rgba(234, 240, 250, 0.85);
+  --overlay-trail: rgba(234, 240, 250, 0.3);
   --overlay-ring-width: 2.75;
   --overlay-arc-min: 3;
   --overlay-arc-max: 7;
-  --overlay-label: rgba(230, 232, 235, 0.95);
+  --overlay-label: rgba(234, 240, 250, 0.95);
   --overlay-label-size: 16;
   --dial-voice-width: 10;
-  --dial-letter: var(--gray-100);
-  --dial-caption: var(--gray-200);
+  --dial-letter: var(--mist-100);
+  --dial-caption: var(--mist-200);
 }

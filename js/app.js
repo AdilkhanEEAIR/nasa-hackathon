@@ -636,7 +636,8 @@ function renderLegend() {
   }
 }
 
-async function selectTrack(id) {
+/** `fade` (pointer clicks only) cross-fades the map; keyboard track changes are instant. */
+async function selectTrack(id, { fade = false } = {}) {
   const t = TRACKS.find((x) => x.id === id);
   if (!t) return;
   if (!t.ready) {
@@ -669,7 +670,7 @@ async function selectTrack(id) {
   $('wav-note').hidden = !isLt;
   $('btn-sweep').querySelector('.btn-label').textContent = yearsOnly ? 'All years' : 'Ring summary';
   await currentFields();
-  showFrame();
+  showFrame({ fade });
   updateDescription();
   // Short spoken introduction: what the data is and how each state sounds.
   announce(`Track ${TRACKS.indexOf(t) + 1}. ${t.intro || `${t.title}. ${t.blurb}`} Press Space to scan.`, { say: 'intro' });
@@ -1143,7 +1144,7 @@ function renderTracks() {
       <span class="meta"><span class="t-title">${t.title}</span>
       <span class="t-blurb">${t.blurb}</span>
       ${t.ready ? '' : '<span class="badge">coming next</span>'}</span>`;
-    b.addEventListener('click', () => selectTrack(t.id));
+    b.addEventListener('click', (e) => selectTrack(t.id, { fade: e.detail > 0 }));
     li.appendChild(b);
     list.appendChild(li);
   });
@@ -1436,6 +1437,19 @@ window.earthsonar = { engine, scan, state, view, controller, onControllerMessage
 
 // The site shell (js/site.js) imports this module only when the Jukebox or Demo tab opens,
 // so the landing page never downloads player code or map data.
+/**
+ * Called by Home's "Hear this ring": night lights 2023 around the place the Home map was
+ * circling, scanned at once (the click that asked for it is the user gesture for sound).
+ */
+export async function playAt(place) {
+  await ready;
+  await ensureSound();
+  if (state.track !== 'nightlights') await selectTrack('nightlights');
+  await setYear(2023, { speak: false });
+  applyPreset({ ...place, key: '' }, { speak: false });
+  if (!scan.running) toggleScan();
+}
+
 wire();
 export const ready = init().catch((err) => {
   console.error(err);

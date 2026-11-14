@@ -150,3 +150,34 @@ test('data colours are muted: no channel-maxed neon, similar lightness across a 
     }
   }
 });
+
+test('data colours read on the blue background (3:1 for marks, legends and the dial)', () => {
+  const data = Object.keys(raw).filter((k) => k.startsWith('data-') && k !== 'data-nodata');
+  assert.ok(data.length >= 10);
+  for (const d of data) {
+    for (const bg of ['ui-bg', 'ui-bg-sunken', 'ui-surface']) {
+      const c = contrast(hexToRgb(resolve(d)), hexToRgb(resolve(bg)));
+      assert.ok(c >= 3, `--${d} on --${bg}: ${c.toFixed(2)}`);
+    }
+  }
+});
+
+test('red is rare and readable: stop and warnings meet AA on the background', () => {
+  assert.ok(contrast(hexToRgb(resolve('ui-danger')), hexToRgb(resolve('ui-bg'))) >= 4.5);
+  assert.ok(contrast(hexToRgb(resolve('ui-danger')), hexToRgb(resolve('ui-surface-2'))) >= 3);
+  const css = readFileSync(join(ROOT, 'css/style.css'), 'utf8');
+  const uses = (css.match(/var\(--ui-danger\)/g) || []).length;
+  assert.ok(uses >= 1 && uses <= 6, `red used ${uses} times in style.css`);
+});
+
+test('warm and cold water never clash with the interface red, blue or yellow', () => {
+  const MIN = 15;
+  for (const water of ['data-warm', 'data-cold']) {
+    for (const ui of ['ui-danger', 'ui-brand', 'ui-accent']) {
+      for (const [kind, m] of Object.entries(CVD)) {
+        const d = deltaE(toLab(hexToRgb(resolve(water)), m), toLab(hexToRgb(resolve(ui)), m));
+        assert.ok(d >= MIN, `--${water} vs --${ui} (${kind}) ΔE ${d.toFixed(1)}`);
+      }
+    }
+  }
+});

@@ -19,6 +19,12 @@ export class MapView {
     this.ring = null;
     this.center = null;
     this.ripple = null;
+    this.trail = [];       // a few earlier rings, drawn fading behind the current one
+    this.flashes = [];     // short blooms where a voice has just become loud
+    this._lastFlash = new Float64Array(32);
+    this._prevGain = new Float32Array(32);
+    this._ringSteps = 0;
+    this._flashRaf = 0;
     this.cam = { ...HOME };
     this.onClick = onClick;
     this.onCamera = onCamera;
@@ -177,9 +183,47 @@ export class MapView {
     this.draw();
   }
 
+  /**
+   * The ring as it is heard. Behind it, a short trail of earlier rings fades out; where a
+   * voice turns loud (crosses 0.55 from below) a note flash blooms and decays. Flashes are
+   * limited to one per voice every 400 ms (under 3 per second anywhere, the photosensitivity
+   * limit) and are skipped entirely with prefers-reduced-motion.
+   */
   setRing(ring) {
+    const still = reducedMotion();
+    if (!ring) {
+      this.trail = [];
+      this._prevGain.fill(0);
+    } else if (!still) {
+      // Keep every fourth step: evenly spaced ghosts rather than a smear.
+      if (this.ring && this._ringSteps++ % 4 === 0) {
+        this.trail.unshift(this.ring.flatMap((v) => v.points));
+        this.trail.length = Math.min(this.trail.length, num('--overlay-trail-count'));
+      }
+      const now = performance.now();
+      ring.forEach((v, k) => {
+        if (v.gain > 0.55 && this._prevGain[k] <= 0.55 && now - this._lastFlash[k] > 400) {
+          this._lastFlash[k] = now;
+          const mid = v.points[Math.floor(v.points.length / 2)];
+          this.flashes.push({ lat: mid.lat, lon: mid.lon, color: v.color, t0: now });
+        }
+        this._prevGain[k] = v.gain;
+      });
+    }
     this.ring = ring;
     this.draw();
+    if (this.flashes.length) this._animateFlashes();
+  }
+
+  /** Lets flashes finish fading after the ring has stopped moving. */
+  _animateFlashes() {
+    if (this._flashRaf) return;
+    const tick = () => {
+      this._flashRaf = 0;
+      this.draw();
+      if (this.flashes.length) this._flashRaf = requestAnimationFrame(tick);
+    };
+    this._flashRaf = requestAnimationFrame(tick);
   }
 
   /** Optional visual layer: country borders and city names (Natural Earth). Never sonified. */
@@ -258,6 +302,16 @@ export class MapView {
 
     if (this.labels) this._drawLabels();
 
+    if (this.ring && this.trail.length) {
+      ctx.lineWidth = num('--overlay-ring-width') * k;
+      ctx.strokeStyle = token('--overlay-trail');
+      this.trail.forEach((points, i) => {
+        ctx.globalAlpha = 1 - i / (this.trail.length + 1);
+        this._polyline(points, true);
+      });
+      ctx.globalAlpha = 1;
+    }
+
     if (this.ring) {
       // Thin and translucent: the NASA map stays the main thing on screen.
       ctx.lineCap = 'round';
@@ -276,6 +330,25 @@ export class MapView {
         ctx.strokeStyle = v.color && v.color.startsWith('#') ? v.color : token(v.color || '--data-lights');
         ctx.globalAlpha = aMin + (aMax - aMin) * v.gain;
         this._polyline(v.points, false);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    if (this.flashes.length) {
+      const now = performance.now();
+      const dur = ms('--dur-flash');
+      const size = num('--overlay-flash-size');
+      this.flashes = this.flashes.filter((f) => now - f.t0 < dur);
+      for (const f of this.flashes) {
+        // Ease-out: a quick bloom, then a long fade, like a plucked note.
+        const t = (now - f.t0) / dur;
+        const e = 1 - (1 - t) ** 3;
+        const q = this._project(f);
+        ctx.globalAlpha = 0.85 * (1 - e);
+        ctx.fillStyle = f.color && f.color.startsWith('#') ? f.color : token(f.color || '--data-lights');
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, (3 + size * e) * k, 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
     }

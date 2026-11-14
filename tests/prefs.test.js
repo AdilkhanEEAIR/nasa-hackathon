@@ -69,3 +69,9 @@ test('the Accessibility switch is the first focusable element and has a clear na
   assert.match(first[0], /aria-keyshortcuts="Alt\+A"/);
   assert.match(body, /Accessibility<span class="sr-only"> options: voice guide, large text and high contrast/);
 });
+
+test('the tab shell wires the Accessibility menu exactly once', () => {
+  const site = read('js/site.js');
+  assert.equal((site.match(/function wireAccessibility\(/g) || []).length, 1);
+  assert.equal((site.match(/^wireAccessibility\(\);/gm) || []).length, 1);
+});
