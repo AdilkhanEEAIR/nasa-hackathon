@@ -310,24 +310,5 @@
       "y1": 0.98
     },
     "when": "model frame dated 2021-11-29 in the file name"
-  },
-  "currents": {
-    "source": "NASA SVS 5425",
-    "class": "visual",
-    "mode": "sweep",
-    "width": 1920,
-    "height": 1080,
-    "view": {
-      "webp": "media/currents/view-perpetual-ocean2-093.7f1e57d2b3.webp",
-      "jpg": "media/currents/view-perpetual-ocean2-093.8006205845.jpg"
-    },
-    "sound": "media/currents/sound-perpetual-ocean2-093.f9381a7476.png",
-    "needle": {
-      "x0": 0.225,
-      "x1": 0.775,
-      "y0": 0.01,
-      "y1": 0.99
-    },
-    "when": "still of the 'beauty' version"
   }
 }

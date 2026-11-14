@@ -21,3 +21,5 @@ README.md
 .env.*
 build/
 *.mjs
+# Disabled track (Ocean Currents, SVS 5425): media kept in the repository, not deployed.
+media/currents/

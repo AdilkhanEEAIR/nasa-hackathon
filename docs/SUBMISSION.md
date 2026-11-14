@@ -18,9 +18,9 @@ Sixth Sense — Hear and feel Earth data
 ## High-Level Project Summary
 
 Sixth Sense is a web jukebox that turns NASA Earth Information Center visualizations into live
-sound, so people who cannot see a map can still explore it. You pick one of nine tracks (night
+sound, so people who cannot see a map can still explore it. You pick one of eight tracks (night
 lights 2012–2023, aerosols, lightning from the ISS, ocean temperature, near-surface wind, forest
-height, carbon dioxide, an atmospheric river, ocean currents) and a place. A
+height, carbon dioxide, an atmospheric river) and a place. A
 "ring of sound" closes in on that place:
 - high notes come from the north and low notes from the south;
 - the left ear is west and the right ear is east;
@@ -62,11 +62,10 @@ as live, data-driven sound:
 6. **Forest Height (GEDI)**, 7. **Carbon Dioxide (DYAMOND)**: rotating globes played with a
    **needle**, a fixed line down the middle of the globe read north (high) to south (low):
    wooden knocks for forest, a thickening hum for CO2.
-8. **Atmospheric River** and 9. **Ocean Currents (Perpetual Ocean 2)**: single still frames
-   swept by the needle: water drops, and soft tones sliding like flowing water.
+8. **Atmospheric River**: a single still frame swept by the needle: water drops.
 
 **Two honest classes.** Tracks 1–5 are *Data-true*: values are read back from the
-visualization's own colour scale. Tracks 6–9 are *Visual*: they sonify the picture
+visualization's own colour scale. Tracks 6–8 are *Visual*: they sonify the picture
 (brightness, hue, motion), not calibrated measurements. The class is shown in the track list
 and said in every intro.
 
@@ -193,11 +192,7 @@ Information Center collection listed in the challenge resources.
    https://svs.gsfc.nasa.gov/4960/. Credit: NASA's Scientific Visualization Studio
    (Greg Shirah, Horace Mitchell, Cindy Starr, Kel Elkins; scientists Allison Collow, Natalie
    Thomas, Michael Bosilovich). Data: MERRA-2. *Use:* one still frame; Visual.
-9. **Perpetual Ocean 2: Western Boundary Currents**, SVS ID 5425,
-    https://svs.gsfc.nasa.gov/5425/. Credit: NASA's Scientific Visualization Studio (Greg
-    Shirah, Horace Mitchell; scientists Atousa Saberi, Josh Willis). Data: ECCO. *Use:* one
-    still frame; Visual.
-10. **Method reference:** Data Sonification: Caldwell 73, SVS ID 13786,
+9. **Method reference:** Data Sonification: Caldwell 73, SVS ID 13786,
    https://svs.gsfc.nasa.gov/13786/ (in the challenge resources). The ring scan also follows
    the principle of NASA's RS Puppis sonification (SVS 14260); no part of it is reused.
 
@@ -211,8 +206,7 @@ Information Center collection listed in the challenge resources.
 - **Base maps** inside the NASA frames: Natural Earth (public domain), as credited by SVS.
 - **Optional map labels** (key L, visual only, never sonified): Natural Earth 1:110m country
   borders and populated places (public domain, naturalearthdata.com).
-- **Used as Visual, not Data-true:** SVS 5196 (CO₂), 4950 (GEDI), 4960 (atmospheric river)
-  and 5425 (Perpetual Ocean 2). SVS 5533 (air quality) was reviewed and is not used. Their colours cannot be turned into values
+- **Used as Visual, not Data-true:** SVS 5196 (CO₂), 4950 (GEDI), and 4960 (atmospheric river). SVS 5425 (Perpetual Ocean 2) was prepared but is disabled on the site. SVS 5533 (air quality) was reviewed and is not used. Their colours cannot be turned into values
   honestly (no numeric scales, transparency, shading, 3D views), so they sonify the picture and
   say so. Details and checksums: docs/DATA_NOTES.md sections 8–13.
 - **Software (all open):**
@@ -251,7 +245,7 @@ original.
 | Demo hosted externally, open link, no login | ⏳ **you** upload the recording (YouTube unlisted/public, or Drive "anyone with the link") |
 | Final project link open without login | ✅ https://earthsonar.vercel.app (checked without cookies) |
 | Everything in English | ✅ site, README, DATA_NOTES, PROTOCOL, these texts, slides |
-| NASA data used | ✅ 8 SVS visualizations (5 Data-true and 4 Visual tracks) |
+| NASA data used | ✅ 8 SVS visualizations (5 Data-true and 3 Visual tracks) |
 | AI use declared; AI images/video watermarked | ✅ declared above. No AI images or video exist, so no watermark is needed |
 | No NASA logo/insignia | ✅ none in the site, slides or video |
 | No personal data, no ads | ✅ |

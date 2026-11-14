@@ -49,7 +49,7 @@ const CLASS_TRACKS = {
 const classTrack = () => CLASS_TRACKS[state.track] || null;
 const isNeedle = () => NEEDLE_TRACKS.has(state.track);
 
-export const TRACKS = [
+const ALL_TRACKS = [
   { id: 'nightlights', title: 'Night Lights 2012–2023', blurb: 'A decade of cities at night, one year at a time.', ready: true,
     intro: 'Night Lights, 2012 to 2023: yearly maps of light at night from NASA Black Marble. Warm bell tones are city lights; louder and brighter means more light. A soft muffled hum is unlit land, and silence is water. Page Up and Page Down change the year.' },
   { id: 'aerosols', title: 'Aerosols', blurb: 'Dust, smoke, sea salt and sulfate in one day of air.', ready: true,
@@ -69,6 +69,11 @@ export const TRACKS = [
   { id: 'currents', title: 'Ocean Currents (Perpetual Ocean 2)', blurb: 'White streaks of ocean currents on a globe, ECCO model (still frame).', ready: true,
     intro: 'Ocean Currents from Perpetual Ocean 2: one still frame of a globe where white streaks trace the currents of NASA\'s ECCO ocean model. A needle sweeps across the globe from west to east, north high, south low. Where it crosses bright current streaks you hear soft tones sliding gently down, like flowing water: the Gulf Stream and the equatorial currents stand out. Land and snow are silent. Space plays the sweep.' },
 ];
+
+// Disabled tracks keep their code in the repository but are left out of the site: the list,
+// the Shift+digit keys, the intros, the manifest and the deployment.
+const DISABLED_TRACKS = new Set(['currents']);
+export const TRACKS = ALL_TRACKS.filter((t) => !DISABLED_TRACKS.has(t.id));
 
 // Each track has its own centre presets (js/tracks.js); night lights are the starting set.
 export const PRESETS = TRACK_PRESETS.nightlights;
