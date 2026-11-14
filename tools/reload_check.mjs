@@ -1,5 +1,5 @@
 // Opens the Jukebox and reloads it N times in a row (normal browser cache, like a person
-// pressing F5), checking that every load reaches "ready" and the map is drawn. A load that
+// pressing F5), checking that every load reaches "ready" and the visible map image is drawn. A load that
 // takes longer than the timeout counts as a hang.
 //
 //   node tools/reload_check.mjs https://earthsonar.vercel.app/ 10
@@ -26,7 +26,7 @@ try {
     if (i === 0) await c.send('Page.navigate', { url: `${BASE}#jukebox` });
     else await c.send('Page.reload', { ignoreCache: false });
     await sleep(100);
-    const ms = await c.until("document.body && document.body.dataset.ready === 'true' && document.getElementById('map-a').complete && document.getElementById('map-a').naturalWidth > 0", TIMEOUT);
+    const ms = await c.until("document.body && document.body.dataset.ready === 'true' && (() => { const f = document.querySelector('.map-img.front'); return f && f.complete && f.naturalWidth > 0; })()", TIMEOUT);
     const ok = ms !== null;
     if (!ok) hangs++;
     times.push(ok ? Date.now() - t0 : null);

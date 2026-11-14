@@ -350,6 +350,9 @@ loading starts the scan as soon as the data arrives.
   `manifest.json` is re-checked.
 - Long loads show a progress bar, and the live region announces them.
 - Home's live ring loads its own small grid (29 KB) only while Home is shown.
+- **Reload check (14 Nov 2026, production):** the Jukebox opened and reloaded 10 times in a
+  row ([`tools/reload_check.mjs`](tools/reload_check.mjs)): 10/10 ready, no hang, median
+  0.94 s, slowest 2.61 s (the first, cold load), no page errors.
 
 ## Design system
 
