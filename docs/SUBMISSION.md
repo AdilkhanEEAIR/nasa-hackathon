@@ -18,9 +18,9 @@ EarthSonar
 ## High-Level Project Summary
 
 EarthSonar is a web jukebox that turns NASA Earth Information Center visualizations into live
-sound, so people who cannot see a map can still explore it. You pick one of ten tracks (night
+sound, so people who cannot see a map can still explore it. You pick one of nine tracks (night
 lights 2012–2023, aerosols, lightning from the ISS, ocean temperature, near-surface wind, forest
-height, carbon dioxide, air quality, an atmospheric river, ocean currents) and a place. A
+height, carbon dioxide, an atmospheric river, ocean currents) and a place. A
 "ring of sound" closes in on that place:
 - high notes come from the north and low notes from the south;
 - the left ear is west and the right ear is east;
@@ -62,12 +62,11 @@ as live, data-driven sound:
 6. **Forest Height (GEDI)**, 7. **Carbon Dioxide (DYAMOND)**: rotating globes played with a
    **needle**, a fixed line down the middle of the globe read north (high) to south (low):
    wooden knocks for forest, a thickening hum for CO2.
-8. **Air Quality (GEOS-CF)**: a ring inside one pollutant strip, heard as a hoarse rasp.
-9. **Atmospheric River** and 10. **Ocean Currents (Perpetual Ocean 2)**: single still frames
+8. **Atmospheric River** and 9. **Ocean Currents (Perpetual Ocean 2)**: single still frames
    swept by the needle: water drops, and soft tones sliding like flowing water.
 
 **Two honest classes.** Tracks 1–5 are *Data-true*: values are read back from the
-visualization's own colour scale. Tracks 6–10 are *Visual*: they sonify the picture
+visualization's own colour scale. Tracks 6–9 are *Visual*: they sonify the picture
 (brightness, hue, motion), not calibrated measurements. The class is shown in the track list
 and said in every intro.
 
@@ -190,18 +189,15 @@ Information Center collection listed in the challenge resources.
    - Credit: NASA's Scientific Visualization Studio. Visualizers: AJ Christensen, Greg Shirah,
      Helen-Nicole Kostis, Mark SubbaRao. Scientists: Lesley Ott, Brad Weir, William Putman,
      Tomohiro Oda. Data: DYAMOND. *Use:* the globe-orbit movie, read by the needle; Visual.
-8. **Air Quality Model Runs**, SVS ID 5533, https://svs.gsfc.nasa.gov/5533/.
-   - Credit: NASA's Scientific Visualization Studio. Visualizers: Helen-Nicole Kostis, Joseph V.
-     Ardizzone. Scientist: Lesley Ott. Data: GEOS-CF. *Use:* first frame of the map; Visual.
-9. **A 3D View of an Atmospheric River from an Earth System Model**, SVS ID 4960,
+8. **A 3D View of an Atmospheric River from an Earth System Model**, SVS ID 4960,
    https://svs.gsfc.nasa.gov/4960/. Credit: NASA's Scientific Visualization Studio
    (Greg Shirah, Horace Mitchell, Cindy Starr, Kel Elkins; scientists Allison Collow, Natalie
    Thomas, Michael Bosilovich). Data: MERRA-2. *Use:* one still frame; Visual.
-10. **Perpetual Ocean 2: Western Boundary Currents**, SVS ID 5425,
+9. **Perpetual Ocean 2: Western Boundary Currents**, SVS ID 5425,
     https://svs.gsfc.nasa.gov/5425/. Credit: NASA's Scientific Visualization Studio (Greg
     Shirah, Horace Mitchell; scientists Atousa Saberi, Josh Willis). Data: ECCO. *Use:* one
     still frame; Visual.
-11. **Method reference:** Data Sonification: Caldwell 73, SVS ID 13786,
+10. **Method reference:** Data Sonification: Caldwell 73, SVS ID 13786,
    https://svs.gsfc.nasa.gov/13786/ (in the challenge resources). The ring scan also follows
    the principle of NASA's RS Puppis sonification (SVS 14260); no part of it is reused.
 
@@ -215,8 +211,8 @@ Information Center collection listed in the challenge resources.
 - **Base maps** inside the NASA frames: Natural Earth (public domain), as credited by SVS.
 - **Optional map labels** (key L, visual only, never sonified): Natural Earth 1:110m country
   borders and populated places (public domain, naturalearthdata.com).
-- **Used as Visual, not Data-true:** SVS 5196 (CO₂), 4950 (GEDI), 5533 (air quality), 4960
-  (atmospheric river) and 5425 (Perpetual Ocean 2). Their colours cannot be turned into values
+- **Used as Visual, not Data-true:** SVS 5196 (CO₂), 4950 (GEDI), 4960 (atmospheric river)
+  and 5425 (Perpetual Ocean 2). SVS 5533 (air quality) was reviewed and is not used. Their colours cannot be turned into values
   honestly (no numeric scales, transparency, shading, 3D views), so they sonify the picture and
   say so. Details and checksums: docs/DATA_NOTES.md sections 8–13.
 - **Software (all open):**
@@ -255,7 +251,7 @@ original.
 | Demo hosted externally, open link, no login | ⏳ **you** upload the recording (YouTube unlisted/public, or Drive "anyone with the link") |
 | Final project link open without login | ✅ https://earthsonar.vercel.app (checked without cookies) |
 | Everything in English | ✅ site, README, DATA_NOTES, PROTOCOL, these texts, slides |
-| NASA data used | ✅ 9 SVS visualizations (5 Data-true, 5 Visual tracks; 5313 feeds one track) |
+| NASA data used | ✅ 8 SVS visualizations (5 Data-true and 4 Visual tracks) |
 | AI use declared; AI images/video watermarked | ✅ declared above. No AI images or video exist, so no watermark is needed |
 | No NASA logo/insignia | ✅ none in the site, slides or video |
 | No personal data, no ads | ✅ |

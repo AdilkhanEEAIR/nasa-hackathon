@@ -22,7 +22,7 @@ export const DEMO_STEPS = [
   { at: 20400, scene: 'forest',
     caption: 'Visual track: a needle reads a turning globe; forests knock like wood.' },
   { at: 23800, scene: 'end',
-    caption: 'earthsonar.vercel.app — ten tracks, keyboard-only, screen-reader friendly. Data: NASA SVS.' },
+    caption: 'earthsonar.vercel.app — nine tracks, keyboard-only, screen-reader friendly. Data: NASA SVS.' },
   { at: DEMO_LENGTH_MS, scene: 'stop', caption: '' },
 ];
 

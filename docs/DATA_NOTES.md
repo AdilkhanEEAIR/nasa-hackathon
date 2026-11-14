@@ -492,7 +492,9 @@ x = 0.495. The needle runs from y = 0.06 to 0.925. Each segment with plume colou
 hum an octave down that thickens (detuned twin, wider filter) as the colour warms; notes are
 spaced 2.2× wider than the forest knocks so the hum stays a drone.
 
-## 12. Air quality (SVS 5533, GEOS-CF) — Visual track, ring inside one strip
+## 12. Air quality (SVS 5533, GEOS-CF) — removed from the site on 14 Nov 2026
+
+*The track built from this frame was removed at the team's request; the notes are kept for the record. The frame is no longer in `media/` or in the manifest.*
 
 **Source.** Air Quality Model Runs, https://svs.gsfc.nasa.gov/5533/. Credit: NASA's Scientific
 Visualization Studio; visualizers Helen-Nicole Kostis and Joseph V. Ardizzone; scientist Lesley

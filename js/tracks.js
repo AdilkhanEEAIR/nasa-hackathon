@@ -204,28 +204,6 @@ export function describeWind(ms) {
 }
 
 /**
- * Air quality (SVS 5533, GEOS-CF, first frame of the July-August 2024 run). One world map cut
- * into vertical strips of ~50 deg longitude, each coloured for a different pollutant (CO,
- * PM2.5, NOx, ozone). Visual class: R = darkness within the strip's own ramp (darker = more of
- * that pollutant in the picture; strips are not comparable with each other), G = strip id
- * (1 CO, 2 PM2.5, 3 NOx, 4 ozone, which stays silent), B = 255 on the label boxes.
- */
-export const AIR_KINDS = { 1: 'carbon monoxide', 2: 'fine particles (PM2.5)', 3: 'nitrogen oxides', 4: 'ozone' };
-
-export const AIR_LAYERS = [
-  // Hoarse, dirty air: a low sawtooth roughened by fast amplitude wobble (~27 Hz reads as
-  // rasp, not as a rhythm); darker strips open the filter.
-  { name: 'main', type: 'sawtooth', octave: -1, cutoffLo: 450, cutoffHi: 2600, peak: 1.0, tremolo: { rate: 27, depth: 0.75 } },
-];
-
-/** The pollutant strip at a pixel column of the air-quality frame. */
-export function airKindAt(lon, strips) {
-  const x = ((((lon + 180) % 360) + 360) % 360) / 360 * strips.edges[strips.edges.length - 1];
-  for (let i = 0; i < strips.kinds.length; i++) if (x < strips.edges[i + 1]) return strips.kinds[i];
-  return strips.kinds[strips.kinds.length - 1];
-}
-
-/**
  * Lightning (SVS 5011). Dots are yellow (median RGB 138,130,21); the base map, lines and
  * coverage shading are neutral grey (R = G = B), so "yellowness" separates them cleanly
  * (DATA_NOTES 3.3): R > 90, G > 70, B < G - 40.
@@ -286,12 +264,6 @@ export const TRACK_PRESETS = {
   co2: [],
   river: [],
   currents: [],
-  air: [
-    { key: '1', name: 'Central Africa fires (CO strip)', lat: -8, lon: 33, radiusKm: 1100 },
-    { key: '2', name: 'South Asia haze (PM2.5 strip)', lat: 27, lon: 90, radiusKm: 1000 },
-    { key: '3', name: 'Canadian fire smoke (PM2.5 strip)', lat: 60, lon: -110, radiusKm: 1000 },
-    { key: '4', name: 'Japan (NOx strip)', lat: 36, lon: 139, radiusKm: 900 },
-  ],
   ocean: [
     { key: '1', name: 'Gulf Stream', lat: 38, lon: -68, radiusKm: 1200 },
     { key: '2', name: 'Kuroshio', lat: 35, lon: 145, radiusKm: 1200 },
@@ -314,7 +286,6 @@ export const TRACK_SOUND = {
   wind: { layers: WIND_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0, mapVoice: (v) => windVoice(v) },
   forest: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
   co2: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
-  air: { layers: AIR_LAYERS, fullScale: 0.6, trim: 0.65 },
   river: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
   currents: { layers: DEFAULT_LAYERS, fullScale: ARC_FULL_SCALE, trim: 1.0 },
 };
@@ -325,7 +296,7 @@ export const TRACK_SOUND = {
  *   visual - the picture itself is sonified (brightness, hue, motion), not calibrated
  *            measurements.
  */
-export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual', co2: 'visual', air: 'visual', river: 'visual', currents: 'visual' };
+export const TRACK_CLASS = { nightlights: 'data', aerosols: 'data', lightning: 'data', ocean: 'data', wind: 'data', forest: 'visual', co2: 'visual', river: 'visual', currents: 'visual' };
 
 /** Needle tracks play a rotating globe: no map centre, no presets, no ring. */
 export const NEEDLE_TRACKS = new Set(['forest', 'co2', 'river', 'currents']);

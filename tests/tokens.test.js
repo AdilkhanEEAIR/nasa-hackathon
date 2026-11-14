@@ -122,7 +122,6 @@ const LEGENDS = {
   wind: ['data-wind-calm', 'data-wind-strong', 'data-nodata'],
   forest: ['data-forest', 'data-nodata'],
   co2: ['data-co2', 'data-nodata'],
-  air: ['data-air', 'data-nodata'],
 };
 
 test('data colours in each legend stay distinguishable with colour-vision deficiencies', () => {

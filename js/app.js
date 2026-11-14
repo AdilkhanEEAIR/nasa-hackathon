@@ -14,7 +14,6 @@ import {
   LIGHTNING_LAYERS, LIGHTNING_COVERAGE_LAT, strikeRate,
   oceanFields, oceanTemp, describeTemp, oceanBandWeights, OCEAN_CALM, OCEAN_DENSE,
   TRACK_PRESETS, TRACK_SOUND, TRACK_CLASS, windFields, describeWind, WIND_RANGE_MS, NEEDLE_TRACKS,
-  AIR_KINDS, airKindAt,
 } from './tracks.js';
 import { NeedleScan, forestValue, co2Value, NEEDLE_SEGMENTS } from './needle.js';
 
@@ -65,8 +64,6 @@ export const TRACKS = [
     intro: 'Forest Height from the GEDI lidar on the International Space Station, April 2019 to April 2020, shown on a turning globe. A fixed needle runs down the middle of the globe, north at the top with high notes, south at the bottom with low notes. Where it crosses vegetation you hear wooden knocks: brighter green and white in the picture, meaning taller vegetation, knocks louder and quicker. Ocean is silent. Space plays and pauses.' },
   { id: 'co2', title: 'Carbon Dioxide (DYAMOND)', blurb: 'CO2 plumes in a model, Jan to Feb 2020, on an orbiting globe.', ready: true,
     intro: 'Carbon Dioxide from the DYAMOND model, January to February 2020, on an orbiting globe. The needle runs down the middle of the globe, north high, south low. Where the picture shows CO2 plumes, yellow to orange to red, you hear a low hum that thickens and brightens as the colour warms. Grey land and dark ocean are silent. Space plays and pauses.' },
-  { id: 'air', title: 'Air Quality (GEOS-CF)', blurb: 'Pollution in strips: CO, PM2.5, NOx and ozone, July 2024.', ready: true,
-    intro: 'Air Quality from NASA\'s GEOS-CF model, the first frame of a July to August 2024 run. The world map is cut into tall strips, each showing a different pollutant: carbon monoxide, fine particles, nitrogen oxides and ozone. The ring stays inside one strip. Darker in the strip means more of that pollutant in the picture, and you hear it as a hoarse, rasping tone that opens up as it darkens. Ozone strips are silent because their two-tone colours cannot be put in order. Strips cannot be compared with each other.' },
   { id: 'river', title: 'Atmospheric River', blurb: 'A 3D view of a river of water vapour, MERRA-2 (still frame).', ready: true,
     intro: 'Atmospheric River: one still frame of a 3D view from NASA\'s MERRA-2 reanalysis, a long, narrow river of water vapour flowing towards North America. A needle sweeps across the picture from left to right, top of the picture high, bottom low. Where the picture shows the blue of water vapour you hear water drops, more and louder for stronger blue. Space plays the sweep.' },
   { id: 'currents', title: 'Ocean Currents (Perpetual Ocean 2)', blurb: 'White streaks of ocean currents on a globe, ECCO model (still frame).', ready: true,
@@ -92,7 +89,6 @@ const state = {
   aerosols: null,      // {smoke, dust, salt, sulfate} value fields
   ocean: null,         // {cover, temp} value fields
   wind: null,          // {speed} value field
-  air: null,           // darkness field of the air-quality strips
   explore: false,     // explore mode: a sustained probe tone at the centre point
   probeLand: null,
   centreFromPreset: true, // the centre is still a preset (not moved by hand): a track switch moves it
@@ -238,7 +234,6 @@ function updateDescription() {
     : state.track === 'ocean' ? 'Map of sea surface currents on 19 June 2007, coloured by temperature from blue, 0 degrees, to red, 32 degrees Celsius; land is grey.'
     : state.track === 'river' ? 'Still frame of a 3D view of the North Pacific: a bright blue atmospheric river of water vapour runs towards the North American coast, between a high and a low pressure centre. A needle sweeps across the picture.'
     : state.track === 'currents' ? 'Still frame of a globe centred on the Americas: white streaks trace ocean currents over blue water, brightest in the Gulf Stream. A needle sweeps across the globe.'
-    : state.track === 'air' ? 'Air quality map in tall strips, each a different pollutant: orange carbon monoxide, cream to red fine particles, green nitrogen oxides, grey and violet ozone. Darker within a strip means more.'
     : state.track === 'co2' ? 'Orbiting globe of modelled carbon dioxide, January to February 2020: yellow, orange and red plumes over grey land and a black ocean. A fixed needle runs down the middle.'
     : isNeedle() ? 'Turning globe of GEDI forest height, April 2019 to April 2020: brown and dark green short vegetation, bright green and white tall, blue ocean. A fixed needle runs down the middle.'
     : state.track === 'wind' ? 'Map of near-surface wind speed on 29 October 2026: dark is calm, blue to yellow is moderate, orange to dark red is strong; land without colour is calm.'
@@ -250,7 +245,6 @@ function updateDescription() {
     : state.track === 'ocean' ? '19 Jun 2007'
     : state.track === 'wind' ? '29 Oct 2026'
     : state.track === 'co2' ? 'Jan–Feb 2020'
-    : state.track === 'air' ? 'Jul 2024'
     : state.track === 'river' ? 'still frame'
     : state.track === 'currents' ? 'still frame'
     : isNeedle() ? '2019–2020'
@@ -289,7 +283,6 @@ function currentEntry() {
   if (state.track === 'aerosols') return state.manifest.aerosols;
   if (state.track === 'ocean') return state.manifest.ocean;
   if (state.track === 'wind') return state.manifest.wind;
-  if (state.track === 'air') return state.manifest.air;
   return state.manifest.nightlights.years[String(state.year)];
 }
 
@@ -380,17 +373,6 @@ async function currentFields() {
     return state.ocean;
   }
   if (isNeedle()) return null; // the needle reads the video directly
-  if (state.track === 'air') {
-    if (!state.air) {
-      await withProgress('Air Quality', async (p) => {
-        const entry = state.manifest.air;
-        const [img] = await Promise.all([loadGrid(entry.sound, p.part('sound-air')), prefetchView(viewUrl(entry))]);
-        p.finish('sound-air');
-        state.air = channelField(img, 0);
-      });
-    }
-    return state.air;
-  }
   if (state.track === 'wind') {
     if (!state.wind) {
       await withProgress('Near-Surface Wind', async (p) => {
@@ -579,7 +561,7 @@ async function toggleScan() {
   if (state.track === 'lightning') { toggleLightning(); return; }
   const fields = await currentFields();
   setScanButton(true);
-  const what = classTrack() ? classTrack().when : state.track === 'ocean' ? '19 June 2007' : state.track === 'wind' ? '29 October 2026' : state.track === 'air' ? 'July 2024' : String(state.year);
+  const what = classTrack() ? classTrack().when : state.track === 'ocean' ? '19 June 2007' : state.track === 'wind' ? '29 October 2026' : String(state.year);
   announce(`Scanning ${what} around ${centreLabel()}, ring ${state.radiusKm} kilometres.`);
   scan.start({
     fields,
@@ -680,10 +662,6 @@ const LEGENDS = {
   currents: [
     ['--data-cold', 'Brighter current streaks in the picture: more soft sliding tones'],
     ['--data-nodata', 'Land, snow and space: silent'],
-  ],
-  air: [
-    ['--data-air', 'Darker in the strip: louder, rougher, more open rasp'],
-    ['--data-nodata', 'Clean end of the strip, ozone strips and labels: silent'],
   ],
   co2: [
     ['--data-co2', 'Warmer plume colour in the picture: lower, thicker, brighter hum'],
@@ -1008,12 +986,6 @@ function pointReading(fields) {
     const motion = Math.max(0, Math.min(1, (cover - OCEAN_CALM) / (OCEAN_DENSE - OCEAN_CALM)));
     return { levels: oceanBandWeights(t), words: describeTemp(t), temp: t, motion };
   }
-  if (state.track === 'air') {
-    const level = sampleField(fields, c.lat, c.lon, 1);
-    const kind = AIR_KINDS[{ co: 1, pm25: 2, nox: 3, o3: 4 }[airKindAt(c.lon, state.manifest.air.strips)]];
-    const amount = level < 0.05 ? 'light, clean end of the scale' : level < 0.35 ? 'some' : level < 0.65 ? 'a lot' : 'very dark, the most';
-    return { levels: { main: level }, words: `${kind} strip, ${amount} in the picture` };
-  }
   if (state.track === 'wind') {
     const ms = sampleField(fields.speed, c.lat, c.lon, 1) * WIND_RANGE_MS;
     return { levels: { gust: Math.min(1, ms / 18), whistle: Math.max(0, Math.min(1, (ms - 12) / 10)) }, words: describeWind(ms), windMs: ms };
@@ -1039,7 +1011,7 @@ async function whereAmI() {
   const onLand = sampleField(state.land, c.lat, c.lon, 0) >= 0.5;
   const when = classTrack() ? classTrack().when
     : state.track === 'lightning' ? `10 days to ${lightning.date}`
-      : state.track === 'ocean' ? '19 June 2007' : state.track === 'wind' ? '29 October 2026' : state.track === 'air' ? 'July 2024' : String(state.year);
+      : state.track === 'ocean' ? '19 June 2007' : state.track === 'wind' ? '29 October 2026' : String(state.year);
   const place = describePlace(c.lat, c.lon, onLand);
   announce(`${place}. ${onLand ? 'Land' : 'Water'}, ${pointReading(fields).words}. ${when}. `
     + `${formatLatLon(c.lat, c.lon)}.`, { say: 'where' });
@@ -1193,7 +1165,7 @@ async function saveWav() {
     });
     const place = (state.center.name || formatLatLon(state.center.lat, state.center.lon))
       .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const what = classTrack() ? classTrack().slug : state.track === 'ocean' ? 'ocean-2007-06-19' : state.track === 'wind' ? 'wind-2026-10-29' : state.track === 'air' ? 'air-2024-07' : `nightlights-${state.year}`;
+    const what = classTrack() ? classTrack().slug : state.track === 'ocean' ? 'ocean-2007-06-19' : state.track === 'wind' ? 'wind-2026-10-29' : `nightlights-${state.year}`;
     const name = `earthsonar-${what}-${place}.wav`;
     const url = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' }));
     const a = document.createElement('a');

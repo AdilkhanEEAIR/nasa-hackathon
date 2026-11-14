@@ -46,9 +46,8 @@ slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 | 05 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
 | 06 Forest Height, GEDI 2019–2020 (SVS 4950) | ✅ available · **Visual** (needle on a turning globe) — sonifies the picture, not calibrated measurements |
 | 07 Carbon Dioxide, DYAMOND model, Jan–Feb 2020 (SVS 5196) | ✅ available · **Visual** (needle on an orbiting globe) — sonifies the picture, not ppm |
-| 08 Air Quality, GEOS-CF, July 2024 (SVS 5533) | ✅ available · **Visual** (ring inside one pollutant strip) — sonifies the picture, not concentrations; ozone strips silent |
-| 09 Atmospheric River, MERRA-2 (SVS 4960) | ✅ available · **Visual** (needle sweep across one still frame) |
-| 10 Ocean Currents, Perpetual Ocean 2 (SVS 5425) | ✅ available · **Visual** (needle sweep across one still frame) |
+| 08 Atmospheric River, MERRA-2 (SVS 4960) | ✅ available · **Visual** (needle sweep across one still frame) |
+| 09 Ocean Currents, Perpetual Ocean 2 (SVS 5425) | ✅ available · **Visual** (needle sweep across one still frame) |
 
 | ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
 | Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
@@ -98,7 +97,7 @@ change in seven seconds.
 | W | Where am I: year, centre, land or water, light level |
 | S | Save the current scan as a WAV file |
 | T | 10-second sound tutorial: north, east, south, west, dim vs bright |
-| Shift + 1…9, Shift + 0 | Choose a track (Shift + 0 is track 10) |
+| Shift + 1…9 | Choose a track |
 | C | Coastline clicks on/off |
 | Escape | Stop all sound |
 | V | Voice guide on/off (same setting as the Accessibility menu) |
@@ -261,7 +260,7 @@ printed on the frame are painted over. Details and checksums: DATA_NOTES section
 **Two classes of track.** Every track is labelled in the list and in its spoken intro:
 *Data-true* tracks read values back from the visualization's own colour scale; *Visual* tracks
 sonify the picture itself (brightness, hue, motion) and are marked "sonifies the picture, not
-calibrated measurements". Forest Height, Carbon Dioxide, Air Quality, Atmospheric River and Ocean Currents are Visual;
+calibrated measurements". Forest Height, Carbon Dioxide, Atmospheric River and Ocean Currents are Visual;
 the first five tracks are Data-true.
 
 **Needle mode (Visual, rotating globes).** A fixed vertical needle runs down the middle of the
