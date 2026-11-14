@@ -27,7 +27,8 @@ README: [the rule](#value--sound-rule), [the palette](#sound-palette),
 [the controller](#tactile-controller). Old links to `#how`, `#data` and `#hardware` open Home.
 
 **Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
-before sound): what it is → India 2012 vs 2023 → aerosols → lightning → address. The old
+before sound): what it is → the rule → India 2012 vs 2023 → aerosols → the Gulf Stream on the
+ocean track → lightning → address, exactly 28 s ([`js/demo-plan.js`](js/demo-plan.js)). The old
 address `/?demo` still opens it. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
 slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 
@@ -42,14 +43,18 @@ slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 | 03 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
 | 04 Ocean Temperature, 19 June 2007 | ✅ available |
 | ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
-| Voice guide and explore mode | ✅ available (V toggles the voice, E explores point by point) |
+| Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
+| Explore mode | ✅ available (E explores point by point, W names the place) |
+| Home: live ring over 2023 night lights | ✅ silent until "Hear this ring", which opens the jukebox there |
 | Tactile controller (Arduino, 4 vibration motors) | ✅ site link ready (tested against an emulated board; real hardware test pending) |
 
 ---
 
 ## How it works: a sonar for Earth data
 
-1. Choose a centre: India, China, Bishkek, Europe, or any point (arrow keys or a click).
+1. Choose a centre: one of the track's presets (keys 1–5), or any point (arrow keys or a
+   click). Each track has presets where its own data has contrast: cities for night lights,
+   plumes for aerosols, storm hot spots for lightning, temperature fronts for the ocean.
 2. A ring starts **1,500 km** away (adjustable) and shrinks onto the centre over 8 seconds.
 3. The ring has 16 voices, one for each compass direction.
    - **Pitch is north–south:** voices on the north side of the ring sound high, voices on the
@@ -77,7 +82,7 @@ change in seven seconds.
 | Arrow keys (Shift = ×5) | Move the centre by 1° |
 | Page Up / Page Down, `]` / `[` | Next / previous year |
 | Home / End | 2012 / 2023 |
-| 1 2 3 4 | India, China, Bishkek, Europe |
+| 1 … 5 | The current track's presets (night lights: India, China, Bishkek, Europe; aerosols: Sahara dust, Central Africa fires, East China, Indian Ocean sea salt; lightning: Congo Basin, Lake Maracaibo, Florida, Bangladesh; ocean: Gulf Stream, Kuroshio, Agulhas Current, Equatorial Pacific, Southern Ocean front) |
 | `.` / `,` | Bigger / smaller ring |
 | + / − / 0 | Zoom the map in / out / reset (wheel, pinch and drag also work) |
 | L | Show country borders and city names (Natural Earth). Visual only, never sonified |
@@ -88,6 +93,8 @@ change in seven seconds.
 | Shift + 1…4 | Choose a track |
 | C | Coastline clicks on/off |
 | Escape | Stop all sound |
+| V | Voice guide on/off (same setting as the Accessibility menu) |
+| Alt + A | Open the Accessibility menu, from any tab |
 
 Sound starts after the first key press or click, because browsers require a user gesture.
 Every action is also a labelled button, so screen-reader users can work by Tab alone.
@@ -117,7 +124,7 @@ Each item below is from the challenge's Objectives and Potential Considerations.
 | UX: intuitively select a visualization and start the audio | One key or button to scan; presets for four regions; a "turn sound on" banner. | ✅ |
 | Screen-reader compatibility | Labelled controls, live status region, map description that updates with every change, keyboard-only operation, visible focus. | ✅ |
 | Tactile feedback | Arduino controller: joystick, year knob, button, **four vibration motors as a tactile compass** ([protocol](docs/PROTOCOL.md)). | firmware ✅; site link in progress |
-| Rich descriptive text accompanying the audio | Spoken and on-screen summaries ("brightest year…", "at the centre: …"), help text and per-mode descriptions. | ✅ summaries; voice guide in progress |
+| Rich descriptive text accompanying the audio | On-screen and live-region summaries ("brightest year…", "at the centre: …"), track intros and an optional voice guide. | ✅ |
 | Map color, brightness, shapes, density to pitch, rhythm, tempo, volume, instrumentation | See *Value → sound rule*. | ✅ / in progress per mode |
 | Strict translation vs musicality | Strict, fixed mapping from value to loudness; musicality comes only from the scale and the timbre. | ✅ |
 | Computer vision, ML, synthesizers, DAWs | Custom computer vision and a browser synthesizer. No ML and no DAW. | ✅ (partly, by choice) |
@@ -217,10 +224,16 @@ The frame shows surface current streaks, coloured by sea surface temperature on 
 | What is read | Rule | Sound |
 |---|---|---|
 | Ocean flow pixel | saturation ≥ 90 and value ≥ 40 (PIL HSV, 0–255); grey land and dark gaps fail | — |
-| Temperature | **hue** matched to the official colorbar (`sst_ecco2_cbar.png`), so the brightness of a streak does not change it. Round trip on the colorbar itself: error ≤ 1.5 °C | Filter brightness: 0 °C is dull and dark (220 Hz low-pass), 32 °C is bright and rich (4.2 kHz) |
-| Ocean on an arc | share of flow pixels on the arc; full loudness at 50 % | Loudness |
+| Temperature | **hue** matched to the official colorbar (`sst_ecco2_cbar.png`), so the brightness of a streak does not change it. Round trip on the colorbar itself: error ≤ 1.5 °C | **Five fixed bands, each its own instrument**, blended between neighbours: ice (0 °C) pure sine, 0.7 Hz shimmer · cold (6 °C) hollow triangle, 1.6 Hz · mild (14 °C) square wave, 3 Hz · warm (22 °C) sawtooth, 5 Hz · hot (29 °C) bright sawtooth an octave up, 8.5 Hz |
+| Sea on an arc | share of the arc that is sea; full loudness at 60 % | Loudness |
+| Current lines on the sea part of the arc | density, mapped from 0.25 (calm) to 0.75 (busy) | **Motion**: a slow glide of pitch (±28 cents) and filter (±900 cents), faster where currents are dense |
 | Land | no flow lines | **Silent** (no land hum on this track) |
 
+- **Why five bands:** with one instrument and brightness only, 6 °C and 27 °C differed by less
+  than an octave of brightness, and the shared land presets left half the ring silent. The
+  measured before/after is in [`docs/SOUND_CHECK.md`](docs/SOUND_CHECK.md): the hot equator
+  now renders 4.3× brighter than the cold Southern Ocean and shimmers about 3× faster, at the
+  same loudness.
 - **Spot checks on the recovered values:** equatorial Pacific 27 °C, Arabian Sea 29 °C,
   Gulf Stream 25 °C, North Atlantic at 60° N 9 °C, Southern Ocean 1 °C.
 - **Y:** the coldest and warmest directions in the ring and the mean, played as a sweep from
@@ -248,6 +261,8 @@ For noise-based instruments, the centre of the noise band follows the same compa
 | Sulfate | Buzzing tone |
 | Lightning flash | Sharp crack and thump |
 | Storm density | Low thunder rumble |
+| Sea water, ice-cold → hot | Pure sine → hollow triangle → reedy square → rich sawtooth → bright sawtooth an octave up; the shimmer speeds up from 0.7 to 8.5 Hz |
+| Ocean currents | A slow slide of pitch and colour, faster where current lines are dense |
 | Unlit land / water / coast | Muffled hum / silence / click |
 
 Loudness is matched in two steps, both measured from offline renders:
@@ -333,7 +348,8 @@ loading starts the scan as soon as the data arrives.
 - Media file names carry a content hash and are served with
   `Cache-Control: immutable, max-age=1 year`. Repeat visits load them from cache. Only
   `manifest.json` is re-checked.
-- Long loads show a progress bar, and the live region and the voice guide announce them.
+- Long loads show a progress bar, and the live region announces them.
+- Home's live ring loads its own small grid (29 KB) only while Home is shown.
 
 ## Design system
 
@@ -342,18 +358,22 @@ All colours, type sizes, spacing, radii, shadows and timings live in one file,
 `--data-dust`) → component (`--overlay-ring`, `--dial-guide`). The map overlay and the voice
 dial are drawn on canvas and read the same tokens through [`js/theme.js`](js/theme.js).
 
-- **Interface colours:** a cool dark neutral background (not black), two surface levels, text
-  that is not pure white, muted secondary text, and one amber accent used only for the primary
-  button, the selected tab and the focus ring.
-- **Data colours** are a separate set: muted versions of the Okabe–Ito colour-blind-safe
-  palette, close in lightness so no category shouts. The NASA frames themselves keep their
-  original colours.
+- **Interface colours:** a night-sky palette. Deep blue background (#08183A, below the brand
+  blue #0B3D91, never black), two blue surface levels, blue-tinted text that is not pure white,
+  one yellow accent (#EFC457) for the primary action, the selected tab and the focus ring, and a
+  softened red (#F0604A) used only for Stop, the recording dot and warnings. Colour mood only:
+  no agency logo, emblem or lettering is used anywhere; the mark is our own ring and point.
+- **Data colours** are a separate set: muted, colour-blind-checked, at least 3:1 on the blue
+  background. Cold water is cyan and warm water a soft salmon, so neither is confused with the
+  interface blue, red or yellow (ΔE ≥ 15 under every simulated colour-vision deficiency). The
+  NASA frames themselves keep their original colours.
 - One typeface (the system UI font, nothing to download) on a fixed type scale.
 - [`tests/tokens.test.js`](tests/tokens.test.js) fails if a colour appears anywhere outside the
   token file (site and slides), if a token is used but not defined, if a text pair falls below
-  WCAG AA, or if two data colours of one legend get too close (CIE ΔE < 12) for normal vision,
-  deuteranopia, protanopia or tritanopia. Every legend also names its sound, so colour is never
-  the only cue.
+  WCAG AA, if a data colour drops below 3:1 on the background, if warm or cold water comes
+  close to an interface colour, or if two data colours of one legend get too close (CIE ΔE < 12)
+  for normal vision, deuteranopia, protanopia or tritanopia. Every legend also names its sound,
+  so colour is never the only cue.
 
 ## Accessibility
 
@@ -364,15 +384,28 @@ dial are drawn on canvas and read the same tokens through [`js/theme.js`](js/the
 - The tabs follow the WAI-ARIA tabs pattern: arrow keys, Home and End move between tabs, and
   each tab has its own address. Player shortcuts work only in the Jukebox tab, so Space on
   another tab never starts sound; Escape always stops it.
-- Large controls (44 px minimum), a visible amber focus ring, AA contrast, keyboard hints always
-  on screen in the Jukebox, and a 10-second sound tutorial (T).
+- **Accessibility switch, first on every page** (Tab once, or Alt+A from anywhere). Its
+  screen-reader name is "Accessibility options: voice guide, large text and high contrast". Two
+  independent options, remembered in the browser:
+  - **Voice guide**, off by default: screen readers already read every message from the live
+    region. When on, it speaks only in the Jukebox and only track intros, the answer to
+    "Where am I", scan results and the steps of the T lesson. It never speaks on tab changes,
+    and the scan is ducked by 12 dB while it talks. Tests guard these rules.
+  - **Large text and high contrast**: about 20 % larger type, brighter secondary text and
+    borders, a 5 px focus outline, a thicker ring, 56 px buttons.
+  - Neither option changes the scan sound or the demo.
+- Large controls (44 px minimum), a visible yellow focus ring, AA contrast, keyboard hints
+  always on screen in the Jukebox, and a 10-second sound tutorial (T).
 - **Motion shows only what is sounding:**
-  - the shrinking ring, with loud arcs drawn thicker;
+  - the shrinking ring, with loud arcs drawn thicker and a soft trail of earlier rings;
+  - a note flash that blooms and fades where a voice turns loud (at most one per voice every
+    0.4 s);
   - 16 voice bars around a compass, and four N/E/S/W bars for the vibration motors;
   - a year chip that lights up as its note plays;
   - one ripple at the centre when the final note sounds.
-- Changes you make from the keyboard are instant, never animated. Only transform and opacity
-  are animated, or a separate canvas is drawn over the map.
+- Changes you make from the keyboard are instant, never animated. A track or tab chosen with
+  the pointer fades in; Home blocks fade up once as they scroll into view. Only transform and
+  opacity are animated, or a separate canvas is drawn over the map.
 - Nothing flashes more than about twice per second.
 - With `prefers-reduced-motion`, all transitions become instant and the ripple becomes a static
   mark. The sound is identical.

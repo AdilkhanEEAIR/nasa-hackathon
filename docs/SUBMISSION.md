@@ -19,15 +19,15 @@ EarthSonar
 
 EarthSonar is a web jukebox that turns NASA Earth Information Center visualizations into live
 sound, so people who cannot see a map can still explore it. You pick a track (night lights
-2012–2023, what changed, aerosols, lightning from the ISS, ocean temperature) and a place. A
+2012–2023, aerosols, lightning from the ISS, ocean temperature) and a place. A
 "ring of sound" closes in on that place:
 - high notes come from the north and low notes from the south;
 - the left ear is west and the right ear is east;
 - louder means more.
 
 Each phenomenon has its own recognisable voice. Lightning cracks, dust rustles, smoke
-crackles, warm water sounds bright. EarthSonar works with the keyboard alone and with screen
-readers, and it can drive an Arduino controller with four vibration motors as a tactile
+crackles, warm water flickers bright and fast, cold water shimmers slow. EarthSonar works with
+the keyboard alone and with screen readers, and it can drive an Arduino controller with four vibration motors as a tactile
 compass. It matters because Earth science is shown almost only as pictures. EarthSonar gives
 blind and low-vision people, and everyone else, a new way to hear where our planet is
 changing.
@@ -49,19 +49,19 @@ as live, data-driven sound:
 
 1. **Night Lights 2012–2023.** A decade of city lights. One key plays all twelve years as a
    rising or falling melody for any region.
-2. **What Changed.** More light, less light and little change between 2012 and 2023, each
-   with its own instrument.
-3. **Aerosols.** Black carbon (smoke), dust, sea salt and sulfate from the GEOS model, as four
+2. **Aerosols.** Black carbon (smoke), dust, sea salt and sulfate from the GEOS model, as four
    instruments.
-4. **Lightning.** Six years of flashes detected from the International Space Station, played
+3. **Lightning.** Six years of flashes detected from the International Space Station, played
    as strikes in their real direction while the video runs.
-5. **Ocean Temperature.** Sea surface currents coloured by temperature, from a dull cold tone
-   to a bright warm one.
+4. **Ocean Temperature.** Sea surface currents coloured by temperature. Five fixed bands (ice,
+   cold, mild, warm, hot) each have their own instrument, with more harmonics and a faster
+   shimmer as the water warms; dense currents make the tone slide, so moving water is heard.
 
 **How it works.**
 
-- You choose a centre: a preset (India, China, Bishkek, Europe), the arrow keys, a click, or
-  the controller's joystick.
+- You choose a centre: one of the track's presets, placed where its data has contrast (cities,
+  plumes, storm hot spots, ocean fronts such as the Gulf Stream and the Agulhas Current), the
+  arrow keys, a click, or the controller's joystick.
 - A ring of 16 voices starts up to thousands of kilometres away and shrinks onto the centre.
 - **Each voice reads one arc of the ring.** Its pitch follows north–south, its stereo position
   follows west–east, its loudness follows the value on the map, and its timbre tells *what*
@@ -72,7 +72,9 @@ as live, data-driven sound:
 
 Other modes:
 - **Explore mode** turns the centre into a probe you can walk around.
-- **A voice guide** names places ("110 km south of Bishkek"), years and summaries.
+- **"Where am I"** names the place ("110 km south of Bishkek") and the value under it.
+- **Home** shows a silent live ring over real 2023 night-lights data; "Hear this ring" opens
+  the jukebox there and plays it.
 - **Save scan as WAV** renders any scan offline, so people can build their own playlist of
   Earth sounds.
 
@@ -95,9 +97,12 @@ Other modes:
 **Accessibility.**
 
 - Fully keyboard-operable, with labelled controls and a live status region.
-- A spoken guide that can be turned off for screen-reader users.
-- A short sound tutorial ("top is north, right is east, louder is brighter").
-- Large controls, high contrast, keyboard hints always on screen.
+- An **Accessibility switch is the first thing on every page** (Alt+A from anywhere), with two
+  options remembered in the browser: a built-in voice guide (off by default, never speaks on
+  tab changes, and ducks the scan while it talks) and a large-text, high-contrast mode.
+- A short sound tutorial ("top is north, right is east, louder is more").
+- Large controls, AA contrast on a deep-blue theme, colour-blind-checked data colours,
+  keyboard hints always on screen.
 - `prefers-reduced-motion` support. Animations only show what is sounding.
 
 **Hardware.**
@@ -114,7 +119,10 @@ Other modes:
 - Media preparation in Python with NumPy, Pillow and FFmpeg.
 - Arduino C++ firmware.
 - Hosted on Vercel. Automated tests use the Node.js test runner.
-- The landing page loads 0.08 MB; the player loads 0.17 MB and is ready in about 1.5 s on slow 4G.
+- The home page loads 0.09 MB and the player 0.18 MB.
+- 72 automated tests (Node.js test runner), including colour contrast, the 28-second demo and a
+  silent voice guide on tab changes. Sound differences between places are measured offline
+  (docs/SOUND_CHECK.md).
 
 **What we hope to achieve.** Make the EIC's visual stories reachable by ear and by touch, for
 blind and low-vision visitors first, and give every listener a new, musical sense of where the
@@ -132,8 +140,7 @@ Information Center collection listed in the challenge resources.
    - Scientists: Zhuosen Wang (University of Maryland), Miguel Román (Leidos), Ranjay
      Shrestha (SSAI), Srija Chakraborty (USRA), Virginia Kalb (NASA).
    - Data: NASA Black Marble (Suomi NPP VIIRS).
-   - *Use:* one frame per year (2012–2023) and the change map, read pixel by pixel for the
-     Night Lights and What Changed tracks.
+   - *Use:* one frame per year (2012–2023), read pixel by pixel for the Night Lights track.
 2. **GEOS Aerosols**, SVS ID 5669, https://svs.gsfc.nasa.gov/5669/.
    - Credit: NASA Global Modeling and Assimilation Office (GMAO) and NASA's Scientific
      Visualization Studio.
@@ -157,7 +164,7 @@ Information Center collection listed in the challenge resources.
    - Scientists: Hong Zhang (UCLA), Dimitris Menemenlis (NASA/JPL).
    - Data: ECCO2 model.
    - *Use:* one flat frame (19 June 2007) and the SST colorbar. Temperature is recovered by
-     hue.
+     hue on the fixed 0–32 °C scale; current-line density drives the motion of the sound.
 5. **Method reference:** Data Sonification: Caldwell 73, SVS ID 13786,
    https://svs.gsfc.nasa.gov/13786/ (in the challenge resources). The ring scan also follows
    the principle of NASA's RS Puppis sonification (SVS 14260); no part of it is reused.
