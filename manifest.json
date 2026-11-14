@@ -202,7 +202,13 @@
       "webp": "media/aerosols/view-2025-08-19T20-hi.547f00ec43.webp",
       "jpg": "media/aerosols/view-2025-08-19T20-hi.98f333035d.jpg"
     },
-    "pixels": "media/aerosols/pixels-2025-08-19T20.4fc158f92c.png",
+    "sound": "media/aerosols/sound-2025-08-19T20.31ea9a682e.png",
+    "classes": [
+      "smoke",
+      "dust",
+      "salt",
+      "sulfate"
+    ],
     "legend": "media/aerosols/legend.e3a280ef5b.png",
     "validTime": "2025-08-19T20:00:00Z"
   },

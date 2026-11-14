@@ -207,16 +207,72 @@ def nightlights(manifest: dict) -> None:
     }
 
 
+# Aerosol legend swatches measured from Aerosols_cbar.png (DATA_NOTES 2.2), in class order.
+AEROSOL_CLASSES = ["smoke", "dust", "salt", "sulfate"]   # smoke = "Black Carbon" in the legend
+AEROSOL_LEGEND = np.array([[210, 94, 69], [193, 154, 220], [133, 170, 169], [83, 220, 52]], np.float64)
+AE_WEAK = 35          # below this max channel nothing is classified (dark background)
+AE_LAND_BASE = 62     # brightest grey land relief (Antarctica); subtracted on land
+AE_OCEAN_BASE = 35
+
+
+def aerosol_grid(rgb: np.ndarray, land: np.ndarray) -> np.ndarray:
+    """R = amount 0..255 (brightness above the base map), G = class id * 50 (0 = none).
+
+    Class = nearest legend chromaticity. Sea salt is not allowed on land, where the grey
+    relief has almost the same chromaticity. Small white dots on land are city lights of the
+    base map and are dropped. Overlapping plumes are reported as their dominant type.
+    """
+    a = rgb.astype(np.float64)
+    mx = a.max(axis=2)
+    mn = a.min(axis=2)
+    chroma = a / (a.sum(axis=2, keepdims=True) + 1e-9)
+    leg = AEROSOL_LEGEND / AEROSOL_LEGEND.sum(axis=1, keepdims=True)
+    dist = np.linalg.norm(chroma[..., None, :] - leg[None, None], axis=3)
+    cls = dist.argmin(axis=2) + 1                                   # 1..4
+
+    base = np.where(land, AE_LAND_BASE, AE_OCEAN_BASE)
+    level = np.clip((mx - base) / (255 - base), 0, 1)
+    none = (mx < AE_WEAK) | (level <= 0)
+    none |= land & (cls == 3)                                      # no sea salt on land
+
+    cand = land & (mn > 150) & ((mx - mn) < 35)                    # white, unsaturated, on land
+    k = 7
+    pad = np.pad(cand.astype(np.int32), k // 2)
+    count = sum(pad[dy:dy + cand.shape[0], dx:dx + cand.shape[1]] for dy in range(k) for dx in range(k))
+    none |= cand & (count <= 9)                                    # isolated dots = cities
+
+    out = np.zeros(rgb.shape, np.uint8)
+    out[..., 0] = np.where(none, 0, np.round(255 * level)).astype(np.uint8)
+    out[..., 1] = np.where(none, 0, cls * 50).astype(np.uint8)
+    return out
+
+
+def aerosol_self_check() -> None:
+    sw = np.array([[[210, 94, 69], [193, 154, 220], [133, 170, 169], [83, 220, 52], [4, 15, 4]]], np.uint8)
+    sea = np.zeros(sw.shape[:2], bool)
+    g = aerosol_grid(sw, sea)[0]
+    assert [int(v) // 50 for v in g[:4, 1]] == [1, 2, 3, 4], g
+    assert g[4, 0] == 0 and g[4, 1] == 0, g[4]
+    grey_land = np.array([[[62, 69, 61], [120, 125, 118]]], np.uint8)
+    gl = aerosol_grid(grey_land, np.ones((1, 2), bool))[0]
+    assert gl[0, 1] == 0 and gl[1, 1] != 150, gl                     # relief never becomes sea salt
+
+
 def aerosols(manifest: dict) -> None:
     print("Aerosols")
+    aerosol_self_check()
     full = Image.open(AE_IMAGE).convert("RGB")
     img = full.resize((WEB_W, WEB_H), Image.BOX)
+    land = np.asarray(Image.open(sorted((OUT / "masks").glob("land.*.png"))[0]).convert("L")) >= 128
+    grid = aerosol_grid(np.asarray(img), land)
+    shares = {c: float(((grid[..., 1] // 50) == i + 1).mean()) for i, c in enumerate(AEROSOL_CLASSES)}
+    print("  class shares of all pixels:", {k: f"{v:.3f}" for k, v in shares.items()})
     manifest["aerosols"] = {
         "source": "NASA SVS 5669", "lon0": -180, "width": WEB_W, "height": WEB_H,
         "view": publish_view(img, "aerosols", "2025-08-19T20"),
         "viewHi": publish_view(full, "aerosols", "2025-08-19T20-hi"),
-        # Lossless RGB copy: the aerosol classes are decided from colour in the browser.
-        "pixels": publish_image(img, "aerosols", "pixels-2025-08-19T20", format="PNG", optimize=True),
+        "sound": publish_image(Image.fromarray(grid), "aerosols", "sound-2025-08-19T20", format="PNG", optimize=True),
+        "classes": AEROSOL_CLASSES,
         "legend": publish(AE_LEGEND, "aerosols", "legend"),
         "validTime": "2025-08-19T20:00:00Z",
     }
