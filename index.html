@@ -8,9 +8,6 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/site.js"></script>
-  <!-- A direct link to another tab hides Home before first paint, so its picture is never
-       fetched on a slow network while the tab script is still loading. -->
-  <script>if (/^#(?!home$)./.test(location.hash) || /[?&]demo/.test(location.search)) document.documentElement.classList.add('deep-link');</script>
 </head>
 <body data-tab="home">
   <a class="skip" href="#main">Skip to content</a>
@@ -46,7 +43,7 @@
           </div>
         </div>
         <figure class="hero__figure">
-          <img src="media/nl/view-2023.85ad058ec8.webp" width="1920" height="1080" loading="lazy" decoding="async" alt="NASA night-lights map of the world, 2023, with a ring of sound closing in on India.">
+          <img data-src="media/nl/view-2023.85ad058ec8.webp" width="1920" height="1080" decoding="async" alt="NASA night-lights map of the world, 2023, with a ring of sound closing in on India.">
           <svg class="hero__ring" viewBox="0 0 160 90" aria-hidden="true" focusable="false">
             <circle cx="115" cy="33.75" r="12" />
             <circle cx="115" cy="33.75" r="1.4" class="dot" />

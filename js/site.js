@@ -63,11 +63,16 @@ function show(id, { focusTab = false, push = false } = {}) {
     panelEl(t).hidden = !on;
   }
   document.body.dataset.tab = id;
-  document.documentElement.classList.remove('deep-link'); // the tabs own visibility from here
   if (push && location.hash !== `#${id}`) history.pushState(null, '', `#${id}`);
   if (focusTab) tabEl(id).focus();
   document.title = id === 'home' ? 'EarthSonar — hear NASA Earth visualizations'
     : `${tabEl(id).textContent.trim()} · EarthSonar`;
+  // The Home picture has no src in the HTML, so a direct link to another tab never fetches it
+  // (the browser's preload scanner would, even for a hidden or lazy image).
+  if (id === 'home') {
+    const img = document.querySelector('.hero__figure img[data-src]');
+    if (img) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+  }
   if (HEAVY.has(id)) {
     loadPlayer().then((m) => { if (id === 'demo') m.openDemo(); });
   }
