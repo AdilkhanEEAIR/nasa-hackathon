@@ -63,6 +63,7 @@ change in seven seconds.
 | 1 2 3 4 | India, China, Bishkek, Europe |
 | `.` / `,` | Bigger / smaller ring |
 | + / − / 0 | Zoom the map in / out / reset (wheel, pinch and drag also work) |
+| L | Show country borders and city names (Natural Earth). Visual only, never sonified |
 | Y | Play all years |
 | W | Where am I: year, centre, land or water, light level |
 | S | Save the current scan as a WAV file |
@@ -420,6 +421,23 @@ not work.
   - SOS label file `labels.txt` from the same page.
 - Source collection: NASA Earth Information Center content database,
   https://svs.gsfc.nasa.gov/gallery/earth-information-center/.
+
+**Map labels (visual layer only, never sonified)**
+
+- Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com (public
+  domain).
+- Files used: `ne_110m_admin_0_boundary_lines_land` and `ne_110m_populated_places_simple`,
+  from the project's official repository `nvkelso/natural-earth-vector`.
+
+**Datasets reviewed and not used**
+
+- SVS 5196 (CO₂), 4950 (GEDI forest height) and 5533 (air quality) were downloaded and
+  checked. None of them lets a pixel colour be turned into a value honestly:
+  - 5196 has a colorbar with no numbers and a transparent low end;
+  - 4950 has globe shading and gaps between orbit tracks;
+  - 5533 has four pollutants in strips, with no scales.
+- Details are in [`docs/DATA_NOTES.md`](docs/DATA_NOTES.md) section 8.
+- For the same reason the "needle" mode for rotating globes was not built.
 
 **Method inspiration**
 

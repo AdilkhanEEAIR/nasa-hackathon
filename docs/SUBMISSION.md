@@ -167,6 +167,11 @@ Information Center collection listed in the challenge resources.
 - **Built-in place names:** a short list of large-city coordinates used only to *say* where you
   are. It is never sonified.
 - **Base maps** inside the NASA frames: Natural Earth (public domain), as credited by SVS.
+- **Optional map labels** (key L, visual only, never sonified): Natural Earth 1:110m country
+  borders and populated places (public domain, naturalearthdata.com).
+- **Reviewed and not used:** SVS 5196 (CO₂), 4950 (GEDI) and 5533 (air quality). Their colours
+  cannot be turned into values honestly: missing numeric scales, transparency, shading, or
+  mixed variables. Details are in docs/DATA_NOTES.md section 8.
 - **Software (all open):**
   - FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU), Node.js test runner;
   - browser APIs: Web Audio, Web Speech, Web Serial, Canvas;

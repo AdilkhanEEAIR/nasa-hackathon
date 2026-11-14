@@ -379,7 +379,41 @@ Folders were scanned with Microsoft Defender (`MpCmdRun -Scan -ScanType 3`).
 | https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/sst_ecco2_cbar.png | 8,867 | 2026-11-14 10:56 UTC | `7c4c25f9ca51bb458c100ca4d31f452b8dfdbce8898e2945b7042729d55404c5` | PNG signature OK |
 | https://svs.gsfc.nasa.gov/vis/a000000/a003900/a003912/flat_ecco2_dates.txt | 50,025 | 2026-11-14 10:56 UTC | `2911a0e01ba21542462283276636f834511527ac45b9e5df76226acc03f743fb` | UTF-8 text OK |
 
-Defender result for `datasets/ecco2`: "found no threats".
+| https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondPointCloud_12-1-2023b_dyamond_co2_anim_globe_orbit_1080p30_h265.mp4 | 7,228,199 | 2026-11-14 11:09 UTC | `bd0f6dfaf17b652e0e2c0aac4e5ac36c9a0120acb17d54d791ef9ac74eeb78e3` | ffprobe OK: hevc 1920x1080 30 fps, 39.2 s |
+| https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005196/dyamondCbar_6-27-2024a.png | 48,713 | 2026-11-14 11:09 UTC | `5354a4734cdf11dfd6738c0d8875d47d5d3b6779ea5a50a8dc71d24f08f11a5f` | PNG signature OK |
+| https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/GEDI_global_w_colorbar_1080p60.mp4 | 18,574,070 | 2026-11-14 11:09 UTC | `c47012d28b996d528069fc28f39ad7e9425be6e50f65d2b3274a1cc817d91915` | ffprobe OK: h264 1920x1080 60 fps, 51.5 s |
+| https://svs.gsfc.nasa.gov/vis/a000000/a004900/a004950/GEDI_colorbar_0to50_01_print.jpg | 11,031 | 2026-11-14 11:09 UTC | `b27d8869d0247542849b92ca1a09677475192047f46ec10552620d2a59608576` | JPEG signature OK |
+| https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005533/AirQuality_WithLabels_1920x1080_0000.png | 2,306,930 | 2026-11-14 11:11 UTC | `b28c1e0379019d9482a839be4c18b6a5906cb47dff31637563fcd3f6dfe48a00` | PNG signature OK |
+| https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_boundary_lines_land.geojson | 340,010 | 2026-11-14 11:11 UTC | `d42479fd79552cca4eec7f85fcdca717a790d29ff06be7676f1af0568c6d3f7c` | valid JSON text |
+| https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_populated_places_simple.geojson | 166,071 | 2026-11-14 11:11 UTC | `0dbd25c9ad8bd797ddf164b067f563be5c16be2c002254eb594862377963f9dc` | valid JSON text |
+
+Defender results: `datasets/ecco2`, `datasets/dyamond`, `datasets/gedi`, `datasets/airquality`
+and `datasets/naturalearth` all report "found no threats".
+
+Credits for the reviewed (not used) SVS pages:
+- 5196: AJ Christensen (visualization), Lesley Ott (science).
+- 4950: Kel Elkins, Horace Mitchell, Greg Shirah; scientists Temilola Fatoyinbo and Atticus
+  Stovall; data GEDI L2B RH100.
+- 5533: Helen-Nicole Kostis and Joseph V. Ardizzone; science Lesley Ott; GEOS-CF.
+
+Natural Earth: public domain, https://www.naturalearthdata.com. The files come from the
+project's official repository, `nvkelso/natural-earth-vector`.
+
+## 8. Datasets reviewed and rejected (honesty check)
+
+The rule for every track: a pixel colour must translate into a value honestly. Where it
+cannot, the dataset is left out.
+
+| SVS | What it shows | Why it was rejected |
+|---|---|---|
+| **5196** DYAMOND CO₂, globe orbit (39 s, 1080p) | The globe turns steadily the whole time, with a date label at the bottom right. | The colorbar has **no numbers**: tick marks only, and no ppm range on the page. Its low end is **transparent** (a checkerboard), so the base map shows through. Its beige middle matches the base map (pale Sahara, pinkish Australia). Only "strongest orange-red plumes" could be detected, not a value. |
+| **4950** GEDI forest height, rotating globe (51 s) | The globe turns the whole time, with a 0–50 m colorbar in the frame at bottom left (x 63–470, y ≈ 1000). Disk centre (960, 539), radius ≈ 515 px. | **Lighting:** globe colours are 1.5–2× darker than the colorbar, e.g. (52,54,21) against (85,89,54) on the bar. The scale separates heights mostly by brightness, from dark brown through green to light cream, so shading destroys the value. **Data gaps:** GEDI samples narrow orbit tracks (the visible cross-hatching), and the dark-brown base between tracks cannot be told apart from 0 m. On the centre meridian, where shading is mildest, nearest-colour matching still gave "0 m" for most of Africa, with colour errors of 50–63. |
+| **5533** Air quality, flat map with labels | The world is cut into vertical strips, each strip showing a different pollutant (CO, PM2.5, NOx, O₃, repeated), with name labels. | **No colorbars or units in the frame**, and each longitude shows only one of four different quantities. A ring would mix four different scales in arbitrary places. |
+| 4960 Atmospheric river | 3D camera flights with narration | No fixed geography; files over 400 MB. Not downloaded. |
+| 5425 Perpetual Ocean 2 | Camera zooms, aesthetic white flow lines | 1–5 GB files; the colouring is not data. Not downloaded. |
+
+Because both rotating-globe candidates (5196, 4950) failed this check, the planned "needle"
+scan mode was not built. It would have had no honest data to read.
 
 Credits for SVS 3912:
 - NASA/Goddard Space Flight Center Scientific Visualization Studio.
