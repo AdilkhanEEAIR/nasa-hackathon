@@ -181,6 +181,29 @@ the same as for night lights.
 - The change map shows the *direction* of change reliably (more / less / same). Its
   magnitude is approximate.
 
+## Loading speed
+
+**First-screen budget: 0.25 MB.** That covers HTML, CSS, JS, the manifest, one map view, one
+sound grid and the land mask. Everything else loads after the player is ready: the other years
+in the background, other tracks when you pick them. The audio engine is available at once, and
+a Space press during loading starts the scan as soon as the data arrives.
+
+| Measured on https://earthsonar.vercel.app, cold cache, headless Chrome ([`tools/measure_load.mjs`](tools/measure_load.mjs)) | Fast 4G | Slow 4G | Sent before ready |
+|---|---|---|---|
+| Before (all 12 years as lossless PNG, sequential requests), no warm-up | 3.05 s | 4.74 s | 0.64 MB (7.4 MB total) |
+| After, same method, no warm-up | 2.19 s | 1.58 s | 0.14 MB |
+| After, warm-up + median of 3 runs | **0.85 s** | **1.43 s** | **0.14 MB** |
+
+- **Sound and sight are separate files.**
+  - Sound grids are lossless 8-bit PNGs that hold the exact values the sonification uses.
+    A test confirms the browser decodes them byte-for-byte as written.
+  - Map views are WebP (JPEG fallback) and are only for the eyes. One year is a 0.06 MB view
+    plus a 0.03 MB sound grid.
+- Media file names carry a content hash and are served with
+  `Cache-Control: immutable, max-age=1 year`. Repeat visits load them from cache. Only
+  `manifest.json` is re-checked.
+- Long loads show a progress bar, and the live region and the voice guide announce them.
+
 ## Accessibility
 
 - Works with the keyboard alone, and with or without a screen reader. Tested with keyboard
