@@ -19,3 +19,5 @@ README.md
 *.tmp
 .env
 .env.*
+build/
+*.mjs
