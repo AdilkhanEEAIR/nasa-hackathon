@@ -30,7 +30,8 @@ export const CHANGE_LAYERS = [
   { name: 'same', type: 'sine', octave: 0, cutoffLo: 1500, cutoffHi: 2500, peak: 0.45 },
 ];
 
-export const CHANGE_COLORS = { more: '#c99cff', less: '#ffa95e', same: '#e9edf4' };
+// Colours are design-token names (css/tokens.css), resolved at draw time.
+export const CHANGE_COLORS = { more: '--data-change-more', less: '--data-change-less', same: '--data-change-same' };
 
 /** The dominant class of a set of levels, or null if all are zero. */
 export function dominant(levels) {
@@ -70,7 +71,7 @@ export const AEROSOL_LAYERS = [
   { name: 'sulfate', type: 'square', octave: 0, cutoffLo: 500, cutoffHi: 1800, peak: 0.65 },
 ];
 
-export const AEROSOL_COLORS = { smoke: '#ff6a3d', dust: '#c99cff', salt: '#5fb7e0', sulfate: '#6ef04a' };
+export const AEROSOL_COLORS = { smoke: '--data-smoke', dust: '--data-dust', salt: '--data-salt', sulfate: '--data-sulfate' };
 
 export const AEROSOL_NAMES = { smoke: 'smoke and black carbon', dust: 'dust', salt: 'sea salt', sulfate: 'sulfate' };
 

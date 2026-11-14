@@ -3,187 +3,312 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>EarthSonar: a jukebox for NASA Earth visualizations</title>
-  <meta name="description" content="EarthSonar turns NASA Earth Information Center visualizations into live sound with a shrinking-ring sonar, for blind and low-vision listeners and everyone else.">
-  <meta name="theme-color" content="#06080d">
+  <title>EarthSonar — hear NASA Earth visualizations</title>
+  <meta name="description" content="EarthSonar turns NASA Earth Information Center visualizations into live sound you can navigate, built first for blind and low-vision people.">
+  <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
-  <!-- Start every request the first screen needs at once, instead of a module-by-module chain. -->
-  <link rel="preload" href="manifest.json" as="fetch" crossorigin="anonymous">
-  <link rel="modulepreload" href="js/app.js">
-  <link rel="modulepreload" href="js/audio.js">
-  <link rel="modulepreload" href="js/scan.js">
-  <link rel="modulepreload" href="js/view.js">
-  <link rel="modulepreload" href="js/dial.js">
-  <link rel="modulepreload" href="js/fields.js">
-  <link rel="modulepreload" href="js/geo.js">
-  <link rel="modulepreload" href="js/music.js">
-  <link rel="modulepreload" href="js/tracks.js">
-  <link rel="modulepreload" href="js/loader.js">
-  <link rel="modulepreload" href="js/speech.js">
-  <link rel="modulepreload" href="js/wav.js">
-  <link rel="modulepreload" href="js/camera.js">
-  <link rel="modulepreload" href="js/places.js">
-  <link rel="modulepreload" href="js/lightning.js">
+  <script type="module" src="js/site.js"></script>
 </head>
-<body>
-  <a class="skip" href="#player">Skip to the player</a>
+<body data-tab="home">
+  <a class="skip" href="#main">Skip to content</a>
 
-  <header class="hero">
-    <div class="hero-text">
-      <h1>EarthSonar</h1>
-      <p class="lede">A jukebox for NASA Earth visualizations. A ring of sound closes in on any place on Earth, so you can hear what the map shows.</p>
-      <p class="cta">Press <kbd>Space</kbd> to play. <span id="sound-state" class="sound-state" data-on="false">Sound starts with your first key press.</span></p>
-    </div>
-    <div class="howto" aria-labelledby="howto-title">
-      <h2 id="howto-title" class="eyebrow">How to listen</h2>
-      <ul class="rules">
-        <li><span class="glyph" aria-hidden="true">↑</span><span><strong>Top is north</strong>: high notes</span></li>
-        <li><span class="glyph" aria-hidden="true">→</span><span><strong>Right ear is east</strong>, left ear is west</span></li>
-        <li><span class="glyph" aria-hidden="true">◉</span><span><strong>Louder is brighter</strong>: more light on the map</span></li>
-      </ul>
-      <button id="btn-tutorial" type="button" class="ghost" aria-keyshortcuts="T">Play 10-second tutorial <kbd>T</kbd></button>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="#home">EarthSonar</a>
+      <nav aria-label="Sections">
+        <div class="tabs" id="tabs" role="tablist" aria-label="EarthSonar sections">
+          <button class="tab" role="tab" id="tab-home" data-tab="home" aria-controls="panel-home" aria-selected="true">Home</button>
+          <button class="tab" role="tab" id="tab-jukebox" data-tab="jukebox" aria-controls="panel-jukebox" aria-selected="false" tabindex="-1">Jukebox</button>
+          <button class="tab" role="tab" id="tab-demo" data-tab="demo" aria-controls="panel-demo" aria-selected="false" tabindex="-1">Demo</button>
+          <button class="tab" role="tab" id="tab-how" data-tab="how" aria-controls="panel-how" aria-selected="false" tabindex="-1">How it works</button>
+          <button class="tab" role="tab" id="tab-data" data-tab="data" aria-controls="panel-data" aria-selected="false" tabindex="-1">Data &amp; Credits</button>
+          <button class="tab" role="tab" id="tab-hardware" data-tab="hardware" aria-controls="panel-hardware" aria-selected="false" tabindex="-1">Hardware</button>
+        </div>
+      </nav>
     </div>
   </header>
 
-  <main class="layout">
-    <nav class="tracks" aria-labelledby="tracks-title">
-      <h2 id="tracks-title" class="eyebrow">Tracks</h2>
-      <ol id="track-list" class="track-list"></ol>
-    </nav>
+  <main id="main" tabindex="-1">
 
-    <section id="player" class="player" aria-labelledby="track-title" tabindex="-1">
-      <div class="now">
-        <p class="eyebrow">Now playing</p>
-        <h2 id="track-title">Night Lights 2012–2023</h2>
-        <p class="readouts">
-          <span><span id="when-label">Year</span> <strong id="year-readout">2012</strong></span>
-          <span>Centre <strong id="centre-readout">India</strong></span>
-          <span>Ring <strong id="radius-readout">1500 km</strong></span>
-        </p>
-        <ul id="track-legend" class="legend" aria-label="What the sounds mean on this track"></ul>
-      </div>
-
-      <div class="transport" role="group" aria-label="Player">
-        <button id="btn-scan" type="button" class="primary" aria-pressed="false" aria-keyshortcuts="Space">
-          <span class="btn-label">Play scan</span> <kbd>Space</kbd>
-        </button>
-        <button id="btn-sweep" type="button" aria-keyshortcuts="Y"><span class="btn-label">All years</span> <kbd>Y</kbd></button>
-        <button id="btn-where" type="button" aria-keyshortcuts="W">Where am I? <kbd>W</kbd></button>
-        <button id="btn-explore" type="button" aria-pressed="false" aria-keyshortcuts="E">Explore <kbd>E</kbd></button>
-        <button id="btn-wav" type="button" aria-keyshortcuts="S">Save scan as WAV <kbd>S</kbd></button>
-        <button id="btn-stop" type="button" class="ghost" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
-      </div>
-
-      <p id="wav-note" class="caption wav-note" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2, 3 and 5 can be saved.</p>
-
-      <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
-
-      <div class="stage" role="application" aria-roledescription="sound map" aria-describedby="keybar-title">
-        <div id="loadbar" class="loadbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span class="fill"></span></div>
-        <div id="world" class="world">
-          <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
-          <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
-          <video id="map-video" class="map-img map-video" muted playsinline preload="none" aria-hidden="true" hidden></video>
+    <!-- ================================================================ HOME -->
+    <section class="panel panel--home" id="panel-home" role="tabpanel" aria-labelledby="tab-home" tabindex="-1">
+      <div class="hero">
+        <div class="hero__text">
+          <p class="eyebrow">NASA Space Apps Challenge 2026 · The Earth Information Jukebox</p>
+          <h1 class="display">Hear the planet change.</h1>
+          <p class="lede">EarthSonar turns NASA Earth Information Center visualizations into sound you can navigate, built first for blind and low-vision people.</p>
+          <div class="actions">
+            <a class="button button--primary" href="#jukebox">Open the jukebox</a>
+            <a class="button button--secondary" href="#demo">Watch the demo</a>
+          </div>
         </div>
-        <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
-                aria-label="Night lights map. Loading."></canvas>
-        <p class="zoom-badge" id="zoom-badge" aria-hidden="true">1×</p>
-        <p id="demo-caption" class="demo-caption" aria-live="polite" hidden></p>
-        <button id="demo-start" type="button" class="primary demo-start" hidden>Start the 28-second demo</button>
+        <figure class="hero__figure">
+          <img src="media/nl/view-2023.85ad058ec8.webp" width="1920" height="1080" loading="lazy" decoding="async" alt="NASA night-lights map of the world, 2023, with a ring of sound closing in on India.">
+          <svg class="hero__ring" viewBox="0 0 160 90" aria-hidden="true" focusable="false">
+            <circle cx="115" cy="33.75" r="12" />
+            <circle cx="115" cy="33.75" r="1.4" class="dot" />
+          </svg>
+        </figure>
       </div>
 
-      <div class="timeline" aria-hidden="true" id="timeline"></div>
+      <div class="cards">
+        <section class="card" aria-labelledby="home-tracks">
+          <h2 id="home-tracks" class="card__title">Five tracks</h2>
+          <ol class="plain-list numbered">
+            <li>Night Lights 2012–2023</li>
+            <li>What Changed</li>
+            <li>Aerosols</li>
+            <li>Lightning from the space station</li>
+            <li>Ocean Temperature</li>
+          </ol>
+        </section>
+        <section class="card" aria-labelledby="home-rule">
+          <h2 id="home-rule" class="card__title">One rule for every sound</h2>
+          <dl class="rule-list">
+            <div><dt>Pitch</dt><dd>north is high, south is low</dd></div>
+            <div><dt>Stereo</dt><dd>west in the left ear, east in the right</dd></div>
+            <div><dt>Loudness</dt><dd>how much is there</dd></div>
+            <div><dt>Timbre</dt><dd>what it is: lights, dust, storms, warm water</dd></div>
+          </dl>
+        </section>
+        <section class="card" aria-labelledby="home-access">
+          <h2 id="home-access" class="card__title">Accessible by design</h2>
+          <ul class="plain-list">
+            <li>Works with the keyboard alone</li>
+            <li>Screen reader and spoken guide</li>
+            <li>Optional controller you can feel</li>
+            <li>Every sound follows a published rule</li>
+          </ul>
+        </section>
+      </div>
     </section>
 
-    <aside class="instruments" aria-labelledby="inst-title">
-      <h2 id="inst-title" class="eyebrow">Now sounding</h2>
-      <canvas id="dial" class="dial" width="260" height="350" role="img"
-              aria-label="Sixteen ring voices arranged as a compass, and four bars for the tactile controller: north, east, south, west."></canvas>
-      <p class="caption">16 voices around the ring. Bars: tactile compass for the vibration controller.</p>
-
-      <div class="field" role="group" aria-labelledby="year-label">
-        <span id="year-label" class="label">Year</span>
-        <div class="inline">
-          <button id="btn-prev-year" type="button" class="icon" aria-keyshortcuts="PageDown" aria-label="Previous year">◀</button>
-          <label class="sr-only" for="year">Year</label>
-          <select id="year"></select>
-          <button id="btn-next-year" type="button" class="icon" aria-keyshortcuts="PageUp" aria-label="Next year">▶</button>
-        </div>
+    <!-- ================================================================ JUKEBOX -->
+    <section class="panel panel--jukebox" id="panel-jukebox" role="tabpanel" aria-labelledby="tab-jukebox" tabindex="-1" hidden>
+      <div class="jukebox-head">
+        <p class="rules-inline">Top is north · right ear is east · louder is more
+          <button id="btn-tutorial" type="button" class="button button--quiet" aria-keyshortcuts="T">Short tutorial <kbd>T</kbd></button>
+        </p>
+        <p id="sound-state" class="sound-state" data-on="false">Sound starts with your first key press.</p>
       </div>
 
-      <div class="field" role="group" aria-labelledby="presets-label">
-        <span id="presets-label" class="label">Centre on</span>
-        <div id="presets" class="presets"></div>
+      <div class="layout">
+        <nav class="tracks" aria-labelledby="tracks-title">
+          <h2 id="tracks-title" class="eyebrow">Tracks</h2>
+          <ol id="track-list" class="track-list"></ol>
+        </nav>
+
+        <section id="player" class="player" aria-labelledby="track-title" tabindex="-1">
+          <div class="now">
+            <p class="eyebrow">Now playing</p>
+            <h2 id="track-title" class="now__title">Night Lights 2012–2023</h2>
+            <p class="readouts">
+              <span><span id="when-label">Year</span> <strong id="year-readout">2012</strong></span>
+              <span>Centre <strong id="centre-readout">India</strong></span>
+              <span>Ring <strong id="radius-readout">1500 km</strong></span>
+            </p>
+            <ul id="track-legend" class="legend" aria-label="What the sounds mean on this track"></ul>
+          </div>
+
+          <div class="transport" role="group" aria-label="Player">
+            <button id="btn-scan" type="button" class="button button--primary" aria-pressed="false" aria-keyshortcuts="Space">
+              <span class="btn-label">Play scan</span> <kbd>Space</kbd>
+            </button>
+            <button id="btn-sweep" type="button" class="button" aria-keyshortcuts="Y"><span class="btn-label">All years</span> <kbd>Y</kbd></button>
+            <button id="btn-where" type="button" class="button" aria-keyshortcuts="W">Where am I? <kbd>W</kbd></button>
+            <button id="btn-explore" type="button" class="button" aria-pressed="false" aria-keyshortcuts="E">Explore <kbd>E</kbd></button>
+            <button id="btn-wav" type="button" class="button" aria-keyshortcuts="S">Save as WAV <kbd>S</kbd></button>
+            <button id="btn-stop" type="button" class="button button--quiet" aria-keyshortcuts="Escape">Stop <kbd>Esc</kbd></button>
+          </div>
+          <p id="wav-note" class="note" hidden>Save as WAV is not available on the lightning video: it would need every video frame decoded in advance. Tracks 1, 2, 3 and 5 can be saved.</p>
+
+          <p id="status" class="status" role="status" aria-live="polite" aria-atomic="true"></p>
+
+          <div class="stage" role="application" aria-roledescription="sound map" aria-describedby="keybar-title">
+            <div id="loadbar" class="loadbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span class="fill"></span></div>
+            <div id="world" class="world">
+              <img class="map-img front" id="map-a" alt="" width="1920" height="1080" decoding="async">
+              <img class="map-img" id="map-b" alt="" width="1920" height="1080" decoding="async">
+              <video id="map-video" class="map-img map-video" muted playsinline preload="none" aria-hidden="true" hidden></video>
+            </div>
+            <canvas id="overlay" class="overlay" width="1280" height="720" tabindex="0" role="img"
+                    aria-label="Night lights map. Loading."></canvas>
+            <p class="zoom-badge" id="zoom-badge" aria-hidden="true">1×</p>
+          </div>
+          <!-- Demo subtitles sit under the map so they never cover the data being heard. -->
+          <p id="demo-caption" class="demo-caption" aria-live="polite" hidden></p>
+
+          <div class="timeline" aria-hidden="true" id="timeline"></div>
+        </section>
+
+        <aside class="instruments" aria-labelledby="inst-title">
+          <h2 id="inst-title" class="eyebrow">Now sounding</h2>
+          <canvas id="dial" class="dial" width="260" height="350" role="img"
+                  aria-label="Sixteen ring voices arranged as a compass, and four bars for the tactile controller: north, east, south, west."></canvas>
+          <p class="caption">16 voices around the ring. Bars: the four vibration motors.</p>
+
+          <div class="field" role="group" aria-labelledby="year-label">
+            <span id="year-label" class="label">Year</span>
+            <div class="inline">
+              <button id="btn-prev-year" type="button" class="button button--icon" aria-keyshortcuts="PageDown" aria-label="Previous year">‹</button>
+              <label class="sr-only" for="year">Year</label>
+              <select id="year" class="select"></select>
+              <button id="btn-next-year" type="button" class="button button--icon" aria-keyshortcuts="PageUp" aria-label="Next year">›</button>
+            </div>
+          </div>
+
+          <div class="field" role="group" aria-labelledby="presets-label">
+            <span id="presets-label" class="label">Centre on</span>
+            <div id="presets" class="presets"></div>
+          </div>
+
+          <div class="field">
+            <label for="radius" class="label">Ring size <output id="radius-out" for="radius">1500 km</output></label>
+            <input id="radius" type="range" min="250" max="4000" step="250" value="1500" aria-keyshortcuts=", .">
+          </div>
+          <div class="field">
+            <label for="duration" class="label">Scan length <output id="duration-out" for="duration">8 s</output></label>
+            <input id="duration" type="range" min="4" max="16" step="1" value="8">
+          </div>
+          <div class="field">
+            <label for="volume" class="label">Volume <output id="volume-out" for="volume">80%</output></label>
+            <input id="volume" type="range" min="0" max="100" step="5" value="80">
+          </div>
+          <div class="field check">
+            <input id="coast" type="checkbox" checked aria-keyshortcuts="C">
+            <label for="coast">Click at coastlines <kbd>C</kbd></label>
+          </div>
+          <div class="field check">
+            <input id="labels" type="checkbox" aria-keyshortcuts="L">
+            <label for="labels">Borders and city names <kbd>L</kbd></label>
+          </div>
+          <div class="field check">
+            <input id="voice" type="checkbox" checked aria-keyshortcuts="V" aria-describedby="voice-hint">
+            <label for="voice">Voice guide <kbd>V</kbd></label>
+          </div>
+          <p id="voice-hint" class="caption">Speaks places, years and summaries. Screen-reader users may prefer it off.</p>
+
+          <div class="field" role="group" aria-labelledby="touch-label">
+            <span id="touch-label" class="label">Touch</span>
+            <button id="btn-serial" type="button" class="button" aria-describedby="serial-status">Connect controller</button>
+            <p id="serial-status" class="caption" role="status">Arduino with joystick and four vibration motors, by USB. Chrome or Edge on a computer.</p>
+            <div class="check" id="vibrate-row" hidden>
+              <input id="vibrate" type="checkbox">
+              <label for="vibrate">Phone vibration (Android)</label>
+            </div>
+          </div>
+        </aside>
       </div>
 
-      <div class="field">
-        <label for="radius" class="label">Ring size <kbd>,</kbd><kbd>.</kbd> <output id="radius-out" for="radius">1500 km</output></label>
-        <input id="radius" type="range" min="250" max="4000" step="250" value="1500" aria-keyshortcuts=", .">
+      <div class="keybar" role="note" aria-labelledby="keybar-title">
+        <span id="keybar-title" class="sr-only">Keyboard shortcuts:</span>
+        <span><kbd>Space</kbd> play</span>
+        <span><kbd>←↑↓→</kbd> move</span>
+        <span><kbd>PgUp</kbd><kbd>PgDn</kbd> year</span>
+        <span><kbd>1</kbd>–<kbd>4</kbd> places</span>
+        <span><kbd>⇧1</kbd>–<kbd>⇧5</kbd> tracks</span>
+        <span><kbd>Y</kbd> summary</span>
+        <span><kbd>W</kbd> where</span>
+        <span><kbd>E</kbd> explore</span>
+        <span><kbd>,</kbd><kbd>.</kbd> ring</span>
+        <span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd> zoom</span>
+        <span><kbd>L</kbd> labels</span>
+        <span><kbd>V</kbd> voice</span>
+        <span><kbd>Esc</kbd> stop</span>
       </div>
-      <div class="field">
-        <label for="duration" class="label">Scan length <output id="duration-out" for="duration">8 s</output></label>
-        <input id="duration" type="range" min="4" max="16" step="1" value="8">
-      </div>
-      <div class="field">
-        <label for="volume" class="label">Volume <output id="volume-out" for="volume">80%</output></label>
-        <input id="volume" type="range" min="0" max="100" step="5" value="80">
-      </div>
-      <div class="field check">
-        <input id="coast" type="checkbox" checked aria-keyshortcuts="C">
-        <label for="coast">Click at coastlines <kbd>C</kbd></label>
-      </div>
-      <div class="field check">
-        <input id="labels" type="checkbox" aria-keyshortcuts="L">
-        <label for="labels">Borders and city names <kbd>L</kbd></label>
-      </div>
-      <div class="field check">
-        <input id="voice" type="checkbox" checked aria-keyshortcuts="V" aria-describedby="voice-hint">
-        <label for="voice">Voice guide <kbd>V</kbd></label>
-      </div>
-      <p id="voice-hint" class="caption">Speaks places, years and summaries. Screen-reader users may prefer it off.</p>
+    </section>
 
-      <div class="field" role="group" aria-labelledby="touch-label">
-        <span id="touch-label" class="label">Touch</span>
-        <button id="btn-serial" type="button" aria-describedby="serial-status">Connect controller</button>
-        <p id="serial-status" class="caption" role="status">Arduino with joystick and 4 vibration motors, by USB. Chrome or Edge on a computer.</p>
-        <div class="check" id="vibrate-row" hidden>
-          <input id="vibrate" type="checkbox">
-          <label for="vibrate">Phone vibration (Android)</label>
-        </div>
+    <!-- ================================================================ DEMO -->
+    <section class="panel panel--prose" id="panel-demo" role="tabpanel" aria-labelledby="tab-demo" tabindex="-1" hidden>
+      <h1 class="title">A 28-second tour</h1>
+      <p class="lede">The demo plays a fixed scenario with English subtitles on screen. It covers what EarthSonar is and who it is for, India in 2012 and in 2023, aerosols, lightning, and where to find it. Use headphones if you can.</p>
+      <div class="actions">
+        <button id="demo-start" type="button" class="button button--primary" disabled>Preparing the demo…</button>
       </div>
-    </aside>
+      <p id="demo-status" class="note" role="status">Loading the maps the demo needs.</p>
+      <p class="note">Press Escape to stop at any time. The demo is the same player as the Jukebox tab, with its timing fixed for recording.</p>
+    </section>
+
+    <!-- ================================================================ HOW IT WORKS -->
+    <section class="panel panel--prose" id="panel-how" role="tabpanel" aria-labelledby="tab-how" tabindex="-1" hidden>
+      <h1 class="title">How it works</h1>
+      <p class="lede">Choose a place. A ring of sixteen voices starts far away and closes in on it. Each voice listens to one arc of the ring, so you hear where things are as well as how much of them there is.</p>
+
+      <h2 class="section-title">The rule</h2>
+      <dl class="rule-list rule-list--wide">
+        <div><dt>Pitch</dt><dd>North–south position. High notes come from the north, low notes from the south. Notes come from a major pentatonic scale, so any mix stays musical.</dd></div>
+        <div><dt>Stereo</dt><dd>West–east position. West is in the left ear, east in the right.</dd></div>
+        <div><dt>Loudness</dt><dd>How much is on the arc: light, dust, flashes, ocean. The scale is fixed per track and never re-normalised from frame to frame.</dd></div>
+        <div><dt>Timbre</dt><dd>What the phenomenon is. You learn it once and it holds for every track.</dd></div>
+        <div><dt>The end of a scan</dt><dd>The ring meets in one note: the value at the centre. A low thud means nothing is there.</dd></div>
+      </dl>
+
+      <h2 class="section-title">The ring</h2>
+      <p>The ring is computed on the sphere with great-circle distance, so it is a true circle on Earth at any zoom. Explore mode turns the centre into a probe you move with the arrow keys. A spoken guide names the nearest city and the value under the probe.</p>
+
+      <h2 class="section-title">The palette</h2>
+      <table class="table">
+        <thead><tr><th scope="col">Track</th><th scope="col">What you hear</th></tr></thead>
+        <tbody>
+          <tr><td>Night Lights</td><td>Warm, twinkling tone for city lights. Soft hum for unlit land, silence for water.</td></tr>
+          <tr><td>What Changed</td><td>High sparkle for more light, low muffled buzz for less, quiet sine for little change.</td></tr>
+          <tr><td>Aerosols</td><td>Crackle for smoke, dry rustle for dust, surf for sea salt, buzz for sulfate.</td></tr>
+          <tr><td>Lightning</td><td>A sharp crack for each new flash, a low rumble for storm density.</td></tr>
+          <tr><td>Ocean Temperature</td><td>A dull tone for cold water, a bright one for warm. Land is silent.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="section-title">Limits</h2>
+      <ul class="plain-list bullets">
+        <li>We sonify the rendered visualizations, not raw measurements. "Brighter" means brighter on the map.</li>
+        <li>The aerosol legend is categorical. It names the type but gives no amounts.</li>
+        <li>Lightning is only seen up to about 52° north and south. Silence there means no data.</li>
+        <li>The ocean frame is one model day, 19 June 2007. It is not a trend.</li>
+      </ul>
+    </section>
+
+    <!-- ================================================================ DATA & CREDITS -->
+    <section class="panel panel--prose" id="panel-data" role="tabpanel" aria-labelledby="tab-data" tabindex="-1" hidden>
+      <h1 class="title">Data &amp; credits</h1>
+      <p class="lede">Every image is an original frame from NASA's Scientific Visualization Studio, from the Earth Information Center collection. EarthSonar reads the frames pixel by pixel with fixed, documented rules.</p>
+      <table class="table">
+        <thead><tr><th scope="col">Visualization</th><th scope="col">SVS ID</th><th scope="col">Credit</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights between 2012 and 2023 – EIC Version</a></td><td>5313</td><td>NASA's Scientific Visualization Studio. Visualizer Kel Elkins. Data: NASA Black Marble (Suomi NPP VIIRS).</td></tr>
+          <tr><td><a href="https://svs.gsfc.nasa.gov/5669/">GEOS Aerosols</a></td><td>5669</td><td>NASA GMAO and NASA SVS. Joseph V. Ardizzone, Helen-Nicole Kostis; Lesley Ott.</td></tr>
+          <tr><td><a href="https://svs.gsfc.nasa.gov/5011/">Lightning Events Detected from the ISS 2017–2023</a></td><td>5011</td><td>NASA SVS. Michala Garrison, Greg Shirah, Kel Elkins, Alex Kekesi. Data: LIS on ISS, NASA GHRC DAAC.</td></tr>
+          <tr><td><a href="https://svs.gsfc.nasa.gov/3912/">Global Sea Surface Currents and Temperature</a></td><td>3912</td><td>NASA/GSFC SVS. Greg Shirah, Horace Mitchell, Eric Sokolowsky. Data: ECCO2.</td></tr>
+        </tbody>
+      </table>
+      <p>Map labels (key L, visual only): <a href="https://www.naturalearthdata.com">Natural Earth</a>, public domain. Method references: <a href="https://svs.gsfc.nasa.gov/13786/">Data Sonification: Caldwell 73</a> (SVS 13786), and the ring idea follows NASA's RS Puppis sonification (SVS 14260).</p>
+
+      <h2 class="section-title">Use of artificial intelligence</h2>
+      <p>The code and documentation were written with Claude (Anthropic) under the team's direction and review. No images, video or audio were generated by AI. Every sound is synthesised live in the browser by the rules on the How it works tab.</p>
+      <p>Full data notes, measurements and the datasets we reviewed and rejected are in the <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">source repository</a>.</p>
+    </section>
+
+    <!-- ================================================================ HARDWARE -->
+    <section class="panel panel--prose" id="panel-hardware" role="tabpanel" aria-labelledby="tab-hardware" tabindex="-1" hidden>
+      <h1 class="title">Hardware</h1>
+      <p class="lede">An optional controller lets you feel the map. The website works fully without it.</p>
+      <dl class="rule-list rule-list--wide">
+        <div><dt>Joystick</dt><dd>Moves the ring centre. The place is spoken when the stick returns to rest.</dd></div>
+        <div><dt>Knob</dt><dd>Chooses the year, the moment in the lightning video, or the ring size.</dd></div>
+        <div><dt>Button</dt><dd>Plays or stops. Pressing the joystick says where you are.</dd></div>
+        <div><dt>Four motors</dt><dd>North, east, south and west: a tactile compass driven by the same ring. A lightning strike is a short jolt on its side.</dd></div>
+      </dl>
+      <h2 class="section-title">Connect it</h2>
+      <ol class="plain-list numbered">
+        <li>Flash the firmware from the repository to an Arduino Uno or Nano.</li>
+        <li>Plug it in by USB and open this site in Chrome or Edge on a computer.</li>
+        <li>In the Jukebox tab, choose "Connect controller" and pick the port.</li>
+      </ol>
+      <p>On Android phones, "Phone vibration" pulses the phone instead. The serial protocol, wiring and power budget are documented in <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon/blob/main/docs/PROTOCOL.md">PROTOCOL.md</a>.</p>
+    </section>
   </main>
 
-  <section class="about" aria-labelledby="about-title">
-    <h2 id="about-title">What you are hearing</h2>
-    <p>Each track is a real frame from NASA's Earth Information Center visualizations. EarthSonar reads the colours of the rendered map. It does not read raw measurements.
-      A soft muffled hum is unlit land, silence is water, and a click marks a coastline. At the end the ring meets in one note: the value at the centre. A low thud means darkness there.</p>
-    <p>Screen-reader users: move focus to the map, which is an application region, so single-letter keys reach EarthSonar. Every action is also a button.</p>
-  </section>
-
-  <footer class="footer">
-    <p>Frames: <a href="https://svs.gsfc.nasa.gov/5313/">Change in Night Lights between 2012 and 2023 – EIC Version</a>, NASA's Scientific Visualization Studio (Black Marble, Suomi NPP VIIRS).
-      EarthSonar is an independent NASA Space Apps Challenge 2026 project and is not endorsed by NASA. <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">Source, data notes and credits</a>.</p>
+  <footer class="site-footer">
+    <p>Visualization frames: NASA's Scientific Visualization Studio. EarthSonar is an independent NASA Space Apps Challenge 2026 project and is not endorsed by NASA. <a href="https://github.com/AdilkhanEEAIR/nasa-hackathon">Source code</a>.</p>
   </footer>
-
-  <div class="keybar" role="note" aria-labelledby="keybar-title">
-    <span id="keybar-title" class="sr-only">Keyboard shortcuts:</span>
-    <span><kbd>Space</kbd> play</span>
-    <span><kbd>←↑↓→</kbd> move</span>
-    <span><kbd>PgUp</kbd><kbd>PgDn</kbd> year</span>
-    <span><kbd>1</kbd>–<kbd>4</kbd> places</span>
-    <span><kbd>⇧1</kbd>–<kbd>⇧4</kbd> tracks</span>
-    <span><kbd>Y</kbd> all years</span>
-    <span><kbd>W</kbd> where</span>
-    <span><kbd>E</kbd> explore</span>
-    <span><kbd>,</kbd><kbd>.</kbd> ring</span>
-    <span><kbd>+</kbd><kbd>−</kbd><kbd>0</kbd> zoom</span>
-    <span><kbd>T</kbd> tutorial</span>
-    <span><kbd>V</kbd> voice</span>
-    <span><kbd>L</kbd> labels</span>
-    <span><kbd>Esc</kbd> stop</span>
-  </div>
-
-  <script type="module" src="js/app.js"></script>
 </body>
 </html>

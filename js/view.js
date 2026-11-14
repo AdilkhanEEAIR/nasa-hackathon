@@ -5,6 +5,7 @@
 // aligned at any zoom.
 
 import { geoToMap, mapToGeo, mapToScreen, screenToMap, zoomAt, panBy, clampCamera, ensureVisible, HOME } from './camera.js';
+import { token, num, ms } from './theme.js';
 
 export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -67,6 +68,12 @@ export class MapView {
 
   resetCamera() {
     this.setCamera({ ...HOME });
+  }
+
+  /** Centres a geographic point at a given zoom (the demo uses it to frame each region). */
+  focus(lat, lon, s) {
+    const m = geoToMap(lat, lon);
+    this.setCamera({ s, cu: m.u, cv: m.v });
   }
 
   /** Keeps a geographic point in frame (used when the ring centre moves). */
@@ -186,22 +193,22 @@ export class MapView {
     const k = this.dpr;
     const { borders, cities } = this.labels;
     ctx.lineWidth = 1 * k;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.38)';
+    ctx.strokeStyle = token('--overlay-border');
     for (const line of borders) this._polyline(line.map(([lon, lat]) => ({ lat, lon })), false);
     // More names as you zoom in, largest cities first, so the map never turns into a wall of text.
     const limit = Math.round(25 * this.cam.s * this.cam.s);
-    ctx.font = `${Math.round(12 * k)}px system-ui, sans-serif`;
+    ctx.font = `${Math.round(num('--overlay-label-size') * k)}px ${token('--font-sans')}`;
     ctx.textBaseline = 'middle';
     for (const c of cities.slice(0, limit)) {
       const p = this._project(c);
       if (p.x < 0 || p.y < 0 || p.x > this.W || p.y > this.H) continue;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillStyle = token('--overlay-label');
       ctx.beginPath();
       ctx.arc(p.x, p.y, 2 * k, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillStyle = token('--overlay-label-halo');
       ctx.fillText(c.name, p.x + 5 * k + 1, p.y + 1);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillStyle = token('--overlay-label');
       ctx.fillText(c.name, p.x + 5 * k, p.y);
     }
   }
@@ -210,7 +217,7 @@ export class MapView {
   pulseCentre(level) {
     cancelAnimationFrame(this._rippleRaf);
     const start = performance.now();
-    const dur = reducedMotion() ? 700 : 600;
+    const dur = ms('--dur-ripple');
     const tick = (now) => {
       const t = Math.min(1, (now - start) / dur);
       this.ripple = { t, level, still: reducedMotion() };
@@ -252,17 +259,22 @@ export class MapView {
     if (this.labels) this._drawLabels();
 
     if (this.ring) {
+      // Thin and translucent: the NASA map stays the main thing on screen.
       ctx.lineCap = 'round';
-      ctx.lineWidth = 2 * k;
-      ctx.strokeStyle = 'rgba(124, 216, 255, 0.85)';
+      ctx.lineWidth = num('--overlay-ring-width') * k;
+      ctx.strokeStyle = token('--overlay-ring');
       this._polyline(this.ring.flatMap((v) => v.points), true);
-      // Loud arcs are drawn thicker in their instrument's colour, so a viewer can follow
-      // what is being heard.
+      // Loud arcs are drawn a little thicker in their instrument's colour, so a viewer can
+      // follow what is being heard.
+      const wMin = num('--overlay-arc-min');
+      const wMax = num('--overlay-arc-max');
+      const aMin = num('--overlay-arc-alpha-min');
+      const aMax = num('--overlay-arc-alpha-max');
       for (const v of this.ring) {
         if (v.gain <= 0.05) continue;
-        ctx.lineWidth = (2 + 7 * v.gain) * k;
-        ctx.strokeStyle = v.color || '#ffd56a';
-        ctx.globalAlpha = 0.35 + 0.65 * v.gain;
+        ctx.lineWidth = (wMin + (wMax - wMin) * v.gain) * k;
+        ctx.strokeStyle = v.color && v.color.startsWith('#') ? v.color : token(v.color || '--data-lights');
+        ctx.globalAlpha = aMin + (aMax - aMin) * v.gain;
         this._polyline(v.points, false);
       }
       ctx.globalAlpha = 1;
@@ -270,8 +282,8 @@ export class MapView {
 
     if (this.center) {
       const c = this._project(this.center);
-      ctx.lineWidth = 2 * k;
-      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5 * k;
+      ctx.strokeStyle = token('--overlay-marker');
       ctx.beginPath();
       ctx.arc(c.x, c.y, 6 * k, 0, Math.PI * 2);
       for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
@@ -285,9 +297,9 @@ export class MapView {
         // Ease-out (fast start, gentle stop): the note's attack, then its decay.
         const e = 1 - (1 - t) ** 3;
         const radius = (still ? 18 : 8 + 34 * e) * k;
-        ctx.lineWidth = 3 * k;
+        ctx.lineWidth = 2 * k;
         ctx.globalAlpha = still ? 0.9 : 1 - e;
-        ctx.strokeStyle = level > 0.001 ? '#ffd56a' : '#b7c0cf';
+        ctx.strokeStyle = token(level > 0.001 ? '--data-lights' : '--ui-text-muted');
         ctx.beginPath();
         ctx.arc(c.x, c.y, radius, 0, Math.PI * 2);
         ctx.stroke();

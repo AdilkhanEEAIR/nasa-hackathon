@@ -1,0 +1,154 @@
+/* EarthSonar design tokens — the only place where raw colours, sizes and timings live.
+   Three layers: primitives (raw values) -> semantic (purpose) -> component (where used).
+   Interface colours and data colours are separate sets and never stand in for each other.
+   tests/tokens.test.js fails if a colour literal appears anywhere else in the site. */
+
+:root {
+  color-scheme: dark;
+
+  /* ------------------------------------------------------------------ primitives: neutrals
+     Cool-tinted greys (hue ~215); never pure black or pure white. */
+  --gray-950: #0B0E12;
+  --gray-900: #0E1116;
+  --gray-850: #161B22;
+  --gray-800: #1C222B;
+  --gray-700: #2A313C;
+  --gray-600: #3A4350;
+  --gray-400: #9AA4B2;
+  --gray-200: #C9CED6;
+  --gray-100: #E6E8EB;
+
+  /* ------------------------------------------------------------------ primitives: accent
+     One warm amber, like city lights at night. Used sparingly. */
+  --amber-400: #EBBE6E;
+  --amber-500: #E0A84A;
+  --amber-950: #1A1206;
+
+  /* ------------------------------------------------------------------ primitives: data
+     Muted versions of the Okabe–Ito colour-blind-safe set, balanced in lightness so no
+     category shouts. Checked for deuteranopia and protanopia in tests/tokens.test.js. */
+  --dp-yellow: #D8C27F;
+  --dp-orange: #D98C5F;
+  --dp-purple: #BC84AE;
+  --dp-sky: #9CC9E8;
+  --dp-green: #5FA38A;
+  --dp-blue: #6F9CC6;
+  --dp-neutral: #CDD2DA;
+  --dp-quiet: #7E8794;
+  --dp-nodata: #4A5260;
+  --dp-flash: #F1ECDA;
+
+  /* ------------------------------------------------------------------ semantic: interface */
+  --ui-bg: var(--gray-900);
+  --ui-bg-sunken: var(--gray-950);
+  --ui-surface: var(--gray-850);
+  --ui-surface-2: var(--gray-800);
+  --ui-border: var(--gray-700);
+  --ui-border-strong: var(--gray-600);
+  --ui-text: var(--gray-100);
+  --ui-text-muted: var(--gray-400);
+  --ui-text-soft: var(--gray-200);
+  --ui-accent: var(--amber-500);
+  --ui-accent-hover: var(--amber-400);
+  --ui-on-accent: var(--amber-950);
+  --ui-focus: var(--amber-500);
+  --ui-scrim: rgba(11, 14, 18, 0.82);
+
+  /* ------------------------------------------------------------------ semantic: data */
+  --data-lights: var(--dp-yellow);
+  --data-land: var(--dp-quiet);
+  --data-change-more: var(--dp-purple);
+  --data-change-less: var(--dp-orange);
+  --data-change-same: var(--dp-neutral);
+  --data-smoke: var(--dp-orange);
+  --data-dust: var(--dp-purple);
+  --data-salt: var(--dp-sky);
+  --data-sulfate: var(--dp-green);
+  --data-cold: var(--dp-blue);
+  --data-warm: var(--dp-orange);
+  --data-flash: var(--dp-yellow);
+  --data-strike: var(--dp-flash);
+  --data-rumble: var(--dp-neutral);
+  --data-nodata: var(--dp-nodata);
+  --data-tactile: var(--dp-sky);
+
+  /* ------------------------------------------------------------------ component: map overlay
+     Thin and translucent: the NASA map stays the main thing on screen. */
+  --overlay-ring: rgba(230, 232, 235, 0.42);
+  --overlay-marker: var(--gray-100);
+  --overlay-label: rgba(230, 232, 235, 0.82);
+  --overlay-label-halo: rgba(11, 14, 18, 0.7);
+  --overlay-border: rgba(230, 232, 235, 0.28);
+  --overlay-ring-width: 1.25;
+  --overlay-arc-min: 1.5;
+  --overlay-arc-max: 4;
+  --overlay-arc-alpha-min: 0.45;
+  --overlay-arc-alpha-max: 0.9;
+  --overlay-label-size: 12;
+
+  /* ------------------------------------------------------------------ component: voice dial */
+  --dial-guide: var(--gray-700);
+  --dial-letter: var(--gray-200);
+  --dial-caption: var(--gray-400);
+  --dial-bar-track: var(--gray-800);
+  --dial-voice-width: 7;
+
+  /* ------------------------------------------------------------------ typography
+     One family (the platform UI font: no download, sharp on every OS). */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --text-xs: 0.8125rem;   /* 13 */
+  --text-sm: 0.9375rem;   /* 15 */
+  --text-md: 1.0625rem;   /* 17: body */
+  --text-lg: 1.25rem;     /* 20 */
+  --text-xl: 1.625rem;    /* 26 */
+  --text-2xl: 2.25rem;    /* 36 */
+  --text-3xl: 3.25rem;    /* 52 */
+  --leading-tight: 1.15;
+  --leading-body: 1.6;
+  --weight-regular: 400;
+  --weight-medium: 550;
+  --weight-bold: 680;
+  --tracking-caps: 0.12em;
+
+  /* ------------------------------------------------------------------ space, size, shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+  --container: 76rem;
+  --container-wide: 96rem;    /* the jukebox: the map gets the room */
+  --measure: 62ch;
+  --target-min: 2.75rem;      /* 44 px touch target */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --border-width: 1px;
+  --focus-width: 3px;
+  --focus-offset: 3px;
+  --shadow-1: 0 1px 2px rgba(4, 7, 12, 0.5), 0 6px 20px rgba(4, 7, 12, 0.32);
+
+  /* ------------------------------------------------------------------ component: layout */
+  --layout-tracks: 16rem;
+  --layout-side: 17.5rem;
+  --dial-size: 16.25rem;
+  --header-height: 3.75rem;
+  --chip-height: 1.875rem;
+  --loadbar-height: 3px;
+  --swatch-size: 0.75rem;
+  --check-size: 1.25rem;
+  --hero-ring-width: 0.6;
+
+  /* ------------------------------------------------------------------ motion
+     Restraint: keyboard-driven changes are instant; only what is sounding moves. */
+  --dur-press: 120ms;
+  --dur-fast: 160ms;
+  --dur-base: 180ms;
+  --dur-ripple: 600ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --press-scale: 0.97;
+}

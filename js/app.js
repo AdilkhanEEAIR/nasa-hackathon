@@ -16,13 +16,14 @@ import {
 } from './tracks.js';
 import { LightningSource } from './lightning.js';
 import { Controller } from './serial.js';
+import { mix } from './theme.js';
 import { LiveRingScan } from './scan.js';
 import { fetchBlob, blobToPixels, channelField, supportsWebp, Progress } from './loader.js';
 import { Voice } from './speech.js';
 import { describePlace } from './places.js';
 
 const YEARS = Array.from({ length: 12 }, (_, i) => 2012 + i);
-const AMBER = '#ffd56a';
+const AMBER = '--data-lights'; // design-token name (css/tokens.css), resolved at draw time
 
 /** Tracks whose map is split into named classes, each played by its own instrument. */
 const CLASS_TRACKS = {
@@ -165,7 +166,7 @@ let lightning = null; // LightningSource, created when track 4 is first chosen
 
 const liveScan = new LiveRingScan(engine, {
   onStep: ({ ring }) => {
-    for (const v of ring) v.color = v.struck ? '#ffffff' : '#ffe04d';
+    for (const v of ring) v.color = v.struck ? '--data-strike' : '--data-flash';
     view.setRing(ring);
     const m = motorLevels(ring);
     dial.update(ring.map((v) => v.gain), m, ring.map((v) => v.color));
@@ -371,9 +372,8 @@ function currentMapVoice() {
 
 /** Blue (cold) to red (warm) for the ocean visuals, matching the source colorbar's ends. */
 function tempColor(t) {
-  if (t === null || t === undefined) return '#4a5568';
-  const x = Math.max(0, Math.min(1, t / 32));
-  return `hsl(${Math.round(225 - 225 * x)}, 85%, 58%)`;
+  if (t === null || t === undefined) return '--data-nodata';
+  return mix('--data-cold', '--data-warm', t / 32);
 }
 
 function currentLayers() {
@@ -606,22 +606,22 @@ function setRadius(km) {
 const LEGENDS = {
   nightlights: [
     [AMBER, 'Louder and brighter: more light'],
-    ['#8b95a8', 'Soft hum: unlit land · silence: water'],
+    ['--data-land', 'Soft hum: unlit land · silence: water'],
   ],
   change: [
-    [CHANGE_COLORS.more, 'Purple, more light: high bright sparkle'],
+    [CHANGE_COLORS.more, 'Violet, more light: high bright sparkle'],
     [CHANGE_COLORS.less, 'Orange, less light: low muffled buzz'],
-    [CHANGE_COLORS.same, 'White, little change: soft quiet tone'],
+    [CHANGE_COLORS.same, 'Pale grey, little change: soft quiet tone'],
   ],
   ocean: [
-    [tempColor(2), 'Cold water: dull, dark tone'],
-    [tempColor(28), 'Warm water: bright, rich tone'],
-    ['#4a5568', 'Land: silent'],
+    ['--data-cold', 'Cold water: dull, dark tone'],
+    ['--data-warm', 'Warm water: bright, rich tone'],
+    ['--data-nodata', 'Land: silent'],
   ],
   lightning: [
-    ['#ffe04d', 'New flash: sharp crack in its direction'],
-    ['#b7c0cf', 'Many storms: low thunder rumble'],
-    ['#4a5568', 'Beyond ±52°: no data, silence'],
+    ['--data-flash', 'New flash: sharp crack in its direction'],
+    ['--data-rumble', 'Many storms: low thunder rumble'],
+    ['--data-nodata', 'Beyond ±52°: no data, silence'],
   ],
   aerosols: [
     [AEROSOL_COLORS.smoke, 'Smoke / black carbon: crackle'],
@@ -638,7 +638,7 @@ function renderLegend() {
     const li = document.createElement('li');
     const sw = document.createElement('span');
     sw.className = 'swatch';
-    sw.style.background = color;
+    sw.style.background = `var(${color})`;
     sw.setAttribute('aria-hidden', 'true');
     li.append(sw, text);
     el.appendChild(li);
@@ -1164,6 +1164,13 @@ function isTypingTarget(el) {
 
 function onKey(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // Player shortcuts belong to the Jukebox tab only. Elsewhere only Escape works, and only
+  // to stop sound that is actually playing (e.g. during the demo).
+  if (document.body.dataset.tab !== 'jukebox') {
+    const playing = scan.running || liveScan.running || state.explore || document.body.classList.contains('demo-mode');
+    if (e.key === 'Escape' && playing) { stopAll(); endDemoMode(); e.preventDefault(); }
+    return;
+  }
   const t = e.target;
   // Let native controls keep their own keys; Escape always works.
   if (e.key !== 'Escape' && isTypingTarget(t)) return;
@@ -1260,6 +1267,7 @@ function wire() {
   for (const p of PRESETS) {
     const b = document.createElement('button');
     b.type = 'button';
+    b.className = 'button';
     b.innerHTML = `${p.name} <kbd>${p.key}</kbd>`;
     b.setAttribute('aria-keyshortcuts', p.key);
     b.addEventListener('click', () => applyPreset(p));
@@ -1286,9 +1294,9 @@ function wire() {
 const DEMO_LENGTH_MS = 28000;
 const DEMO_LIGHTNING_AT = 41; // seconds into the video: July 2019, northern summer storms
 const DEMO_CENTRES = {
-  india: { ...PRESETS[0] },
-  sahara: { name: 'West Africa', lat: 14, lon: 0, radiusKm: 2500 },
-  storms: { name: 'Central Africa', lat: 6, lon: 20, radiusKm: 2000 },
+  india: { ...PRESETS[0], zoom: 2.6 },
+  sahara: { name: 'West Africa', lat: 14, lon: 0, radiusKm: 2500, zoom: 2 },
+  storms: { name: 'Central Africa', lat: 6, lon: 20, radiusKm: 2000, zoom: 2.2 },
 };
 
 function caption(text) {
@@ -1312,12 +1320,26 @@ async function demoScan(durationS) {
 function demoCentre(c) {
   state.radiusKm = c.radiusKm;
   setCenter(c, { speak: false });
+  // Framed close enough that the ring and its voices read on a recorded video.
+  view.focus(c.lat, c.lon, c.zoom);
+}
+
+let demoPrepared = null;
+let demoTimers = [];
+
+/** Leaves the full-stage demo presentation and returns to the Demo tab. */
+function endDemoMode() {
+  demoTimers.forEach(clearTimeout);
+  demoTimers = [];
+  caption('');
+  document.body.classList.remove('demo-mode');
+  const start = $('demo-start');
+  start.textContent = 'Play the demo again';
+  start.disabled = false;
 }
 
 async function prepareDemo() {
-  document.body.classList.add('demo-mode');
   const start = $('demo-start');
-  start.hidden = false;
   start.disabled = true;
   start.textContent = 'Preparing the demo…';
   // Everything the scenario touches, loaded before the clock starts.
@@ -1335,16 +1357,21 @@ async function prepareDemo() {
   if (vid.seeking) await seeked;
   start.disabled = false;
   start.textContent = 'Start the 28-second demo';
-  start.focus();
-  const go = async () => {
-    start.hidden = true;
-    window.removeEventListener('keydown', onDemoKey, true);
+  $('demo-status').textContent = 'Ready. Turn your sound on, then press the button.';
+  // The button is the user gesture browsers require before sound; the clock starts here.
+  start.addEventListener('click', async () => {
+    if (document.body.classList.contains('demo-mode')) return;
     await ensureSound();
+    document.body.classList.add('demo-mode');
     runDemo();
-  };
-  const onDemoKey = (e) => { e.preventDefault(); e.stopPropagation(); go(); };
-  start.addEventListener('click', go, { once: true });
-  window.addEventListener('keydown', onDemoKey, { capture: true, once: true });
+  });
+}
+
+/** Called by the site shell when the Demo tab opens: preload once, then wait for the click. */
+export async function openDemo() {
+  await ready;
+  if (!demoPrepared) demoPrepared = prepareDemo();
+  return demoPrepared;
 }
 
 async function runDemo() {
@@ -1386,26 +1413,28 @@ async function runDemo() {
     }],
     [23800, () => {
       if (liveScan.running) toggleLightning();
+      view.resetCamera();
       caption('earthsonar.vercel.app — keyboard-only, screen-reader friendly, open source. Data: NASA SVS.');
       engine.centreNote(0.6);
     }],
     [DEMO_LENGTH_MS, () => {
       stopAll();
-      caption('');
+      view.resetCamera();
       voice.enabled = voiceWas;
+      endDemoMode();
       document.body.dataset.demoDone = 'true';
     }],
   ];
-  for (const [ms, fn] of steps) at(ms, fn);
+  demoTimers = steps.map(([ms, fn]) => at(ms, fn));
 }
 
 // Exposed for manual debugging in the browser console only.
 window.earthsonar = { engine, scan, state, view, controller, onControllerMessage };
 
+// The site shell (js/site.js) imports this module only when the Jukebox or Demo tab opens,
+// so the landing page never downloads player code or map data.
 wire();
-init().then(() => {
-  if (new URLSearchParams(location.search).has('demo')) prepareDemo();
-}).catch((err) => {
+export const ready = init().catch((err) => {
   console.error(err);
   announce('Could not load the map data. Please reload the page.');
 });
