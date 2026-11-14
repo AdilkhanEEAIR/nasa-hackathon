@@ -1208,6 +1208,8 @@ function pollPad() {
   padLoop = requestAnimationFrame(pollPad);
 }
 window.addEventListener('gamepadconnected', () => { if (!padLoop) padLoop = requestAnimationFrame(pollPad); announce('Game controller connected: left stick moves the centre, A starts the scan, X says where you are.'); });
+// A controller connected before the player loaded (on Home) has already fired its event.
+if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) padLoop = requestAnimationFrame(pollPad);
 window.addEventListener('earthsonar:haptics', () => dial.setHaptics({ strong: 0, weak: 0 }, hapticsModule.available));
 
 async function saveWav() {
