@@ -25,7 +25,8 @@
   .grid2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 0.45in; align-items: start; }
   img.shot { width: 100%; max-height: 3.3in; object-fit: cover; object-position: top; border-radius: var(--radius-lg); }
   td { font-size: 15pt; color: var(--ui-text-soft); }
-  table.tight td, table.tight th { padding: 4pt 8pt; font-size: 14pt; }
+  table.tight td, table.tight th { padding: 3pt 8pt; font-size: 13pt; }
+  table.compact td, table.compact th { padding: 2pt 6pt 2pt 0; font-size: 12pt; line-height: 1.25; }
   ul { margin: 0; padding-left: 1.1em; }
   li { margin: 0 0 8pt; }
   table { border-collapse: collapse; width: 100%; }
@@ -100,18 +101,24 @@
 <!-- 4. How it sounds -->
 <section class="slide">
   <p class="eyebrow">How it sounds</p>
-  <h2>One rule, a different voice for every phenomenon</h2>
+  <h2 style="font-size:28pt">Ten tracks, two honest classes, one voice per phenomenon</h2>
   <div class="grid2">
-    <table>
-      <tr><th>Track</th><th>Phenomenon</th><th>Voice</th></tr>
-      <tr><td>01 Night Lights 2012–2023</td><td>City lights</td><td>Warm, twinkling tone</td></tr>
-      <tr><td>02 Aerosols</td><td>Smoke · dust · sea salt · sulfate</td><td>Crackle · dry rustle · surf · buzz</td></tr>
-      <tr><td>03 Lightning (ISS)</td><td>New flash · storm density</td><td>Sharp crack · thunder rumble</td></tr>
-      <tr><td>04 Ocean Temperature</td><td>Ice · cold · mild · warm · hot; currents</td><td>Pure sine → hollow → reedy → rich → bright, faster shimmer; dense currents slide</td></tr>
+    <table class="compact">
+      <tr><th>Track</th><th>Class · scan</th><th>Voice</th></tr>
+      <tr><td>Night Lights 2012–2023</td><td>Data-true · ring</td><td>Warm twinkle</td></tr>
+      <tr><td>Aerosols</td><td>Data-true · ring</td><td>Crackle · rustle · surf · buzz</td></tr>
+      <tr><td>Lightning (ISS)</td><td>Data-true · ring on video</td><td>Crack · thunder</td></tr>
+      <tr><td>Ocean Temperature</td><td>Data-true · ring</td><td>5 bands, sine → bright saw</td></tr>
+      <tr><td>Near-Surface Wind</td><td>Data-true · ring</td><td>Rushing air, whistle</td></tr>
+      <tr><td>Forest Height (GEDI)</td><td>Visual · needle on globe</td><td>Wooden knocks</td></tr>
+      <tr><td>Carbon Dioxide</td><td>Visual · needle on globe</td><td>Thickening hum</td></tr>
+      <tr><td>Air Quality</td><td>Visual · ring in one strip</td><td>Hoarse rasp</td></tr>
+      <tr><td>Atmospheric River</td><td>Visual · needle sweep</td><td>Water drops</td></tr>
+      <tr><td>Ocean Currents</td><td>Visual · needle sweep</td><td>Soft sliding tones</td></tr>
     </table>
     <div>
-      <img class="shot" src="../screenshots/demo-ocean-desktop.jpg" alt="Ocean track over the Gulf Stream">
-      <p class="muted" style="font-size:14pt">Measured, not assumed: the hot equator renders 4.3× brighter than the cold Southern Ocean and shimmers about 3× faster at the same loudness (docs/SOUND_CHECK.md). Major pentatonic scale; loudness matched across tracks.</p>
+      <img class="shot" style="max-height:2.3in; object-position: 40% 90%" src="../screenshots/forest-needle-desktop.jpg" alt="Needle mode: a fixed line reads the turning GEDI forest globe">
+      <p class="muted" style="font-size:13pt"><b>Data-true</b>: values read back from the visualization's own colour scale. <b>Visual</b>: sonifies the picture, not calibrated measurements — said in every intro. Sound differences are measured offline (docs/SOUND_CHECK.md).</p>
     </div>
   </div>
   <div class="foot"><span>EarthSonar</span><span>4 / 7</span></div>
@@ -127,11 +134,10 @@
     <tr><td>GEOS Aerosols, 19 Aug 2025</td><td>5669</td><td>Nearest legend colour → 4 types; no sea salt on land; city dots removed</td></tr>
     <tr><td>Lightning Events Detected from the ISS 2017–2023</td><td>5011</td><td>Yellow dots per video frame; new dots = strikes; official dates (a "2003" typo fixed)</td></tr>
     <tr><td>Global Sea Surface Currents and Temperature (ECCO2)</td><td>3912</td><td>Hue matched to the 0–32 °C colorbar (round-trip error ≤ 1.5 °C)</td></tr>
+    <tr><td>GEOS-FP Near-Surface Wind Speed</td><td>5148</td><td>Nearest colorbar colour, 4–34 m/s (error ≤ 0.41 m/s); logos painted over</td></tr>
+    <tr><td>GEDI Forest Height · DYAMOND CO₂ · Air Quality · Atmospheric River · Perpetual Ocean 2</td><td>4950 · 5196 · 5533 · 4960 · 5425</td><td>Visual: brightness, hue warmth, strip darkness, blue, streak whiteness</td></tr>
   </table>
-  <ul style="margin-top:10pt; font-size:15pt">
-    <li>Fixed rules, never normalised per frame. Frame indices, crops and georeferencing are measured from the pixels (<span class="link">docs/DATA_NOTES.md</span>).</li>
-    <li>Stated limits: the aerosol legend has no amounts · lightning only within ±52° (silence = no data) · the ocean frame is one day, not a trend.</li>
-  </ul>
+  <p style="margin-top:8pt; font-size:13pt">Fixed rules, never normalised per frame; every crop, colorbar and limit is measured and written up in <span class="link">docs/DATA_NOTES.md</span> with SHA-256 checksums.</p>
   <div class="foot"><span>EarthSonar</span><span>5 / 7</span></div>
 </section>
 
@@ -165,7 +171,7 @@
   <div class="grid2">
     <div>
       <ul>
-        <li>72 automated tests: ring geometry, georeferencing, sound mapping, the controller protocol, colour contrast and colour blindness, the 28-second demo, and a silent voice guide on tab changes.</li>
+        <li>81 automated tests: ring geometry, georeferencing, sound mapping, the controller protocol, colour contrast and colour blindness, the 28-second demo, and a silent voice guide on tab changes.</li>
         <li>Byte-exact sound data: browser-decoded grids match the prepared values.</li>
         <li>Values cross-checked against the frames, e.g. ocean: equatorial Pacific 27 °C, Southern Ocean 1 °C.</li>
       </ul>
@@ -177,7 +183,7 @@
     </div>
     <div>
       <p class="lede" style="font-size:22pt"><b>Try it:</b> <span class="link">earthsonar.vercel.app</span></p>
-      <p><b>Demo mode:</b> <span class="link">earthsonar.vercel.app/#demo</span></p>
+      <p><b>Demo (28 s):</b> <span class="link">earthsonar.vercel.app/#demo</span></p>
       <p><b>Code and data notes:</b> <span class="link">github.com/AdilkhanEEAIR/nasa-hackathon</span></p>
       <p class="muted" style="font-size:14pt">AI use: code written with Claude (Anthropic) under the team's direction and review. No AI-generated images, video or audio; all sound is synthesised live by documented rules. Data: NASA Scientific Visualization Studio. Not endorsed by NASA.</p>
     </div>

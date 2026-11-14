@@ -28,7 +28,8 @@ README: [the rule](#value--sound-rule), [the palette](#sound-palette),
 
 **Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
 before sound): what it is → the rule → India 2012 vs 2023 → aerosols → the Gulf Stream on the
-ocean track → lightning → address, exactly 28 s ([`js/demo-plan.js`](js/demo-plan.js)). The old
+ocean track → a North Atlantic storm on the wind track → the Visual forest needle → address,
+exactly 28 s ([`js/demo-plan.js`](js/demo-plan.js)). The old
 address `/?demo` still opens it. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
 slides: [`docs/EarthSonar-slides.pdf`](docs/EarthSonar-slides.pdf).
 
