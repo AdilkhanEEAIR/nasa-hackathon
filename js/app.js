@@ -26,7 +26,7 @@ const NEEDLE_READ = {
 };
 const isSweep = () => isNeedle() && state.manifest[state.track].mode === 'sweep';
 import { LightningSource } from './lightning.js';
-import { Controller } from './serial.js';
+import { haptics as hapticsModule } from './haptics.js';
 import { mix, resetTokens } from './theme.js';
 import { prefs, setPref, mayVoiceSpeak } from './prefs.js';
 import { LiveRingScan } from './scan.js';
@@ -125,38 +125,19 @@ function voiceColor(v) {
   return AMBER;
 }
 
-// ---------------------------------------------------------------- touch: controller and phone
-
-const controller = new Controller({
-  onMessage: (msg) => onControllerMessage(msg),
-  onStatus: (s) => {
-    $('btn-serial').textContent = s === 'connected' ? 'Disconnect controller' : 'Connect controller';
-    $('serial-status').textContent = s === 'connected' ? 'Controller connected.' : 'Controller disconnected.';
-    announce(s === 'connected' ? 'Controller connected.' : 'Controller disconnected.');
-  },
-});
-let phoneVibrate = false;
-let lastBuzz = 0;
+// ---------------------------------------------------------------- touch: phone and game controller
 
 /**
- * Sends the four tactile directions to the controller motors and, as a fallback, pulses a
- * phone's vibration motor with the strongest direction (Android Chrome; iPhones have none).
+ * Sends the N/E/S/W values to the browser haptics (Android vibration, controller rumble; see
+ * js/haptics.js for the rule) and shows the resulting intensity under the dial.
  */
 function haptics(levels) {
-  if (controller.connected) controller.motors(levels);
-  if (phoneVibrate && navigator.vibrate) {
-    const max = Math.max(levels.n, levels.e, levels.s, levels.w);
-    const now = performance.now();
-    if (max > 0.15 && now - lastBuzz > 250) {
-      lastBuzz = now;
-      navigator.vibrate(Math.round(10 + 50 * max));
-    }
-  }
+  dial.setHaptics(hapticsModule.set(levels), hapticsModule.available);
 }
 
 function hapticsOff() {
-  if (controller.connected) controller.stopMotors();
-  if (phoneVibrate && navigator.vibrate) navigator.vibrate(0);
+  hapticsModule.off();
+  dial.setHaptics({ strong: 0, weak: 0 }, hapticsModule.available);
 }
 
 const scan = new RingScan(engine, {
@@ -1189,7 +1170,6 @@ async function toggleExplore(force) {
 let joy = { x: 0, y: 0 };
 let joyTimer = 0;
 let joyMoved = false;
-let lastPotStep = null;
 
 /**
  * Joystick: moves the centre smoothly (about 6 degrees per second at full tilt, half that in
@@ -1209,48 +1189,26 @@ function joyTick() {
   joyMoved = true;
 }
 
-function onControllerMessage(msg) {
-  if (msg.type === 'hello') {
-    $('serial-status').textContent = `Controller "${msg.name}" (protocol ${msg.version}) connected.`;
-  } else if (msg.type === 'joy') {
-    joy = msg;
-    if ((msg.x || msg.y) && !joyTimer) joyTimer = setInterval(joyTick, 50);
-  } else if (msg.type === 'pot') {
-    // The knob picks a step on the current track: a year, a moment in the video, or a ring size.
-    if (state.track === 'nightlights') {
-      const step = Math.round((msg.value / 1000) * (YEARS.length - 1));
-      if (step !== lastPotStep) { lastPotStep = step; setYear(YEARS[step]); }
-    } else if (state.track === 'lightning' && lightning && lightning.ready) {
-      const step = Math.round((msg.value / 1000) * 100);
-      if (step !== lastPotStep) { lastPotStep = step; seekLightning(0, (step / 100) * $('map-video').duration); }
-    } else {
-      const step = Math.round((msg.value / 1000) * 15);
-      if (step !== lastPotStep) { lastPotStep = step; setRadius(250 + step * 250); }
-    }
-  } else if (msg.type === 'button' && msg.pressed) {
-    ensureSound();
-    if (msg.id === 1) toggleScan();
-    else whereAmI();
-  }
+// Game controller (Gamepad API): left stick moves the centre like the arrow keys, A / Cross
+// starts or stops the scan, X / Square asks "Where am I". Polled only while a pad is connected.
+let padPrev = [];
+let padLoop = 0;
+function pollPad() {
+  padLoop = 0;
+  const pads = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  const p = pads[0];
+  if (!p) { joy = { x: 0, y: 0 }; return; }
+  const dz = (v) => (Math.abs(v) < 0.2 ? 0 : v);
+  joy = { x: Math.round(dz(p.axes[0] || 0) * 100), y: Math.round(-dz(p.axes[1] || 0) * 100) };
+  if ((joy.x || joy.y) && !joyTimer) joyTimer = setInterval(joyTick, 50);
+  const down = (i) => !!(p.buttons[i] && p.buttons[i].pressed);
+  if (down(0) && !padPrev[0]) { ensureSound(); toggleScan(); }
+  if (down(2) && !padPrev[2]) { ensureSound(); whereAmI(); }
+  padPrev = [down(0), false, down(2)];
+  padLoop = requestAnimationFrame(pollPad);
 }
-
-async function toggleController() {
-  if (!Controller.supported) {
-    announce('This browser has no Web Serial. Use Chrome or Edge on a computer; everything else works without the controller.');
-    return;
-  }
-  if (controller.connected) {
-    controller.stopMotors();
-    try { await controller.port.close(); } catch { /* already closed */ }
-    controller._closed();
-    return;
-  }
-  try {
-    await controller.connect();
-  } catch (err) {
-    announce('No controller selected.');
-  }
-}
+window.addEventListener('gamepadconnected', () => { if (!padLoop) padLoop = requestAnimationFrame(pollPad); announce('Game controller connected: left stick moves the centre, A starts the scan, X says where you are.'); });
+window.addEventListener('earthsonar:haptics', () => dial.setHaptics({ strong: 0, weak: 0 }, hapticsModule.available));
 
 async function saveWav() {
   if (state.busy || !requireReadyTrack()) return;
@@ -1477,18 +1435,6 @@ function wire() {
   $('btn-sweep').addEventListener('click', yearSweep);
   $('btn-where').addEventListener('click', whereAmI);
   $('btn-explore').addEventListener('click', () => toggleExplore());
-  $('btn-serial').addEventListener('click', toggleController);
-  if (!Controller.supported) {
-    $('serial-status').textContent = 'Needs Chrome or Edge on a computer (Web Serial). Everything else works without it.';
-  }
-  if ('vibrate' in navigator && matchMedia('(pointer: coarse)').matches) {
-    $('vibrate-row').hidden = false;
-    $('vibrate').addEventListener('change', (e) => {
-      phoneVibrate = e.target.checked;
-      if (phoneVibrate) navigator.vibrate(40);
-      announce(`Phone vibration ${phoneVibrate ? 'on' : 'off'}.`);
-    });
-  }
   $('btn-wav').addEventListener('click', saveWav);
   $('btn-tutorial').addEventListener('click', tutorial);
   $('btn-prev-year').addEventListener('click', () => setYear(state.year - 1));
@@ -1807,7 +1753,7 @@ function needleSummary() {
 }
 
 // Exposed for manual debugging in the browser console only.
-window.earthsonar = { engine, scan, state, view, controller, onControllerMessage, get needle() { return needle; } };
+window.earthsonar = { engine, scan, state, view, haptics: hapticsModule, get needle() { return needle; } };
 
 // The site shell (js/site.js) imports this module only when the Jukebox or Demo tab opens,
 // so the landing page never downloads player code or map data.

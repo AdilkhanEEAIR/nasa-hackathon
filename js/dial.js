@@ -1,5 +1,5 @@
-// "Now sounding" instruments: the 16 ring voices laid out as a compass, and the four tactile
-// directions the controller motors will play. Drawn on their own small canvas so updating
+// "Now sounding" instruments: the 16 ring voices laid out as a compass and, where vibration is
+// available, two haptic-intensity bars (heavy and light motor; one phone motor uses the larger). Drawn on their own small canvas so updating
 // them never touches page layout or the audio thread. All colours and sizes are tokens.
 
 import { token, num } from './theme.js';
@@ -12,6 +12,8 @@ export class VoiceDial {
     this.ctx = canvas.getContext('2d');
     this.levels = new Float32Array(16);
     this.motors = { n: 0, e: 0, s: 0, w: 0 };
+    this.haptic = { strong: 0, weak: 0 };
+    this.hapticOn = false;  // bars only where vibration is really available
     this.colors = null;     // per-voice token names, e.g. '--data-dust'
     this.highlight = null;  // bearing to emphasise during the tutorial
     this.draw();
@@ -29,6 +31,12 @@ export class VoiceDial {
     this.colors = null;
     this.levels.fill(0);
     this.motors = { n: 0, e: 0, s: 0, w: 0 };
+    this.draw();
+  }
+
+  setHaptics(intensity, available) {
+    this.haptic = intensity;
+    this.hapticOn = !!available;
     this.draw();
   }
 
@@ -87,14 +95,15 @@ export class VoiceDial {
     ctx.fillText('high', cx, cy - r0 * 0.45);
     ctx.fillText('low', cx, cy + r0 * 0.45);
 
-    // Tactile compass: four motor bars under the dial.
+    // Haptic intensity: what the phone or controller is vibrating right now.
+    if (!this.hapticOn) return;
     const top = w + 8;
     const bh = h - top - 24;
-    const colW = w / 4;
-    [['n', 'N'], ['e', 'E'], ['s', 'S'], ['w', 'W']].forEach(([key, label], i) => {
-      const x = colW * i + colW * 0.32;
-      const bw = colW * 0.36;
-      const v = Math.min(1, this.motors[key] || 0);
+    const colW = w / 2;
+    [['strong', 'heavy'], ['weak', 'light']].forEach(([key, label], i) => {
+      const x = colW * i + colW * 0.38;
+      const bw = colW * 0.24;
+      const v = Math.min(1, this.haptic[key] || 0);
       ctx.fillStyle = token('--dial-bar-track');
       ctx.fillRect(x, top, bw, bh);
       ctx.fillStyle = token('--data-tactile');

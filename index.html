@@ -33,6 +33,11 @@
             <label for="pref-large">Large text and high contrast</label>
           </div>
           <p id="pref-large-hint" class="caption">Bigger text and buttons, stronger contrast, a thicker ring and focus outline.</p>
+          <div class="check" id="pref-haptics-row" hidden>
+            <input id="pref-haptics" type="checkbox" aria-describedby="pref-haptics-hint">
+            <label for="pref-haptics">Haptics</label>
+          </div>
+          <p id="pref-haptics-hint" class="caption">Vibration is not available here: iPhone browsers do not allow it, and on a computer it needs a game controller with rumble in Chrome or Edge.</p>
           <p class="caption">Saved in this browser. Scan sound is the same in every mode.</p>
         </div>
       </div>
@@ -95,7 +100,7 @@
         </section>
         <section class="reveal" aria-labelledby="home-access">
           <h2 id="home-access" class="section-title">Made to work without a screen</h2>
-          <p class="home-copy">Keyboard only, live updates for screen readers, an optional voice guide, and a controller you can feel.</p>
+          <p class="home-copy">Keyboard only, live updates for screen readers, an optional voice guide, and you can feel it: phone vibration on Android, rumble on a game controller.</p>
         </section>
       </div>
     </section>
@@ -167,8 +172,8 @@
         <aside class="instruments" aria-labelledby="inst-title">
           <h2 id="inst-title" class="eyebrow">Now sounding</h2>
           <canvas id="dial" class="dial" width="260" height="350" role="img"
-                  aria-label="Sixteen ring voices arranged as a compass, and four bars for the tactile controller: north, east, south, west."></canvas>
-          <p class="caption">16 voices around the ring. Bars: the four vibration motors.</p>
+                  aria-label="Sixteen ring voices arranged as a compass; when vibration is available, two bars show the haptic intensity."></canvas>
+          <p class="caption" id="dial-caption">16 voices around the ring.</p>
 
           <div class="field" role="group" aria-labelledby="year-label">
             <span id="year-label" class="label">Year</span>
@@ -211,15 +216,6 @@
           </div>
           <p id="voice-hint" class="caption">Speaks track intros, "Where am I" and scan results. Off by default; the same switch as the Accessibility menu.</p>
 
-          <div class="field" role="group" aria-labelledby="touch-label">
-            <span id="touch-label" class="label">Touch</span>
-            <button id="btn-serial" type="button" class="button" aria-describedby="serial-status">Connect controller</button>
-            <p id="serial-status" class="caption" role="status">Arduino with joystick and four vibration motors, by USB. Chrome or Edge on a computer.</p>
-            <div class="check" id="vibrate-row" hidden>
-              <input id="vibrate" type="checkbox">
-              <label for="vibrate">Phone vibration (Android)</label>
-            </div>
-          </div>
         </aside>
       </div>
 

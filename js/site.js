@@ -8,6 +8,7 @@
 
 import { prefs, setPref, applyPrefs } from './prefs.js';
 import { BRAND } from './brand.js';
+import { haptics } from './haptics.js';
 
 const TABS = ['home', 'jukebox', 'demo'];
 const HEAVY = new Set(['jukebox', 'demo']);
@@ -23,7 +24,7 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 // list equal to the real import graph.
 export const PLAYER_MODULES = [
   'app.js', 'audio.js', 'brand.js', 'camera.js', 'demo-plan.js', 'dial.js', 'fields.js', 'geo.js', 'lightning.js', 'loader.js',
-  'music.js', 'needle.js', 'places.js', 'prefs.js', 'scan.js', 'serial.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
+  'music.js', 'needle.js', 'places.js', 'prefs.js', 'scan.js', 'haptics.js', 'speech.js', 'theme.js', 'tracks.js', 'view.js', 'wav.js',
 ];
 
 let preloaded = false;
@@ -194,6 +195,7 @@ function wireAccessibility() {
   toggle.addEventListener('click', () => open(panel.hidden));
   for (const [k, el] of Object.entries(boxes)) el.addEventListener('change', () => setPref(k, el.checked));
   window.addEventListener('earthsonar:prefs', sync);
+  wireHaptics();
   panel.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.stopPropagation(); open(false); toggle.focus(); }
   });
@@ -206,6 +208,34 @@ function wireAccessibility() {
       open(true, { focus: true });
     }
   });
+}
+
+// Haptics switch: shown only where vibration really works (an Android phone, or a computer
+// with a game controller that can rumble); elsewhere one line says why. Never saved: vibration
+// starts only after the user switches it on in this visit.
+function wireHaptics() {
+  const row = document.getElementById('pref-haptics-row');
+  const box = document.getElementById('pref-haptics');
+  const hint = document.getElementById('pref-haptics-hint');
+  const NO = hint.textContent;
+  const update = () => {
+    const ok = haptics.available;
+    row.hidden = !ok;
+    hint.textContent = !ok ? NO : haptics.phone ? 'Phone vibration follows the value under the scan.'
+      : 'Controller rumble follows the value under the scan: the heavy motor carries the south (low notes), the light motor the north (high notes).';
+    if (!ok && haptics.enabled) { haptics.enabled = false; box.checked = false; haptics.off(); }
+    document.body.dataset.haptics = String(ok);
+    window.dispatchEvent(new CustomEvent('earthsonar:haptics'));
+  };
+  box.addEventListener('change', () => {
+    haptics.enabled = box.checked;
+    if (box.checked) haptics.set({ s: 0.6, n: 0.6 }); else haptics.off();
+  });
+  window.addEventListener('gamepadconnected', update);
+  window.addEventListener('gamepaddisconnected', update);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') haptics.off(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) haptics.off(); });
+  update();
 }
 
 // ---------------------------------------------------------------- start
