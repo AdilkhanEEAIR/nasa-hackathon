@@ -1,585 +1,312 @@
 # Sixth Sense — Hear and feel Earth data
 
-*(Formerly EarthSonar; the site address stays https://earthsonar.vercel.app.)*
+**Team Rococo**
 
-**Hear the planet change.** Sixth Sense turns NASA Earth Information Center (EIC) visualizations
-into live sound. A ring of sound sweeps in from far away toward any place you choose, so you
-can *hear* where the lights, dust, smoke or lightning are around it. It is built first for
-blind and low-vision people and works with the keyboard alone.
+Members:
 
-**Live site:** https://earthsonar.vercel.app
+- Dzhanteliev Adilkhan
+- Sakybaev Meder
+- Osmonbaev Aibek
+- Emilev Bektur
 
-NASA Space Apps Challenge 2026 · Challenge: *The Earth Information Jukebox* · Bishkek
+Ala-Too International University, Bishkek, Kyrgyzstan
+NASA Space Apps Challenge 2026, 14–15 November 2026
+Challenge: **The Earth Information Jukebox**
 
-![The Sixth Sense jukebox during a ring scan around India, 2012](docs/screenshots/jukebox-scan-desktop.jpg)
-
-The site has three tabs, each with its own address:
-
-| Tab | Address | What is there |
-|---|---|---|
-| Home | https://earthsonar.vercel.app/#home | One sentence, a way into the jukebox and the demo, the rule in short |
-| Jukebox | https://earthsonar.vercel.app/#jukebox | The player: pick a track, press Space; T plays the sound rule as a short tutorial |
-| Demo | https://earthsonar.vercel.app/#demo | A fixed 28-second scenario with English subtitles |
-
-The site footer keeps a compact source line ("Data: NASA Scientific Visualization Studio"),
-which opens the full list of sources with SVS IDs and credits, plus the Natural Earth and AI
-notes. The former *How it works*, *Data & Credits* and *Hardware* tabs were folded into this
-README: [the rule](#value--sound-rule), [the palette](#sound-palette),
-[limitations](#limitations-please-read), [credits](#credits-and-references) and
-[haptics](#haptics-phone-and-game-controller). Old links to `#how`, `#data` and `#hardware` open Home.
-
-**Demo:** https://earthsonar.vercel.app/#demo starts after one click (browsers need a gesture
-before sound) and plays a 28 s cinema cut, full-screen with large English subtitles: the title
-card → night lights over Europe, 2023 → aerosols over West and Central Africa (dust and smoke)
-→ lightning seen from space with the ring closing slowly → an end card with the address
-([`js/demo-plan.js`](js/demo-plan.js)). The old
-address `/?demo` still opens it. Submission texts: [`docs/SUBMISSION.md`](docs/SUBMISSION.md) ·
-slides: [`docs/SixthSense-slides.pdf`](docs/SixthSense-slides.pdf).
-
-| Home | Jukebox on a phone | Demo |
-|---|---|---|
-| ![Home tab](docs/screenshots/home-desktop.jpg) | ![Jukebox on a phone during a scan](docs/screenshots/jukebox-scan-phone.jpg) | ![Demo with subtitles under the map](docs/screenshots/demo-desktop.jpg) |
-
-| Track | Status |
+| | |
 |---|---|
-| 01 Night Lights 2012–2023 | ✅ available |
-| 02 Aerosols (dust, black carbon, sea salt, sulfate) | ✅ available |
-| 03 Lightning from the ISS, 2017–2023 | ✅ available (Save as WAV not yet for video) |
-| 04 Ocean Temperature, 19 June 2007 | ✅ available |
-| 05 Near-Surface Wind, 29 Oct 2026 (SVS 5148, GEOS-FP) | ✅ available · Data-true |
-| 06 Forest Height, GEDI 2019–2020 (SVS 4950) | ✅ available · **Visual** (needle on a turning globe) — sonifies the picture, not calibrated measurements |
-| 07 Carbon Dioxide, DYAMOND model, Jan–Feb 2020 (SVS 5196) | ✅ available · **Visual** (needle on an orbiting globe) — sonifies the picture, not ppm |
-| 08 Atmospheric River, MERRA-2 (SVS 4960) | ✅ available · **Visual** (needle sweep across one still frame) |
-| ~~09 Ocean Currents, Perpetual Ocean 2 (SVS 5425)~~ | disabled on the site in November 2026; its code stays in the repository |
+| Live site | https://earthsonar.vercel.app |
+| Demo (28 seconds, English captions) | https://earthsonar.vercel.app/#demo |
+| Slides (7 pages, PDF) | [docs/SixthSense-slides.pdf](docs/SixthSense-slides.pdf) |
+| Sound design, track by track | [docs/SOUND_DESIGN.md](docs/SOUND_DESIGN.md) |
 
-| ~~What Changed, 2012 → 2023~~ | removed in November 2026 to keep the jukebox focused; its rule is kept below for the record |
-| Accessibility switch (first on every page, Alt+A) | ✅ voice guide (off by default) and large text with high contrast |
-| Explore mode | ✅ available (E explores point by point, W names the place) |
-| Home: live ring over 2023 night lights | ✅ silent until "Hear this ring", which opens the jukebox there |
-| Haptics: Android phone vibration, game-controller rumble | ✅ in the Accessibility menu where the device supports it (checked in emulation; real devices still to test) |
+![Home page of Sixth Sense](docs/screenshots/home-desktop.jpg)
 
----
+## Summary
 
-## How it works: a sonar for Earth data
+**What it is.** Sixth Sense is a web jukebox that turns NASA Earth Information Center
+visualizations into live sound and vibration. You choose one of eight tracks and a place on
+Earth; a ring of sound closes in on that place and you hear what the map shows around it.
 
-1. Choose a centre: one of the track's presets (keys 1–5), or any point (arrow keys or a
-   click). Each track has presets where its own data has contrast: cities for night lights,
-   plumes for aerosols, storm hot spots for lightning, temperature fronts for the ocean.
-2. A ring starts **1,500 km** away (adjustable) and shrinks onto the centre over 8 seconds.
-3. The ring has 16 voices, one for each compass direction.
-   - **Pitch is north–south:** voices on the north side of the ring sound high, voices on the
-     south side sound low.
-   - **Stereo is west–east:** west is in the left ear, east is in the right ear.
-   - So a high note in your right ear means "north-east of the centre".
-4. **Loudness and brightness are the data.** Where the ring passes over more light, its voice
-   gets louder and brighter. Unlit land is a soft muffled hum, water is silent, and a click
-   marks a coastline.
-5. At the end the ring meets in **one note: the value at the centre**. A low thud means
-   darkness there.
+**Why it matters.** Earth science reaches the public almost only as pictures. Someone who
+cannot see a map gets none of it. Sixth Sense gives the same visualizations a second and a
+third channel: hearing and touch.
 
-The ring is computed on the sphere (great-circle distance), so it is a true circle on Earth and
-not a circle in map pixels. The same rule applies to every place and every year.
+**How it answers the challenge.** The challenge asks for an "Earth Jukebox" that pairs EIC
+visual frames with dynamic sonifications generated in real time, with accessibility as a core
+theme. Sixth Sense reads the pixels of NASA SVS frames in the browser and synthesises every
+sound at the moment of listening. Nothing is pre-recorded. It works from the keyboard alone
+and with screen readers.
 
-**Play all years (Y):** one note per year from 2012 to 2023, giving the average rendered
-brightness inside the ring on a fixed scale. Higher note = brighter. You hear a decade of
-change in seven seconds.
+## Problem
 
-### Keyboard
+According to the World Health Organization, at least 2.2 billion people have a near or
+distance vision impairment
+([WHO fact sheet, "Blindness and vision impairment"](https://www.who.int/news-room/fact-sheets/detail/blindness-and-visual-impairment)).
+NASA's visualizations of night lights, aerosols, storms and oceans are made for the eye, so
+this audience is left out of some of the clearest stories about our changing planet. An image
+sonification that sweeps a line across the picture gives time order, but no sense of *where*
+things are around a place the listener cares about.
+
+## Solution
+
+**One idea:** a ring of sound that shrinks onto a point you choose, so the map becomes an
+audible compass.
+
+- High notes come from the north, low notes from the south.
+- The left ear is west, the right ear is east.
+- Louder and brighter means more.
+- The instrument tells you what it is: lightning cracks, dust rustles, smoke crackles, wind
+  rushes, forest is struck wood.
+
+**What is new compared with a line scan.**
+
+1. **Direction and distance.** The ring is centred on the listener's own place: "a loud, high
+   sound in my right ear" means "something strong to the north-east". What sounds first is far
+   away, what sounds last is close.
+2. **Touch.** The same values drive phone vibration on Android and rumble on a game
+   controller.
+3. **Exploring, not only playing.** Move the centre with the arrow keys, ask "Where am I?",
+   explore point by point, compare years.
+4. **Honest classes.** Five tracks are *Data-true* (values read back from the visualization's
+   own colour scale). Three are *Visual* (they sonify the picture and say so).
+
+![A ring scan over Europe on the Night Lights track](docs/screenshots/jukebox-ring-scan.jpg)
+
+## How it works
+
+### NASA data
+
+All frames come from the NASA Scientific Visualization Studio (SVS). Seven of the eight are in
+the challenge's own resource list; the wind frame (5148) is an SVS page tagged Earth
+Information Center.
+
+| # | Track | NASA SVS visualization | Class · scan |
+|---|---|---|---|
+| 1 | Night Lights 2012–2023 | [Change in Night Lights between 2012 and 2023 – EIC Version (5313)](https://svs.gsfc.nasa.gov/5313/) | Data-true · ring |
+| 2 | Aerosols | [GEOS Aerosols (5669)](https://svs.gsfc.nasa.gov/5669/) | Data-true · ring |
+| 3 | Lightning | [Lightning Events Detected from the ISS 2017–2023 (5011)](https://svs.gsfc.nasa.gov/5011/) | Data-true · ring on video |
+| 4 | Ocean Temperature | [Global Sea Surface Currents and Temperature (3912)](https://svs.gsfc.nasa.gov/3912/) | Data-true · ring |
+| 5 | Near-Surface Wind | [GEOS-FP Near-Surface Wind Speed (5148)](https://svs.gsfc.nasa.gov/5148/) | Data-true · ring |
+| 6 | Forest Height (GEDI) | [GEDI Forest Height (4950)](https://svs.gsfc.nasa.gov/4950/) | Visual · needle on a turning globe |
+| 7 | Carbon Dioxide (DYAMOND) | [DYAMOND Global Carbon Dioxide (5196)](https://svs.gsfc.nasa.gov/5196/) | Visual · needle on an orbiting globe |
+| 8 | Atmospheric River | [A 3D View of an Atmospheric River from an Earth System Model (4960)](https://svs.gsfc.nasa.gov/4960/) | Visual · needle sweep over a still |
+
+Source collection:
+[NASA Earth Information Center content database](https://svs.gsfc.nasa.gov/gallery/earth-information-center/).
+File addresses, sizes, download dates, SHA-256 checksums and every measurement made on the
+frames are in [docs/DATA_NOTES.md](docs/DATA_NOTES.md).
+
+### Method
+
+1. **Prepare.** `tools/prepare_media.py` crops each frame to one clean world map, removes
+   overlays, and writes two files: a lossless *sound grid* (the exact values the sonification
+   uses, so compression can never change a sound) and a lossy *view* for the eyes.
+2. **Read.** In the browser a ring of 16 voices is laid on the sphere around the chosen point
+   (great-circle geometry, not pixels). Each voice averages the values on its own arc, 30 times
+   a second, as the ring shrinks.
+3. **Sound.** Web Audio synthesises each voice live. Direction sets pitch (a major pentatonic
+   scale, so any combination is consonant) and stereo position; the value sets loudness and
+   brightness; the phenomenon sets the instrument. All scales are fixed: the same sound always
+   means the same pixel value, in every year and place.
+4. **Report.** The scan ends with one note for the value at the centre and a sentence in a
+   live region for screen readers.
+
+Globe videos and 3D stills have no flat map, so tracks 6–8 use a **needle**: a vertical line of
+12 voices (top is high) that reads the pixels passing under it.
+
+Every formula, threshold and instrument is written down in
+[docs/SOUND_DESIGN.md](docs/SOUND_DESIGN.md).
+
+![The needle on the turning GEDI forest globe](docs/screenshots/needle-forest.jpg)
+
+### AI tools and what they were used for
+
+- **Claude (Anthropic), through Claude Code:** wrote the code (web app, tests, media
+  preparation scripts, the firmware kept for future work) and drafted the documentation, under
+  the team's direction. The team chose the idea, the datasets and the sound rules, and
+  reviewed, ran and tested the result.
+- **No AI-generated images, video or audio.** Every image is an original NASA SVS frame; every
+  sound is synthesised live from pixel values by fixed, documented rules.
+- No machine learning runs in the product: a transparent ruleset lets every sound be traced
+  back to a pixel.
+- No NASA logos or insignia are used or modified.
+
+### Stack
+
+- A static website: plain HTML, CSS and JavaScript modules, no build step and no third-party
+  JavaScript libraries.
+- Browser APIs: Web Audio, Canvas 2D, Web Speech, Gamepad, Vibration.
+- Media preparation: Python, NumPy, Pillow, FFmpeg.
+- Tests: the Node.js built-in test runner (89 unit tests) and headless-Chrome checks.
+- Hosting: Vercel (static).
+
+## Demo
+
+- **Watch:** https://earthsonar.vercel.app/#demo plays a 28-second demo with English captions:
+  night lights over Europe, aerosols over Africa, lightning seen from the space station.
+- **Try:** open https://earthsonar.vercel.app/#jukebox, press **Space**, and listen with
+  headphones. Sound starts after the first key press or click, as browsers require.
 
 | Key | Action |
 |---|---|
-| Space / Enter | Start or stop a ring scan |
-| Arrow keys (Shift = ×5) | Move the centre by 1° |
-| Page Up / Page Down, `]` / `[` | Next / previous year |
-| Home / End | 2012 / 2023 |
-| 1 … 5 | The current track's presets (night lights: India, China, Bishkek, Europe; aerosols: Sahara dust, Central Africa fires, East China, Indian Ocean sea salt; lightning: Congo Basin, Lake Maracaibo, Florida, Bangladesh; ocean: Gulf Stream, Kuroshio, Agulhas Current, Equatorial Pacific, Southern Ocean front) |
-| `.` / `,` | Bigger / smaller ring |
-| + / − / 0 | Zoom the map in / out / reset (wheel, pinch and drag also work) |
-| L | Show country borders and city names (Natural Earth). Visual only, never sonified |
-| Y | Play all years |
-| W | Where am I: year, centre, land or water, light level |
-| S | Save the current scan as a WAV file |
-| T | 10-second sound tutorial: north, east, south, west, dim vs bright |
+| Space | Play or stop a scan |
 | Shift + 1…8 | Choose a track |
-| C | Coastline clicks on/off |
-| Escape | Stop all sound |
-| V | Voice guide on/off (same setting as the Accessibility menu) |
-| Alt + A | Open the Accessibility menu, from any tab |
+| 1…5 | Jump to one of the track's places |
+| Arrow keys (Shift = ×5) | Move the centre |
+| Page Up / Page Down | Next / previous year (night lights), a month (lightning) |
+| `.` / `,` | Bigger / smaller ring |
+| Y | Summary of the ring, or all years on night lights |
+| W | Where am I? |
+| E | Explore point by point |
+| T | Short sound tutorial |
+| S | Save the scan as a WAV file (map tracks) |
+| L · C · V | Map labels · coastline clicks · voice guide |
+| + / − / 0 | Zoom the picture |
+| Alt + A | Accessibility menu |
+| Esc | Stop all sound |
 
-Sound starts after the first key press or click, because browsers require a user gesture.
-Every action is also a labelled button, so screen-reader users can work by Tab alone.
+### Accessibility
 
----
+- Everything works from the keyboard; every action is also a labelled button.
+- A live region announces every action and result; a screen reader reads them without extra
+  setup.
+- The Accessibility menu comes first on every page: an optional voice guide (off by default),
+  large text with high contrast, and Haptics where the device supports it.
+- `prefers-reduced-motion` is respected; nothing flashes more than about twice a second.
+- AA contrast, colour-blind-checked data colours.
 
-## How we address the challenge
+![The Accessibility menu](docs/screenshots/accessibility-menu.jpg)
 
-Each item below is from the challenge's Objectives and Potential Considerations.
+### Haptics: phone vibration on Android, rumble on a game controller
 
-| Challenge item | Sixth Sense feature | Status |
-|---|---|---|
-| **Objectives** | | |
-| Generate dynamic sonifications from NASA's EIC visual frames | Sound is synthesized live (Web Audio) from the pixels of EIC frames as the ring moves. There are no pre-recorded tracks. | ✅ |
-| Select or experience a specific EIC visualization alongside its soundscape | The map is shown with the moving ring; you choose the year, place and ring size. More visualizations are being added as modes. | ✅ night lights; others in progress |
-| An interactive tool that actively translates the visual data into sound | The whole site is interactive: move, scan, compare years. | ✅ |
-| …or a curated collection of original, generated audio files | **Save scan as WAV** renders any scan (track, year, place, ring size) offline with the same synthesis engine and downloads it, so listeners can build their own playlist of Earth sounds. | ✅ |
-| Use computer vision on color palettes, shapes and pixel densities | Brightness thresholds, light-pixel density along each arc of the ring, hue classes for the change map and aerosol types, dot detection for lightning ([DATA_NOTES](docs/DATA_NOTES.md)). | ✅ brightness, density, change-map hues; aerosols and lightning coming next |
-| Map them to pitch, tempo, instrumentation | Pitch = direction (or value in year sweeps), loudness and filter brightness = value, one instrument per colour class (3 for the change map, 4 for aerosols), tempo = lightning activity. | ✅ pitch, loudness, change-map instruments; aerosols and tempo coming next |
-| ML, open-source synthesis frameworks, or custom data-driven rulesets | A **custom, documented ruleset** (below). We chose transparent rules over ML, so every sound can be traced to a pixel value. | ✅ (no ML, by choice) |
-| Balance data interpretation with artistic, musically pleasing output | Major pentatonic scale (no clashing notes), smooth gain glides, a light synthetic room reverb. The data mapping is fixed and never "improved" per frame. | ✅ |
-| A web-based jukebox | A static website on GitHub Pages: no install, no account. | ✅ |
-| Convey the complexity of our changing planet through sound | Year sweeps (2012–2023) and the change map let you hear a decade of change in a region. | ✅ year sweep; change map in progress |
-| **Potential Considerations** | | |
-| Sonification as non-speech audio | All data is conveyed by non-speech sound. Speech is used only for navigation (place names, years). | ✅ |
-| Extract individual frames from the animations | [`tools/prepare_media.py`](tools/prepare_media.py) extracts the exact frame for each year, measured frame by frame. | ✅ |
-| UX: intuitively select a visualization and start the audio | One key or button to scan; presets for four regions; a "turn sound on" banner. | ✅ |
-| Screen-reader compatibility | Labelled controls, live status region, map description that updates with every change, keyboard-only operation, visible focus. | ✅ |
-| Tactile feedback | Android phone vibration and game-controller rumble that follow the value under the scan ([haptics](#haptics-phone-and-game-controller)). | ✅ in emulation; real devices still to test |
-| Rich descriptive text accompanying the audio | On-screen and live-region summaries ("brightest year…", "at the centre: …"), track intros and an optional voice guide. | ✅ |
-| Map color, brightness, shapes, density to pitch, rhythm, tempo, volume, instrumentation | See *Value → sound rule*. | ✅ / in progress per mode |
-| Strict translation vs musicality | Strict, fixed mapping from value to loudness; musicality comes only from the scale and the timbre. | ✅ |
-| Computer vision, ML, synthesizers, DAWs | Custom computer vision and a browser synthesizer. No ML and no DAW. | ✅ (partly, by choice) |
-| Document the process and the "why" | This README, [DATA_NOTES](docs/DATA_NOTES.md) and commented code. | ✅ |
-| Emotional impact: urgency or beauty | Year sweeps make the human footprint at night audible. Aerosols make the planet's connected air audible (Saharan dust crossing the Atlantic). Ocean Temperature makes the warm tropics and cold polar seas, and their boundaries, audible. **What these tracks do not show:** none of them is a climate trend. Ocean Temperature is one model day (19 June 2007), so it cannot tell you whether the ocean is warming. We do not claim climate trends that these frames do not show. | partial |
+- **Android phone (Chrome):** pulses of 10 to 60 ms, longer for a higher value under the scan.
+- **Game controller (Chrome or Edge):** the left stick moves the centre, A starts the scan,
+  X says where you are. The heavy motor carries the south (low notes), the light motor the
+  north (high notes).
+- The Haptics switch is shown only where vibration works. iPhone and iPad browsers do not
+  offer vibration, and a computer needs a controller with rumble.
+- Checked in browser emulation only. We have not yet tested it on physical devices.
 
----
+<img src="docs/screenshots/home-phone.jpg" alt="Home page on a phone" width="280"> <img src="docs/screenshots/jukebox-phone.jpg" alt="Jukebox on a phone during a scan" width="280">
 
-## Value → sound rule
+## Impact and next steps
 
-The same fixed rule applies to every frame of a dataset. There is no per-frame normalization,
-so equal pixel values always give equal sounds.
+**Who benefits.** Blind and low-vision people first: visitors of science centres, students,
+anyone curious about the planet. Everyone else gets a new way to notice patterns, because the
+ear follows several directions at once.
 
-**Night lights**
+**Reach.** It is a web page: no install, no account, no special hardware. It runs on a
+laptop or a phone.
 
-| Step | Rule |
-|---|---|
-| Pixel → light level | `level = 0` if `max(R,G,B) ≤ 45`, otherwise `(max − 45) / 210`, capped at 1. The base map never exceeds 34 (ice), so unlit land and water are 0. |
-| Arc of the ring → value | Mean light level over sample points every ≤ 40 km along the arc, each averaged over a 3×3 pixel box (about 60 km). |
-| Value → loudness | `gain = min(1, value / 0.08) ^ 0.7` |
-| Value → timbre | Low-pass cutoff from 600 Hz (dim) to 4800 Hz (bright). |
-| Direction → pitch | 9 degrees of G-major pentatonic from G3. North = top degree, south = bottom, east/west = middle. |
-| Direction → stereo | `pan = 0.9 · sin(bearing)` (west left, east right). |
-| Land / water | More than half the arc on land and no lights: quiet hum (320 Hz low-pass). Water: silence. Crossing a coast: a click panned to that direction. |
-| Centre note | Light level at the centre → loudness and brightness of the final chord. Zero gives a low thud. |
-| Year sweep | Mean light level inside the ring disk → 15 pentatonic degrees on a log scale from 0.001 to 0.03, the same for every region and year. |
+**Limits we state openly.**
 
-**What Changed (2012 → 2023)** — *removed from the site; kept here for the record*
+- We sonify the rendered visualization, not raw measurements. Pixel colours are the SVS
+  display mapping, not calibrated radiance, mass or counts.
+- Night-lights pixels are about 21 km wide; the brightest city cores saturate.
+- The aerosol legend has no numbers: type is reliable, amount is relative.
+- Lightning is seen only between about 52° north and south; silence beyond that means
+  "no data".
+- Ocean temperature is one model day (19 June 2007), not a trend.
+- Wind reads from 3.6 to 34 m/s.
+- Tracks 6–8 are Visual: they say where the picture has colour, not calibrated values.
+- Designed for blind and low-vision users. It has **not** yet been tested with blind users,
+  and the planned blindfolded listening test has not been run, so we quote no results.
 
-The change map colours each lit pixel by the direction of change. Sixth Sense gives each
-direction its own instrument. The compass rule (pitch and stereo) and the loudness rule are
-the same as for night lights.
+**Next steps.**
 
-| Pixel class (measured thresholds) | Instrument |
-|---|---|
-| More light, purple: `B > R+10` and `B > G+20` | Triangle wave one octave **up**, bright filter: a high sparkle |
-| Less light, orange: `R > B+30` and `G > B+10` | Sawtooth one octave **down**, dark filter: a low muffled buzz |
-| Little change, any other lit pixel (near-white) | Soft sine at the compass pitch, at 45% loudness, so change stands out |
-| Base map (`max ≤ 45`) | Silent, or a land hum as above |
+1. Listening tests: first blindfolded with sighted volunteers, then with blind and
+   low-vision users, and publish the measured results.
+2. Test haptics on real Android phones and controllers.
+3. More EIC visualizations as tracks, and time series for the ocean and wind.
+4. Interface translations.
 
-- **Centre note:** two rising notes for "more light", two falling notes for "less light", one
-  chord for "little change", a low thud for darkness.
-- **Ring summary (Y):** how the lit area inside the ring divides between the three classes,
-  played as three notes whose loudness is each share, and read out as percentages.
-- The direction of change is reliable. Its magnitude is approximate, because on-map
-  brightness also carries the underlying light level ([DATA_NOTES](docs/DATA_NOTES.md) 1.4).
-
----
-
-**Aerosols (19 August 2025, 20:00 UTC)**
-
-The GEOS aerosol frame colours four particle types, and the legend gives no amounts.
-Sixth Sense classifies each pixel and plays each class on its own instrument.
-
-| Pixel class | Rule | Instrument |
-|---|---|---|
-| Black carbon (smoke) | nearest legend chromaticity (210, 94, 69) | Crackle over a low rumble, like fire |
-| Dust | nearest legend chromaticity (193, 154, 220) | Dry, high rustle (band-passed noise) |
-| Sea salt | nearest legend chromaticity (133, 170, 169); **never on land**, where grey relief has the same chromaticity | Soft surf: low noise that swells and recedes |
-| Sulfate | nearest legend chromaticity (83, 220, 52) | Buzzing square-wave tone |
-| None | max channel < 35, or a small white dot on land (a city of the base map) | Silence, or the land hum |
-
-- **Amount** is brightness above the base map: `(max − 62) / 193` on land and
-  `(max − 35) / 220` over water. It is a relative amount only, because the legend has no
-  scale.
-- **Full loudness** is reached at an arc mean of 0.6. This is fixed for the frame, and the
-  aerosols cover the map far more densely than night lights do.
-- **Ring summary (Y):** each class inside the ring plays on its own instrument, largest share
-  first, and the shares are read out.
-- Classification runs once in `tools/prepare_media.py`, which writes a lossless class grid.
-  On this frame: smoke 1.7% of pixels, dust 3.7%, sea salt 19.4%, sulfate 14.6%.
-
-**Lightning (ISS LIS, March 2017 – July 2023)**
-
-This track is a video. Space plays it while the ring keeps cycling from the outside in.
-Sixth Sense reads every frame at 1024 × 512 as it plays.
-
-| What is read | Rule | Sound |
-|---|---|---|
-| Dot | yellow pixel: `R > 90`, `G > 70`, `B < G − 40` (lines and relief are neutral grey and never pass) | — |
-| Storm density on an arc | mean dot level, full loudness at 0.04 | Low thunder rumble (low-passed noise at the compass pitch) |
-| New flashes on an arc | dots that appeared since the last frame → up to 8 strikes per second per voice (`8·√(level/0.02)`), at most 30 per second in total | Sharp crack plus a short thump at the compass pitch, panned to its direction |
-| Beyond ±52° latitude | outside the sensor's coverage | **Silence: no data, not "no lightning"** |
-
-- The date on screen comes from the official per-frame label file. Its "2003" typo for 2023
-  is corrected.
-- Page Up and Page Down jump about one month.
-- Y says where the lightning is around the centre in the current 10-day window.
-- Each dot is a detection kept on screen for a 10-day rolling window (SVS's rendering). It is
-  not a single real-time strike.
-
-**Ocean Temperature (ECCO2 model, 19 June 2007)**
-
-The frame shows surface current streaks, coloured by sea surface temperature on a fixed
-0–32 °C colorbar.
-
-| What is read | Rule | Sound |
-|---|---|---|
-| Ocean flow pixel | saturation ≥ 90 and value ≥ 40 (PIL HSV, 0–255); grey land and dark gaps fail | — |
-| Temperature | **hue** matched to the official colorbar (`sst_ecco2_cbar.png`), so the brightness of a streak does not change it. Round trip on the colorbar itself: error ≤ 1.5 °C | **Five fixed bands, each its own instrument**, blended between neighbours: ice (0 °C) pure sine, 0.7 Hz shimmer · cold (6 °C) hollow triangle, 1.6 Hz · mild (14 °C) square wave, 3 Hz · warm (22 °C) sawtooth, 5 Hz · hot (29 °C) bright sawtooth an octave up, 8.5 Hz |
-| Sea on an arc | share of the arc that is sea; full loudness at 60 % | Loudness |
-| Current lines on the sea part of the arc | density, mapped from 0.25 (calm) to 0.75 (busy) | **Motion**: a slow glide of pitch (±28 cents) and filter (±900 cents), faster where currents are dense |
-| Land | no flow lines | **Silent** (no land hum on this track) |
-
-- **Why five bands:** with one instrument and brightness only, 6 °C and 27 °C differed by less
-  than an octave of brightness, and the shared land presets left half the ring silent. The
-  measured before/after is in [`docs/SOUND_CHECK.md`](docs/SOUND_CHECK.md): the hot equator
-  now renders 4.3× brighter than the cold Southern Ocean and shimmers about 3× faster, at the
-  same loudness.
-- **Spot checks on the recovered values:** equatorial Pacific 27 °C, Arabian Sea 29 °C,
-  Gulf Stream 25 °C, North Atlantic at 60° N 9 °C, Southern Ocean 1 °C.
-- **Y:** the coldest and warmest directions in the ring and the mean, played as a sweep from
-  cold to warm.
-- **What this track is:** one frame of a model simulation, a snapshot of where water is warm
-  or cold on one day. **What it is not:** a measurement series or a warming trend, and not
-  data below the surface. Values come from rendered colours and are approximate (about ±1.5 °C).
-
-**Near-Surface Wind (GEOS-FP, 29 October 2026, 09:00 UTC) — Data-true**
-
-Speed is read from the official colorbar (0–40 m/s) by nearest colour; calm air under
-3.6 m/s is uncoloured on the map and is silent; the grey hurricane-force end cannot be told
-from the calm ocean base, so readings stop at 34 m/s. Sound: band-passed noise on the compass
-pitch that gets louder and brighter with speed, plus a whistle above about 12 m/s. Agency logos
-printed on the frame are painted over. Details and checksums: DATA_NOTES section 9.
-
-**Two classes of track.** Every track is labelled in the list and in its spoken intro:
-*Data-true* tracks read values back from the visualization's own colour scale; *Visual* tracks
-sonify the picture itself (brightness, hue, motion) and are marked "sonifies the picture, not
-calibrated measurements". Forest Height, Carbon Dioxide and Atmospheric River are Visual;
-the first five tracks are Data-true.
-
-**Needle mode (Visual, rotating globes).** A fixed vertical needle runs down the middle of the
-globe while the planet turns under it; it reads its pixels from top (north, high notes) to
-bottom (south, low notes) in 16 segments. Where it crosses the phenomenon a short note sounds
-at that height and a point on the needle flashes; ocean and space are silent. Forest Height
-finds vegetation by colour (green hue and saturation), not brightness, so dark green at the
-globe's edge and in shadow sounds too; desert, ice, ocean and no-data stripes stay silent. It
-plays dry marimba strikes with a short decay: brighter vegetation strikes louder and faster. Carbon
-Dioxide uses a low hum that thickens as the plume colour warms. Details: DATA_NOTES sections
-10 and 11. Atmospheric River is a single still frame: the needle sweeps across
-the picture from left to right (water drops); DATA_NOTES section 13 explains why only stills were light enough.
-
-### Sound palette
-
-One law for every track:
-- **timbre** says *what* the phenomenon is;
-- **pitch** says *where* it is on the north–south axis;
-- **stereo** says west or east;
-- **loudness** says *how much*.
-
-For noise-based instruments, the centre of the noise band follows the same compass pitch.
-
-| Phenomenon | Instrument |
-|---|---|
-| City lights | Warm triangle tone with a gentle twinkle (5.5 Hz tremolo); it opens up (gets brighter) with more light |
-| Smoke, black carbon | Crackle with a low rumble |
-| Dust | Dry rustle |
-| Sea salt | Soft surf |
-| Sulfate | Buzzing tone |
-| Lightning flash | Sharp crack and thump |
-| Storm density | Low thunder rumble |
-| Sea water, ice-cold → hot | Pure sine → hollow triangle → reedy square → rich sawtooth → bright sawtooth an octave up; the shimmer speeds up from 0.7 to 8.5 Hz |
-| Ocean currents | A slow slide of pitch and colour, faster where current lines are dense |
-| Unlit land / water / coast | Muffled hum / silence / click |
-
-Loudness is matched in two steps, both measured from offline renders:
-- each instrument at full value gives about the same RMS;
-- each track has a fixed trim, so a full scan averages RMS 0.07–0.12 with peaks at or below
-  0.75. Dense and sparse maps sound equally loud, and nothing clips.
-
-## Data and processing
-
-| Visualization | NASA SVS ID | Frames we use |
-|---|---|---|
-| Change in Night Lights between 2012 and 2023 – EIC Version | [5313](https://svs.gsfc.nasa.gov/5313/) | One frame per year from the first, inset-free pass (frames 7 … 235). (The change map, frame 400, fed the removed What Changed track.) |
-| GEOS Aerosols | [5669](https://svs.gsfc.nasa.gov/5669/) | The single frame 2025-08-19 20:00 UTC and its legend. |
-| Lightning Events Detected from the ISS 2017–2023 | [5011](https://svs.gsfc.nasa.gov/5011/) | The Science On a Sphere movie, re-encoded at 30 fps, with per-frame dates from the official `labels.txt`. |
-| Global Sea Surface Currents and Temperature | [3912](https://svs.gsfc.nasa.gov/3912/) | One flat 2048 × 1024 frame (frame 25000, 2007-06-19 12:00 UTC per `flat_ecco2_dates.txt`) and the SST colorbar. |
-
-- All frame indices, crop boxes and map georeferences were measured from the pixels and are
-  documented in [`docs/DATA_NOTES.md`](docs/DATA_NOTES.md).
-- `tools/prepare_media.py` turns the raw downloads (not in this repository: one file is
-  334 MB) into the web files in `media/`. Each file is under 50 MB.
-- The night-lights EIC frame contains the world twice, side by side. We keep one copy, remove
-  the colorbar overlay by patching from the other copy, and roll it so that 180° W is at the
-  left edge.
-- **Lightning dates:** the official SOS `labels.txt` (SVS 5011) writes every 2023 date as
-  **"2003"**: it jumps from December 2022 to January 2003. We correct these to 2023 in
-  `media/lightning/dates.json`.
-
-## Limitations (please read)
-
-- **We sonify the rendered visualization, not the raw measurements.** Pixel colors are the
-  SVS display mapping. They are not calibrated radiance, aerosol mass or flash counts. When we
-  say "brighter", we mean brighter on the rendered map. Changes in individual countries are
-  reported as measured on the map, without interpretation.
-- City lights saturate the color scale in the brightest cores, so the loudest sounds
-  compress real differences between very bright cities.
-- The night-lights map is about 21 km per pixel in our web version, so small towns blend
-  together.
-- **The aerosol legend is categorical** (black carbon, dust, sea salt, sulfate) with no
-  quantitative scale. Brightness is only a relative amount. Sea salt is hard to separate from
-  the grey land base and from faint sulfate. Overlapping plumes blend colors, so we report the
-  dominant type.
-- **Lightning coverage is about ±52° latitude** (the ISS orbit). Silence further north or
-  south means "no data", not "no lightning". Each dot is shown for a 10-day window, so dots
-  are accumulated detections, not individual real-time strikes.
-- **Vibration** works on Android phones (Chrome) and on computers with a rumble-capable game
-  controller (Chrome or Edge). It does not work on iPhone or iPad, or on a computer without
-  such a controller.
-
-## Zoom and pan (visual only)
-
-- The mouse wheel and pinch zoom toward the cursor, dragging moves the map, and a click sets
-  the ring centre. Keys: `+`, `−`, `0`.
-- **Zoom never changes the sound.** The ring is defined in kilometres on the sphere and reads
-  the same sound grids at every zoom level.
-- The ring, its loud arcs and the centre ripple are drawn through the same camera as the map,
-  so they stay geographically aligned. Tests check the screen ↔ map ↔ degrees conversion.
-- Past 1.5× the full-resolution source frame (3840 px) is fetched, for the frame on screen
-  only.
-- Zoom stops at **6×**. Beyond that each source pixel spans about two screen pixels and only
-  gets blurrier.
-- A selected preset, or a centre moved with the arrow keys, is kept in frame.
-
-## Loading speed
-
-**First-screen budget: 0.25 MB.** The Home tab loads only the page, its styles, a small tab
-script and one map picture. The player code and the map data are fetched only when the Jukebox
-or Demo tab opens (they start fetching as soon as you point at or focus a way in). For the
-player the budget covers its code, the manifest, one map view, one sound grid and the land
-mask. Everything else loads after the player is ready: the other years in the background, other
-tracks when you pick them. The audio engine is available at once, and a Space press during
-loading starts the scan as soon as the data arrives.
-
-| Measured on https://earthsonar.vercel.app, cold cache, headless Chrome ([`tools/measure_load.mjs`](tools/measure_load.mjs)) | Fast 4G | Slow 4G | Sent before ready |
-|---|---|---|---|
-| Before (all 12 years as lossless PNG, sequential requests), no warm-up | 3.05 s | 4.74 s | 0.64 MB (7.4 MB total) |
-| After, same method, no warm-up | 2.19 s | 1.58 s | 0.14 MB |
-| After, warm-up + median of 3 runs | 0.85 s | 1.43 s | 0.14 MB |
-| Tabbed site: Home tab (no player code, no map data) | **0.72 s** | **0.77 s** | **0.08 MB** |
-| Tabbed site: Jukebox tab opened by direct link | **1.03 s** | **1.53 s** | **0.17 MB** |
-
-- **Sound and sight are separate files.**
-  - Sound grids are lossless 8-bit PNGs that hold the exact values the sonification uses.
-    A test confirms the browser decodes them byte-for-byte as written.
-  - Map views are WebP (JPEG fallback) and are only for the eyes. One year is a 0.06 MB view
-    plus a 0.03 MB sound grid.
-- Media file names carry a content hash and are served with
-  `Cache-Control: immutable, max-age=1 year`. Repeat visits load them from cache. Only
-  `manifest.json` is re-checked.
-- Long loads show a progress bar, and the live region announces them.
-- Home's live ring loads its own small grid (29 KB) only while Home is shown.
-- **Reload check (14 Nov 2026, production):** the Jukebox opened and reloaded 10 times in a
-  row ([`tools/reload_check.mjs`](tools/reload_check.mjs)): 10/10 ready, no hang, median
-  0.94 s, slowest 2.61 s (the first, cold load), no page errors.
-
-## Design system
-
-All colours, type sizes, spacing, radii, shadows and timings live in one file,
-[`css/tokens.css`](css/tokens.css), in three layers: raw values → purpose (`--ui-text`,
-`--data-dust`) → component (`--overlay-ring`, `--dial-guide`). The map overlay and the voice
-dial are drawn on canvas and read the same tokens through [`js/theme.js`](js/theme.js).
-
-- **Interface colours:** a night-sky palette. Deep blue background (#08183A, below the brand
-  blue #0B3D91, never black), two blue surface levels, blue-tinted text that is not pure white,
-  one yellow accent (#EFC457) for the primary action, the selected tab and the focus ring, and a
-  softened red (#F0604A) used only for Stop, the recording dot and warnings. Colour mood only:
-  no agency logo, emblem or lettering is used anywhere; the mark is our own ring and point.
-- **Data colours** are a separate set: muted, colour-blind-checked, at least 3:1 on the blue
-  background. Cold water is cyan and warm water a soft salmon, so neither is confused with the
-  interface blue, red or yellow (ΔE ≥ 15 under every simulated colour-vision deficiency). The
-  NASA frames themselves keep their original colours.
-- One typeface (the system UI font, nothing to download) on a fixed type scale.
-- [`tests/tokens.test.js`](tests/tokens.test.js) fails if a colour appears anywhere outside the
-  token file (site and slides), if a token is used but not defined, if a text pair falls below
-  WCAG AA, if a data colour drops below 3:1 on the background, if warm or cold water comes
-  close to an interface colour, or if two data colours of one legend get too close (CIE ΔE < 12)
-  for normal vision, deuteranopia, protanopia or tritanopia. Every legend also names its sound,
-  so colour is never the only cue.
-
-## Accessibility
-
-- Works with the keyboard alone, and with or without a screen reader. Tested with keyboard
-  navigation; screen-reader testing is ongoing.
-- A live status region announces every change. The map has a text description that updates
-  with the year and centre.
-- The tabs follow the WAI-ARIA tabs pattern: arrow keys, Home and End move between tabs, and
-  each tab has its own address. Player shortcuts work only in the Jukebox tab, so Space on
-  another tab never starts sound; Escape always stops it.
-- **Accessibility switch, first on every page** (Tab once, or Alt+A from anywhere). Its
-  screen-reader name is "Accessibility options: voice guide, large text and high contrast". Two
-  independent options, remembered in the browser:
-  - **Voice guide**, off by default: screen readers already read every message from the live
-    region. When on, it speaks only in the Jukebox and only track intros, the answer to
-    "Where am I", scan results and the steps of the T lesson. It never speaks on tab changes,
-    and the scan is ducked by 12 dB while it talks. Tests guard these rules.
-  - **Large text and high contrast**: about 20 % larger type, brighter secondary text and
-    borders, a 5 px focus outline, a thicker ring, 56 px buttons.
-  - Neither option changes the scan sound or the demo.
-- Large controls (44 px minimum), a visible yellow focus ring, AA contrast, keyboard hints
-  always on screen in the Jukebox, and a 10-second sound tutorial (T).
-- **Motion shows only what is sounding:**
-  - the shrinking ring, with loud arcs drawn thicker and a soft trail of earlier rings;
-  - a note flash that blooms and fades where a voice turns loud (at most one per voice every
-    0.4 s);
-  - 16 voice bars around a compass and, where vibration is available, two haptic-intensity bars;
-  - a year chip that lights up as its note plays;
-  - one ripple at the centre when the final note sounds.
-- Changes you make from the keyboard are instant, never animated. A track or tab chosen with
-  the pointer fades in; Home blocks fade up once as they scroll into view. Only transform and
-  opacity are animated, or a separate canvas is drawn over the map.
-- Nothing flashes more than about twice per second.
-- With `prefers-reduced-motion`, all transitions become instant and the ripple becomes a static
-  mark. The sound is identical.
-- Designed for blind and low-vision users. Our user tests are blindfolded tests with sighted
-  volunteers; results will be added here only as measured.
-
-## Haptics (phone and game controller)
-
-Optional, and only shown where it works. Switch **Haptics** on in the Accessibility menu
-(Alt+A). The switch appears only when the device can vibrate; elsewhere one line says why.
-Vibration starts only after you switch it on, and stops on Esc, when a scan stops and when
-you leave the tab.
-
-- **Android phone** (Chrome): `navigator.vibrate`. Each pulse lasts 10 to 60 ms, longer for a
-  higher value under the scan; values at or below 0.15 never vibrate; at most four pulses a
-  second.
-- **Game controller on a computer** (Chrome or Edge, Gamepad API): the left stick moves the
-  centre like the arrow keys, **A / Cross** starts or stops the scan, **X / Square** says where
-  you are. Rumble uses both motors: low notes come from the south, so the heavy low-frequency
-  motor carries the south side of the ring; high notes come from the north, so the light
-  high-frequency motor carries the north; east and west add half their value to both. Below
-  0.15 a motor stays still.
-- **Not available:** iPhone and iPad browsers (no vibration API), and computers without a
-  rumble controller.
-- In the Jukebox, two bars under the dial ("heavy", "light") show the haptic intensity. They
-  are hidden where vibration is not available.
-
-## Future work
+### Future work already in the repository
 
 - **A tactile controller.** We designed an Arduino controller (joystick, year knob, button,
-  four vibration motors N/E/S/W) with a text protocol over Web Serial. The protocol and the
-  firmware are in the repository: [`docs/PROTOCOL.md`](docs/PROTOCOL.md) and
-  [`firmware/earthsonar_controller`](firmware/earthsonar_controller/earthsonar_controller.ino),
-  with `js/serial.js` and its tests. It was designed and checked against an emulated board
-  only; it was never tested on a physical device, and the site does not use it.
+  four vibration motors) with a text protocol over Web Serial:
+  [docs/PROTOCOL.md](docs/PROTOCOL.md),
+  [firmware/earthsonar_controller](firmware/earthsonar_controller/earthsonar_controller.ino),
+  `js/serial.js` and its tests. It was designed and checked against an emulated board only.
+  It has never been tested on a physical device, and the site does not use it.
+- **A ninth track** (Perpetual Ocean 2, SVS 5425) is prepared in the code but disabled on the
+  site.
 
-## Run locally
+## Team and references
+
+**Team Rococo:** Dzhanteliev Adilkhan, Sakybaev Meder, Osmonbaev Aibek, Emilev Bektur.
+
+### NASA data and credits
+
+- **Change in Night Lights between 2012 and 2023 – EIC Version**, SVS 5313,
+  https://svs.gsfc.nasa.gov/5313/. NASA's Scientific Visualization Studio; visualizer
+  Kel Elkins (USRA); scientists Zhuosen Wang, Miguel Román, Ranjay Shrestha, Srija
+  Chakraborty, Virginia Kalb. Data: NASA Black Marble, Suomi NPP VIIRS.
+- **GEOS Aerosols**, SVS 5669, https://svs.gsfc.nasa.gov/5669/. NASA Global Modeling and
+  Assimilation Office and NASA's Scientific Visualization Studio; visualizers Joseph V.
+  Ardizzone, Helen-Nicole Kostis; scientist Lesley Ott. Data: GEOS-FP 2 km Replay,
+  DOI 10.5281/zenodo.21893141.
+- **Lightning Events Detected from the International Space Station (ISS) 2017–2023**,
+  SVS 5011, https://svs.gsfc.nasa.gov/5011/. NASA's Scientific Visualization Studio;
+  visualizers Michala Garrison, Greg Shirah, Kel Elkins, Alex Kekesi. Data: Blakeslee, R. J.
+  2020, Quality Controlled Lightning Imaging Sensor (LIS) on International Space Station (ISS)
+  Science Data, NASA Global Hydrology Resource Center DAAC.
+- **Global Sea Surface Currents and Temperature**, SVS 3912, https://svs.gsfc.nasa.gov/3912/.
+  NASA/Goddard Space Flight Center Scientific Visualization Studio; animators Greg Shirah,
+  Horace Mitchell, Eric Sokolowsky; scientists Hong Zhang, Dimitris Menemenlis. Data: ECCO2.
+- **GEOS-FP Near-Surface Wind Speed**, SVS 5148, https://svs.gsfc.nasa.gov/5148/. NASA's
+  Global Modeling and Assimilation Office; visualizer Joseph V. Ardizzone. Data: GEOS-FP.
+  The agency logos printed on that frame are painted over in our copy.
+- **GEDI Forest Height**, SVS 4950, https://svs.gsfc.nasa.gov/4950/. NASA's Scientific
+  Visualization Studio; visualizers Kel Elkins, Horace Mitchell, Greg Shirah; scientists
+  Temilola Fatoyinbo, Atticus Stovall. Data: GEDI L2B RH100.
+- **DYAMOND Global Carbon Dioxide**, SVS 5196, https://svs.gsfc.nasa.gov/5196/. NASA's
+  Scientific Visualization Studio; visualizers AJ Christensen, Greg Shirah, Helen-Nicole
+  Kostis, Mark SubbaRao; scientists Lesley Ott, Brad Weir, William Putman, Tomohiro Oda.
+  Data: DYAMOND (GEOS-MITgcm).
+- **A 3D View of an Atmospheric River from an Earth System Model**, SVS 4960,
+  https://svs.gsfc.nasa.gov/4960/. NASA's Scientific Visualization Studio; visualizers Greg
+  Shirah, Horace Mitchell, Cindy Starr, Kel Elkins; scientists Allison Collow, Natalie
+  Thomas, Michael Bosilovich. Data: MERRA-2.
+
+### Method references
+
+- Data Sonification: Caldwell 73, NASA SVS 13786, https://svs.gsfc.nasa.gov/13786/ (listed in
+  the challenge resources).
+- Sonification of RS Puppis, NASA SVS 14260, https://svs.gsfc.nasa.gov/14260/: a ring moving
+  towards the centre of an image. We reuse only the principle; no part of that image or audio
+  is used.
+
+### Other data, tools and open resources
+
+- World Health Organization, "Blindness and vision impairment" fact sheet,
+  https://www.who.int/news-room/fact-sheets/detail/blindness-and-visual-impairment.
+- Natural Earth 1:110m country borders and populated places (public domain,
+  https://www.naturalearthdata.com): an optional visual label layer, never sonified.
+- FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU), Node.js.
+- Claude (Anthropic), as described under "AI tools" above.
+
+### Run it yourself
 
 ```bash
-python -m http.server 8000      # then open http://localhost:8000
-node --test "tests/*.test.js"   # ring geometry, georeferencing, sound mapping
-python tools/prepare_media.py   # rebuild media/ from datasets/ (needs ffmpeg, numpy, Pillow)
-node tools/screenshots.mjs http://localhost:8000/    # docs/screenshots (headless Chrome)
-node tools/build_slides.mjs http://localhost:8000/   # docs/SixthSense-slides.pdf
-node tools/measure_load.mjs https://earthsonar.vercel.app/
+python tools/dev_server.py 8766        # then open http://localhost:8766/
+node --test "tests/*.test.js"          # unit tests
+node tools/track_switch_check.mjs http://localhost:8766/   # browser check of the scan button
+python tools/prepare_media.py          # rebuild media/ from the raw SVS files (ffmpeg, numpy, Pillow)
+node tools/screenshots.mjs https://earthsonar.vercel.app/  # docs/screenshots
+node tools/build_slides.mjs http://localhost:8766/         # docs/SixthSense-slides.pdf
 ```
 
-Pixel reading needs the page to be served over http(s). Opening `index.html` as a file will
-not work.
+The page must be served over http(s); opening `index.html` as a file will not work, because
+the browser may only read pixels of files from the same origin.
 
-## Use of artificial intelligence
+| Folder | Contents |
+|---|---|
+| `index.html`, `css/`, `js/` | the site |
+| `media/`, `manifest.json` | prepared NASA frames and their index |
+| `docs/` | sound design, data notes, sound measurements, submission texts, slides |
+| `tests/`, `tools/` | unit tests; media preparation, screenshots, slides and browser checks |
+| `firmware/` | future work: the controller firmware |
 
-- **Code and documentation:** written with Claude (Anthropic, Claude Code) under the team's
-  direction. The team reviewed, ran and tested everything. This includes the web app, tests,
-  the media preparation script, the firmware for a future controller (not used by the site), and the drafts of this README,
-  `docs/DATA_NOTES.md` and `docs/PROTOCOL.md`.
-- **Data analysis:** frame measurements were made by scripts written with Claude and checked by
-  looking at the frames.
-- **No AI-generated images, audio or video** are used. All visuals are NASA SVS frames, and all
-  sound is synthesized by the rules above.
-- No NASA logos or insignia are used or modified.
-
-## Credits and references
-
-**NASA visualizations (data used)**
-
-- **Change in Night Lights between 2012 and 2023 – EIC Version**, NASA SVS ID 5313,
-  https://svs.gsfc.nasa.gov/5313/.
-  - Credit: NASA's Scientific Visualization Studio.
-  - Visualizer: Kel Elkins (USRA).
-  - Scientists: Zhuosen Wang (University of Maryland), Miguel Román (Leidos), Ranjay Shrestha
-    (SSAI), Srija Chakraborty (USRA), Virginia Kalb (NASA).
-  - Data: NASA Black Marble, Suomi NPP VIIRS.
-- **GEOS Aerosols**, NASA SVS ID 5669, https://svs.gsfc.nasa.gov/5669/.
-  - Credit: NASA Global Modeling and Assimilation Office (GMAO) and NASA's Scientific
-    Visualization Studio.
-  - Visualizers: Joseph V. Ardizzone, Helen-Nicole Kostis.
-  - Scientist: Lesley Ott.
-  - Data: GEOS-FP 2 km Replay, DOI 10.5281/zenodo.21893141.
-- **Global Sea Surface Currents and Temperature**, NASA SVS ID 3912,
-  https://svs.gsfc.nasa.gov/3912/.
-  - Credit: NASA/Goddard Space Flight Center Scientific Visualization Studio.
-  - Animators: Greg Shirah (NASA/GSFC), Horace Mitchell (NASA/GSFC), Eric Sokolowsky
-    (Global Science and Technology, Inc.).
-  - Producer: Michael Starobin (HTSI).
-  - Scientists: Hong Zhang (UCLA), Dimitris Menemenlis (NASA/JPL Caltech).
-  - Data: ECCO2 (MIT/JPL, MITgcm).
-- **Lightning Events Detected from the International Space Station (ISS) 2017–2023**, NASA SVS
-  ID 5011, https://svs.gsfc.nasa.gov/5011/.
-  - Credit: NASA's Scientific Visualization Studio.
-  - Visualizers: Michala Garrison (SSAI), Greg Shirah (NASA/GSFC), Kel Elkins (USRA),
-    Alex Kekesi (Global Science and Technology, Inc.).
-  - Data: Blakeslee, R. J. 2020, Quality Controlled Lightning Imaging Sensor (LIS) on
-    International Space Station (ISS) Science Data, NASA Global Hydrology Resource Center DAAC.
-  - Base map: Natural Earth Gray Earth.
-  - SOS label file `labels.txt` from the same page.
-- Source collection: NASA Earth Information Center content database,
-  https://svs.gsfc.nasa.gov/gallery/earth-information-center/.
-
-**Map labels (visual layer only, never sonified)**
-
-- Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com (public
-  domain).
-- Files used: `ne_110m_admin_0_boundary_lines_land` and `ne_110m_populated_places_simple`,
-  from the project's official repository `nvkelso/natural-earth-vector`.
-
-**Datasets reviewed and not used**
-
-- SVS 5196 (CO₂), 4950 (GEDI forest height) and 5533 (air quality) were downloaded and
-  checked. None of them lets a pixel colour be turned into a value honestly:
-  - 5196 has a colorbar with no numbers and a transparent low end;
-  - 4950 has globe shading and gaps between orbit tracks;
-  - 5533 has four pollutants in strips, with no scales.
-- Details are in [`docs/DATA_NOTES.md`](docs/DATA_NOTES.md) section 8.
-- For the same reason the "needle" mode for rotating globes was not built.
-
-**Method inspiration**
-
-- Data Sonification: Caldwell 73, NASA SVS ID 13786, https://svs.gsfc.nasa.gov/13786/.
-  Listed in the challenge resources.
-- The ring-scan idea follows NASA's SYSTEM Sounds sonification of RS Puppis
-  (https://svs.gsfc.nasa.gov/14260/), where a ring moves toward the centre of an image. We
-  reuse only the principle; no part of that image or audio is used.
-
-**Software and tools**
-
-- Browser APIs: Web Audio, Web Speech, Canvas 2D, Gamepad, Vibration. No third-party JavaScript
-  libraries.
-- Media preparation: FFmpeg (LGPL/GPL), Python, NumPy (BSD), Pillow (MIT-CMU).
-- Tests: the Node.js built-in test runner.
-
-**Team**
-
-Adilkhan Dzhanteliev (software, data, deployment) and teammates (hardware).
-
-Sixth Sense is an independent Space Apps project and is not endorsed by NASA.
+Sixth Sense is an independent NASA Space Apps Challenge project. It is not affiliated with or
+endorsed by NASA.
