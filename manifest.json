@@ -226,5 +226,23 @@
       -52,
       52
     ]
+  },
+  "ocean": {
+    "source": "NASA SVS 3912",
+    "lon0": -180,
+    "width": 2048,
+    "height": 1024,
+    "view": {
+      "webp": "media/ocean/view-ecco2-25000.e85a2f8fd1.webp",
+      "jpg": "media/ocean/view-ecco2-25000.8ada911d63.jpg"
+    },
+    "sound": "media/ocean/sound-ecco2-25000.939b96ad96.png",
+    "legend": "media/ocean/legend.7c4c25f9ca.png",
+    "validTime": "2007-06-19T12:00Z",
+    "sourceFrame": 25000,
+    "rangeC": [
+      0,
+      32
+    ]
   }
 }

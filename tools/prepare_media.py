@@ -278,6 +278,73 @@ def aerosols(manifest: dict) -> None:
     }
 
 
+OC_FRAME = SRC / "ecco2" / "flat_global_ecco2_2028x1024.25000.jpg"
+OC_CBAR = SRC / "ecco2" / "sst_ecco2_cbar.png"
+OC_DATES = SRC / "ecco2" / "flat_ecco2_dates.txt"
+OC_SAT_MIN, OC_VAL_MIN = 90, 40   # PIL HSV units (0..255): below this a pixel is grey land or a dark gap
+
+
+def ocean_hue_lut() -> np.ndarray:
+    """Temperature (deg C) for every PIL hue 0..255, read from the official colorbar.
+
+    The bar runs 0..32 deg C over x = 14..291 at y = 50. Hue falls monotonically from blue
+    (~161) to red; the last few red pixels wrap past 0 to ~250, so hues above 200 are treated
+    as negative before matching.
+    """
+    bar = np.asarray(Image.open(OC_CBAR).convert("RGB").convert("HSV")).astype(np.int32)[50, 14:292]
+    hues = np.where(bar[:, 0] > 200, bar[:, 0] - 256, bar[:, 0]).astype(np.float64)
+    temps = np.linspace(0, 32, len(hues))
+    lut = np.full(256, np.nan)
+    for h in range(256):
+        hh = h - 256 if h > 200 else h
+        if hh < hues.min() - 6 or hh > hues.max() + 6:
+            continue  # purple/magenta hues that the scale never uses
+        lut[h] = temps[np.abs(hues - hh).argmin()]
+    return lut
+
+
+def ocean_grid(rgb: np.ndarray, lut: np.ndarray) -> np.ndarray:
+    """R = flow present (255) or not, G = temperature as 0..255 over 0..32 deg C."""
+    hsv = np.asarray(Image.fromarray(rgb).convert("HSV")).astype(np.int32)
+    h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    temp = lut[h]
+    flow = (s >= OC_SAT_MIN) & (v >= OC_VAL_MIN) & ~np.isnan(temp)
+    out = np.zeros(rgb.shape, np.uint8)
+    out[..., 0] = np.where(flow, 255, 0)
+    out[..., 1] = np.where(flow, np.round(np.nan_to_num(temp) / 32 * 255), 0).astype(np.uint8)
+    return out
+
+
+def ocean_self_check(lut: np.ndarray) -> None:
+    bar = np.asarray(Image.open(OC_CBAR).convert("RGB"))[50:51, 14:292]
+    g = ocean_grid(bar, lut)[0]
+    t = g[:, 1].astype(np.float64) / 255 * 32
+    expect = np.linspace(0, 32, len(t))
+    err = np.abs(t - expect)[g[:, 0] > 0]
+    assert len(err) > 250 and err.max() <= 1.5, f"colorbar round-trip error {err.max():.2f} C"
+    grey = np.array([[[60, 60, 60], [5, 5, 8]]], np.uint8)
+    assert ocean_grid(grey, lut)[0, :, 0].max() == 0, "grey land / dark gaps must be silent"
+
+
+def ocean(manifest: dict) -> None:
+    print("Ocean temperature")
+    lut = ocean_hue_lut()
+    ocean_self_check(lut)
+    img = Image.open(OC_FRAME).convert("RGB")      # 2048x1024, equirectangular, 180 W at x = 0
+    grid = ocean_grid(np.asarray(img), lut)
+    cover = (grid[..., 0] > 0).mean()
+    print(f"  flow pixels: {cover:.1%} of the frame")
+    frame_no = OC_FRAME.name.split(".")[1]
+    date = next(l.split()[1] for l in OC_DATES.read_text().splitlines() if l.startswith(frame_no))
+    manifest["ocean"] = {
+        "source": "NASA SVS 3912", "lon0": -180, "width": img.width, "height": img.height,
+        "view": publish_view(img, "ocean", f"ecco2-{frame_no}"),
+        "sound": publish_image(Image.fromarray(grid), "ocean", f"sound-ecco2-{frame_no}", format="PNG", optimize=True),
+        "legend": publish(OC_CBAR, "ocean", "legend"),
+        "validTime": date, "sourceFrame": int(frame_no), "rangeC": [0, 32],
+    }
+
+
 def lightning_dates() -> list[str]:
     out = []
     for line in LT_LABELS.read_text().splitlines():
@@ -331,6 +398,7 @@ def main() -> None:
     nightlights(manifest)
     aerosols(manifest)
     lightning(manifest)
+    ocean(manifest)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
     shutil.rmtree(BUILD / "tmp", ignore_errors=True)
 
