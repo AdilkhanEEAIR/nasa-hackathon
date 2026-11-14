@@ -6,6 +6,7 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
+.deep-link #panel-home { display: none; }
 
 html { -webkit-text-size-adjust: 100%; }
 

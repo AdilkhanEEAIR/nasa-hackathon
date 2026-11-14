@@ -63,6 +63,7 @@ function show(id, { focusTab = false, push = false } = {}) {
     panelEl(t).hidden = !on;
   }
   document.body.dataset.tab = id;
+  document.documentElement.classList.remove('deep-link'); // the tabs own visibility from here
   if (push && location.hash !== `#${id}`) history.pushState(null, '', `#${id}`);
   if (focusTab) tabEl(id).focus();
   document.title = id === 'home' ? 'EarthSonar — hear NASA Earth visualizations'

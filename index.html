@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/site.js"></script>
+  <!-- A direct link to another tab hides Home before first paint, so its picture is never
+       fetched on a slow network while the tab script is still loading. -->
+  <script>if (/^#(?!home$)./.test(location.hash) || /[?&]demo/.test(location.search)) document.documentElement.classList.add('deep-link');</script>
 </head>
 <body data-tab="home">
   <a class="skip" href="#main">Skip to content</a>
